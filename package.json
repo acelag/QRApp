@@ -1,0 +1,9 @@
+{
+  "name": "qra-app",
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "install:all": "npm --prefix frontend install && npm --prefix backend install"
+  }
+}
