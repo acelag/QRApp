@@ -28,7 +28,7 @@ export interface Session {
   totalAmount?: number;
 }
 
-const BASE = '/api/sessions';
+const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/sessions`;
 
 export const sessionService = {
   /** Create or return the existing open session for a table (public). */

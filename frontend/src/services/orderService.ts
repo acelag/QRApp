@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { CartItem, Order, OrderStatus } from '../types';
 
-const BASE = '/api';
+const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 export const orderService = {
   placeOrder: (tableId: string, tableNumber: number, items: CartItem[], sessionId?: string, restaurantId?: string) =>

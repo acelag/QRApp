@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Table } from '../types';
 
-const BASE = '/api';
+const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 export const tableService = {
   getTables: () => axios.get<Table[]>(`${BASE}/tables`).then((r) => r.data),
