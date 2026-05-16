@@ -2,13 +2,6 @@ import { Router } from 'express';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 
-// Configure Cloudinary from env vars
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 // Use memory storage — no local disk needed
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -23,6 +16,18 @@ const router = Router();
 
 router.post('/', upload.single('image'), async (req, res) => {
   if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return; }
+
+  // Configure Cloudinary at request time so env vars are always available
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key:    process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  // Debug: log whether keys are present (remove after confirming it works)
+  console.log('Cloudinary config check — cloud_name:', process.env.CLOUDINARY_CLOUD_NAME ? '✓' : '✗ MISSING');
+  console.log('Cloudinary config check — api_key:',    process.env.CLOUDINARY_API_KEY    ? '✓' : '✗ MISSING');
+  console.log('Cloudinary config check — api_secret:', process.env.CLOUDINARY_API_SECRET ? '✓' : '✗ MISSING');
 
   try {
     // Upload buffer to Cloudinary
