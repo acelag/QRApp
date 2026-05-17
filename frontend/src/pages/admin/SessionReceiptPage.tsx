@@ -111,8 +111,12 @@ export function SessionReceiptPage() {
 
       <div className="receipt">
         {/* Header */}
-        <p className="center bold large">THE RESTAURANT</p>
-        <p className="center small">123 Main Street · (555) 000-0000</p>
+        {settings?.logo && (
+          <div style={{ textAlign: 'center', marginBottom: 6 }}>
+            <img src={settings.logo} alt="Logo" style={{ maxWidth: 80, maxHeight: 80, objectFit: 'contain', margin: '0 auto' }} />
+          </div>
+        )}
+        <p className="center bold large">{settings?.name ?? 'RESTAURANT'}</p>
         <Line />
 
         <p className="center bold">TABLE BILL</p>

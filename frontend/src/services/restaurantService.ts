@@ -11,6 +11,7 @@ export interface RestaurantSettings {
   serviceChargePct: number;
   taxPct: number;
   currency: string;
+  logo?: string | null;
 }
 
 export interface BillingCharges {
@@ -58,4 +59,7 @@ export const restaurantService = {
 
   updateCharges: (id: string, charges: BillingCharges) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/charges`, charges).then((r) => r.data),
+
+  updateLogo: (id: string, logo: string | null) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/logo`, { logo }).then((r) => r.data),
 };

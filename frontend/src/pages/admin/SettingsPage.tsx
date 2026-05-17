@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Loader2, CheckCircle, Users, Receipt } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Loader2, CheckCircle, Users, Receipt, ImagePlus, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
+import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 
 export function SettingsPage() {
@@ -27,6 +28,7 @@ export function SettingsPage() {
   const [currency, setCurrency] = useState('USD');
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingSuccess, setBillingSuccess] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -38,6 +40,27 @@ export function SettingsPage() {
       setCurrency(r.currency ?? 'USD');
     });
   }, []);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!restaurant || !e.target.files?.[0]) return;
+    setLogoUploading(true);
+    try {
+      const url = await uploadImage(e.target.files[0]);
+      const updated = await restaurantService.updateLogo(restaurant.id, url);
+      setRestaurant(updated);
+    } catch {
+      // silent — toast is already shown by uploadImage on error
+    } finally {
+      setLogoUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleLogoRemove() {
+    if (!restaurant) return;
+    const updated = await restaurantService.updateLogo(restaurant.id, null);
+    setRestaurant(updated);
+  }
 
   async function saveBilling() {
     if (!restaurant) return;
@@ -255,6 +278,33 @@ export function SettingsPage() {
             <p className="text-xs text-gray-400 -mt-2">
               Service charge applies to dine-in orders only. Tax applies to all orders.
             </p>
+
+            {/* Restaurant logo */}
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-2 block">Restaurant Logo</label>
+              {restaurant.logo ? (
+                <div className="flex items-center gap-3">
+                  <img src={restaurant.logo} alt="Logo" className="w-16 h-16 rounded-xl object-contain border border-gray-200 bg-white" />
+                  <div className="flex flex-col gap-2">
+                    <label className={`cursor-pointer flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-700 font-medium ${logoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <ImagePlus size={15} />
+                      {logoUploading ? 'Uploading…' : 'Change'}
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+                    </label>
+                    <button onClick={handleLogoRemove} className="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-600">
+                      <X size={14} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl px-4 py-5 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-colors ${logoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {logoUploading ? <Loader2 size={18} className="animate-spin text-orange-500" /> : <ImagePlus size={18} className="text-gray-400" />}
+                  <span className="text-sm text-gray-500">{logoUploading ? 'Uploading…' : 'Upload logo'}</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+                </label>
+              )}
+              <p className="text-xs text-gray-400 mt-1.5">Appears on printed receipts and bills</p>
+            </div>
 
             {billingSuccess && (
               <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">

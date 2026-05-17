@@ -134,6 +134,7 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'service_charge_pct', 'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('restaurants', 'tax_pct',            'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('restaurants', 'currency',           "VARCHAR(10) NOT NULL DEFAULT 'USD'");
+  await addCol('restaurants', 'logo',               'VARCHAR(500) NULL');
   await addCol('menu_items',  'discount_pct',        'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('menu_items',  'large_price',         'DECIMAL(10,2) NULL');
   await addCol('menu_items',  'large_discount_pct',  'DECIMAL(5,2) NOT NULL DEFAULT 0');

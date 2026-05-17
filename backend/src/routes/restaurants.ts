@@ -11,6 +11,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   id: row.id, name: row.name, slug: row.slug, active: row.active === true, createdAt: row.created_at,
   serviceChargePct: Number(row.service_charge_pct ?? 0), taxPct: Number(row.tax_pct ?? 0),
   currency: (row.currency as string | null) ?? 'USD',
+  logo: (row.logo as string | null) ?? null,
 });
 
 // ── Public endpoint — no auth required ───────────────────────────────────────
@@ -88,6 +89,16 @@ router.patch('/:id/charges', authenticate, async (req: AuthRequest, res) => {
     : await pool.query('UPDATE restaurants SET service_charge_pct=$1, tax_pct=$2 WHERE id=$3', [sc, tax, id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/logo', authenticate, async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { logo } = req.body as { logo: string | null };
+  await pool.query('UPDATE restaurants SET logo = $1 WHERE id = $2', [logo ?? null, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
 
