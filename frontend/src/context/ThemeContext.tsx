@@ -13,14 +13,37 @@ export const THEME_COLORS = [
   { name: 'Pink',   hex: '#ec4899', light: '#fdf2f8', dark: '#db2777', border: '#fbcfe8', ring: '#f9a8d4' },
 ];
 
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function mix(hex: string, white: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  const v = (c: number) => Math.round(c + (255 - c) * white).toString(16).padStart(2, '0');
+  return `#${v(r)}${v(g)}${v(b)}`;
+}
+
+function darken(hex: string, amount: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  const v = (c: number) => Math.round(c * (1 - amount)).toString(16).padStart(2, '0');
+  return `#${v(r)}${v(g)}${v(b)}`;
+}
+
 export function applyTheme(hex: string) {
-  const t = THEME_COLORS.find((c) => c.hex === hex) ?? THEME_COLORS[0];
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+  const preset = THEME_COLORS.find((c) => c.hex === hex);
+  const light  = preset?.light  ?? mix(hex, 0.92);
+  const dark   = preset?.dark   ?? darken(hex, 0.12);
+  const border = preset?.border ?? mix(hex, 0.70);
+  const ring   = preset?.ring   ?? mix(hex, 0.55);
+
   const root = document.documentElement;
-  root.style.setProperty('--clr',        t.hex);
-  root.style.setProperty('--clr-light',  t.light);
-  root.style.setProperty('--clr-dark',   t.dark);
-  root.style.setProperty('--clr-border', t.border);
-  root.style.setProperty('--clr-ring',   t.ring);
+  root.style.setProperty('--clr',        hex);
+  root.style.setProperty('--clr-light',  light);
+  root.style.setProperty('--clr-dark',   dark);
+  root.style.setProperty('--clr-border', border);
+  root.style.setProperty('--clr-ring',   ring);
 
   // Remap all Tailwind orange utilities to CSS variables — no component changes needed
   let el = document.getElementById('qra-theme');
