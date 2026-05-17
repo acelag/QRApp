@@ -6,6 +6,7 @@ import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
 import type { CartItem } from '../../types/Order';
 import { menuService } from '../../services/menuService';
+import { restaurantService } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
@@ -53,6 +54,7 @@ export function TakeawayMenuPage() {
   const [items, setItems]             = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading]         = useState(true);
+  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null } | null>(null);
 
   const [cart, dispatch]              = useReducer(cartReducer, []);
   const [customerName, setCustomerName] = useState('');
@@ -64,6 +66,7 @@ export function TakeawayMenuPage() {
 
   useEffect(() => {
     if (!restaurantId) return;
+    restaurantService.getRestaurantInfo(restaurantId).then(setRestaurantInfo).catch(() => {});
     Promise.all([
       menuService.getCategories(restaurantId),
       menuService.getItems(restaurantId),
@@ -126,8 +129,10 @@ export function TakeawayMenuPage() {
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center gap-2 mb-1">
-            <ShoppingBag size={20} className="text-purple-500" />
-            <h1 className="text-xl font-bold text-gray-900">Takeaway Order</h1>
+            {restaurantInfo?.logo
+              ? <img src={restaurantInfo.logo} alt="logo" className="w-8 h-8 object-contain rounded-md" />
+              : <ShoppingBag size={20} className="text-purple-500" />}
+            <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? 'Takeaway Order'}</h1>
           </div>
           <p className="text-sm text-gray-400">Browse the menu and tap Add to get started</p>
         </div>

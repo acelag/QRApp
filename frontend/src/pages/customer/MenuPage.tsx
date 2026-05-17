@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import type { Category, MenuItem } from '../../types';
 import { menuService } from '../../services/menuService';
 import { tableService } from '../../services/tableService';
+import { restaurantService } from '../../services/restaurantService';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { MenuCard } from '../../components/MenuCard';
 import { CartButton } from '../../components/CartButton';
@@ -19,6 +20,7 @@ export function MenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null } | null>(null);
 
   useEffect(() => {
     if (!tableIdParam) return;
@@ -26,6 +28,7 @@ export function MenuPage() {
       setTable(table.id, table.number);
       setRestaurant(table.restaurantId);
       loadCurrency(table.restaurantId);
+      restaurantService.getRestaurantInfo(table.restaurantId).then(setRestaurantInfo).catch(() => {});
       return Promise.all([
         menuService.getCategories(table.restaurantId),
         menuService.getItems(table.restaurantId),
@@ -56,8 +59,10 @@ export function MenuPage() {
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <UtensilsCrossed size={20} className="text-orange-500" />
-              <h1 className="text-xl font-bold text-gray-900">Menu</h1>
+              {restaurantInfo?.logo
+                ? <img src={restaurantInfo.logo} alt="logo" className="w-8 h-8 object-contain rounded-md" />
+                : <UtensilsCrossed size={20} className="text-orange-500" />}
+              <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? 'Menu'}</h1>
             </div>
             {tableId && (
               <Link

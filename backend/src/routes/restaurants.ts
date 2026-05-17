@@ -14,11 +14,18 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   logo: (row.logo as string | null) ?? null,
 });
 
-// ── Public endpoint — no auth required ───────────────────────────────────────
+// ── Public endpoints — no auth required ──────────────────────────────────────
 router.get('/:id/currency', async (req, res) => {
   const result = await pool.query('SELECT currency FROM restaurants WHERE id = $1', [req.params.id]);
   if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   res.json({ currency: (result.rows[0] as Record<string, unknown>).currency ?? 'USD' });
+});
+
+router.get('/:id/info', async (req, res) => {
+  const result = await pool.query('SELECT name, logo FROM restaurants WHERE id = $1', [req.params.id]);
+  if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  const row = result.rows[0] as Record<string, unknown>;
+  res.json({ name: row.name, logo: row.logo ?? null });
 });
 
 // ── Authenticated routes ──────────────────────────────────────────────────────

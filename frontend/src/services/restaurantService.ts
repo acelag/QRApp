@@ -57,6 +57,10 @@ export const restaurantService = {
   getRestaurantCurrency: (id: string): Promise<string> =>
     axios.get<{ currency: string }>(`${BASE}/restaurants/${id}/currency`).then((r) => r.data.currency),
 
+  /** Public — no auth required. Returns name and logo for a restaurant. */
+  getRestaurantInfo: (id: string): Promise<{ name: string; logo: string | null }> =>
+    axios.get<{ name: string; logo: string | null }>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
+
   updateCharges: (id: string, charges: BillingCharges) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/charges`, charges).then((r) => r.data),
 
