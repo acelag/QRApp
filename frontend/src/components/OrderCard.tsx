@@ -44,7 +44,15 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
               </>
             )}
             <Clock size={14} className="ml-1" />
-            <span>{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>
+              {(() => {
+                const d = new Date(order.createdAt);
+                const isToday = d.toLocaleDateString('en-CA') === new Date().toLocaleDateString('en-CA');
+                const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                return isToday ? time : `${date}, ${time}`;
+              })()}
+            </span>
           </div>
           <p className="text-xs text-gray-400 mt-0.5">#{order.id.slice(0, 8)}</p>
         </div>
