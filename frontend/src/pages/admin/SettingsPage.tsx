@@ -127,15 +127,36 @@ export function SettingsPage() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6">
-        {/* Current user info */}
+        {/* Current user info + restaurant logo */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xl">
-            {user?.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
+          {/* Logo upload avatar */}
+          <label className="relative cursor-pointer group flex-shrink-0">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden border border-gray-200 bg-orange-50 flex items-center justify-center">
+              {restaurant?.logo
+                ? <img src={restaurant.logo} alt="logo" className="w-full h-full object-contain" />
+                : <span className="text-orange-600 font-bold text-2xl">{user?.name.charAt(0).toUpperCase()}</span>}
+            </div>
+            <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              {logoUploading
+                ? <Loader2 size={16} className="animate-spin text-white" />
+                : <ImagePlus size={16} className="text-white" />}
+            </div>
+            <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+          </label>
+
+          <div className="flex-1 min-w-0">
             <p className="font-semibold text-gray-900">{user?.name}</p>
             <p className="text-sm text-gray-500">@{user?.username} · <span className="capitalize">{user?.role}</span></p>
+            {restaurant && (
+              <p className="text-xs text-gray-400 mt-0.5 truncate">{restaurant.name}</p>
+            )}
           </div>
+
+          {restaurant?.logo && (
+            <button onClick={handleLogoRemove} className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0" title="Remove logo">
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
@@ -278,33 +299,6 @@ export function SettingsPage() {
             <p className="text-xs text-gray-400 -mt-2">
               Service charge applies to dine-in orders only. Tax applies to all orders.
             </p>
-
-            {/* Restaurant logo */}
-            <div>
-              <label className="text-xs font-medium text-gray-600 mb-2 block">Restaurant Logo</label>
-              {restaurant.logo ? (
-                <div className="flex items-center gap-3">
-                  <img src={restaurant.logo} alt="Logo" className="w-16 h-16 rounded-xl object-contain border border-gray-200 bg-white" />
-                  <div className="flex flex-col gap-2">
-                    <label className={`cursor-pointer flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-700 font-medium ${logoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                      <ImagePlus size={15} />
-                      {logoUploading ? 'Uploading…' : 'Change'}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
-                    </label>
-                    <button onClick={handleLogoRemove} className="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-600">
-                      <X size={14} /> Remove
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <label className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl px-4 py-5 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-colors ${logoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {logoUploading ? <Loader2 size={18} className="animate-spin text-orange-500" /> : <ImagePlus size={18} className="text-gray-400" />}
-                  <span className="text-sm text-gray-500">{logoUploading ? 'Uploading…' : 'Upload logo'}</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
-                </label>
-              )}
-              <p className="text-xs text-gray-400 mt-1.5">Appears on printed receipts and bills</p>
-            </div>
 
             {billingSuccess && (
               <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
