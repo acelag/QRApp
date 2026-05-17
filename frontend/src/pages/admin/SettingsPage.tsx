@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
-import { THEME_COLORS, applyTheme } from '../../context/ThemeContext';
+import { applyTheme } from '../../context/ThemeContext';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -406,73 +406,43 @@ export function SettingsPage() {
               </div>
             </div>
 
-            <div className="p-5 space-y-4">
-              {/* Preset swatches */}
-              <div className="grid grid-cols-4 gap-3">
-                {THEME_COLORS.map((t) => {
-                  const active = themeColor === t.hex;
-                  return (
-                    <button
-                      key={t.hex}
-                      onClick={() => saveTheme(t.hex)}
-                      className="flex flex-col items-center gap-2 group"
-                    >
-                      <div
-                        className="w-full aspect-square rounded-2xl transition-transform group-hover:scale-105 flex items-center justify-center shadow-sm"
-                        style={{ backgroundColor: t.hex, outline: active ? `3px solid ${t.hex}` : '3px solid transparent', outlineOffset: 2 }}
-                      >
-                        {active && (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
-                      </div>
-                      <span className={`text-xs font-medium ${active ? 'text-gray-900' : 'text-gray-400'}`}>{t.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Custom colour picker */}
-              <div className="border-t border-gray-50 pt-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Custom Colour</p>
-                <div className="flex items-center gap-3">
-                  <label className="relative cursor-pointer group flex-shrink-0">
-                    <div
-                      className="w-12 h-12 rounded-xl shadow-sm border-2 border-white ring-1 ring-gray-200 transition-transform group-hover:scale-105 overflow-hidden"
-                      style={{ backgroundColor: themeColor }}
-                    />
+            <div className="p-5">
+              <div className="flex items-center gap-3">
+                <label className="relative cursor-pointer group flex-shrink-0">
+                  <div
+                    className="w-14 h-14 rounded-2xl shadow-sm border-2 border-white ring-1 ring-gray-200 transition-transform group-hover:scale-105 overflow-hidden"
+                    style={{ backgroundColor: themeColor }}
+                  />
+                  <input
+                    type="color"
+                    value={themeColor}
+                    onChange={(e) => { applyTheme(e.target.value); setThemeColor(e.target.value); }}
+                    onBlur={(e) => saveTheme(e.target.value)}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                </label>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-3 bg-gray-50">
+                    <span className="text-gray-400 text-sm font-mono">#</span>
                     <input
-                      type="color"
-                      value={themeColor}
-                      onChange={(e) => { applyTheme(e.target.value); setThemeColor(e.target.value); }}
-                      onBlur={(e) => saveTheme(e.target.value)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      type="text"
+                      value={themeColor.replace('#', '')}
+                      onChange={(e) => {
+                        const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+                        setThemeColor(hex);
+                        if (/^#[0-9a-fA-F]{6}$/.test(hex)) applyTheme(hex);
+                      }}
+                      onBlur={(e) => {
+                        const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '');
+                        if (/^#[0-9a-fA-F]{6}$/.test(hex)) saveTheme(hex);
+                      }}
+                      maxLength={6}
+                      className="flex-1 bg-transparent text-sm font-mono text-gray-700 outline-none uppercase tracking-wider"
+                      placeholder="f97316"
                     />
-                  </label>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50">
-                      <span className="text-gray-400 text-sm font-mono">#</span>
-                      <input
-                        type="text"
-                        value={themeColor.replace('#', '')}
-                        onChange={(e) => {
-                          const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
-                          setThemeColor(hex);
-                          if (/^#[0-9a-fA-F]{6}$/.test(hex)) applyTheme(hex);
-                        }}
-                        onBlur={(e) => {
-                          const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '');
-                          if (/^#[0-9a-fA-F]{6}$/.test(hex)) saveTheme(hex);
-                        }}
-                        maxLength={6}
-                        className="flex-1 bg-transparent text-sm font-mono text-gray-700 outline-none uppercase tracking-wider"
-                        placeholder="f97316"
-                      />
-                      {themeSaving && <Loader2 size={13} className="animate-spin text-gray-400 flex-shrink-0" />}
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1.5">Click the swatch or type a hex code</p>
+                    {themeSaving && <Loader2 size={13} className="animate-spin text-gray-400 flex-shrink-0" />}
                   </div>
+                  <p className="text-xs text-gray-400 mt-1.5">Click the swatch to open the colour picker, or type a hex code</p>
                 </div>
               </div>
             </div>
