@@ -4,10 +4,12 @@ import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Se
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
+import { useCurrency } from '../../context/CurrencyContext';
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { fmt } = useCurrency();
   const [orders, setOrders] = useState<Order[]>([]);
 
   function handleLogout() { logout(); navigate('/login', { replace: true }); }
@@ -19,16 +21,17 @@ export function DashboardPage() {
     return () => clearInterval(id);
   }, []);
 
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
   const todayOrders = orders.filter(
-    (o) => new Date(o.createdAt).toDateString() === new Date().toDateString()
+    (o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr
   );
   const activeOrders = orders.filter((o) => o.status !== 'served');
-  const todayRevenue = todayOrders.reduce((s, o) => s + o.totalAmount, 0);
+  const todayRevenue = todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
 
   const stats = [
     { label: "Today's Orders", value: todayOrders.length, icon: ClipboardList, color: 'bg-blue-50 text-blue-600' },
     { label: 'Active Orders', value: activeOrders.length, icon: TrendingUp, color: 'bg-orange-50 text-orange-600' },
-    { label: "Today's Revenue", value: `$${todayRevenue.toFixed(2)}`, icon: TrendingUp, color: 'bg-green-50 text-green-600' },
+    { label: "Today's Revenue", value: fmt(todayRevenue), icon: TrendingUp, color: 'bg-green-50 text-green-600' },
   ];
 
   const navItems = [
