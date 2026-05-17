@@ -404,10 +404,10 @@ export function SettingsPage() {
                 <h2 className="font-semibold text-gray-800">Theme Colour</h2>
                 <p className="text-xs text-gray-400">Applied to buttons, icons and accents across the app</p>
               </div>
-              {themeSaving && <Loader2 size={14} className="animate-spin text-gray-400 flex-shrink-0" />}
             </div>
 
-            <div className="p-5">
+            <div className="p-5 space-y-4">
+              {/* Preset swatches */}
               <div className="grid grid-cols-4 gap-3">
                 {THEME_COLORS.map((t) => {
                   const active = themeColor === t.hex;
@@ -431,6 +431,49 @@ export function SettingsPage() {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Custom colour picker */}
+              <div className="border-t border-gray-50 pt-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Custom Colour</p>
+                <div className="flex items-center gap-3">
+                  <label className="relative cursor-pointer group flex-shrink-0">
+                    <div
+                      className="w-12 h-12 rounded-xl shadow-sm border-2 border-white ring-1 ring-gray-200 transition-transform group-hover:scale-105 overflow-hidden"
+                      style={{ backgroundColor: themeColor }}
+                    />
+                    <input
+                      type="color"
+                      value={themeColor}
+                      onChange={(e) => { applyTheme(e.target.value); setThemeColor(e.target.value); }}
+                      onBlur={(e) => saveTheme(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </label>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50">
+                      <span className="text-gray-400 text-sm font-mono">#</span>
+                      <input
+                        type="text"
+                        value={themeColor.replace('#', '')}
+                        onChange={(e) => {
+                          const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+                          setThemeColor(hex);
+                          if (/^#[0-9a-fA-F]{6}$/.test(hex)) applyTheme(hex);
+                        }}
+                        onBlur={(e) => {
+                          const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '');
+                          if (/^#[0-9a-fA-F]{6}$/.test(hex)) saveTheme(hex);
+                        }}
+                        maxLength={6}
+                        className="flex-1 bg-transparent text-sm font-mono text-gray-700 outline-none uppercase tracking-wider"
+                        placeholder="f97316"
+                      />
+                      {themeSaving && <Loader2 size={13} className="animate-spin text-gray-400 flex-shrink-0" />}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1.5">Click the swatch or type a hex code</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
