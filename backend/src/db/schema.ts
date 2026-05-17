@@ -97,6 +97,26 @@ export async function createSchema(): Promise<void> {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS menu_item_toppings (
+      id           VARCHAR(36)   NOT NULL PRIMARY KEY,
+      menu_item_id VARCHAR(36)   NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+      name         VARCHAR(100)  NOT NULL,
+      price        DECIMAL(10,2) NOT NULL DEFAULT 0,
+      available    BOOLEAN       NOT NULL DEFAULT TRUE
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS order_item_toppings (
+      id            VARCHAR(36)   NOT NULL PRIMARY KEY,
+      order_item_id VARCHAR(36)   NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+      topping_id    VARCHAR(36)   NULL REFERENCES menu_item_toppings(id) ON DELETE SET NULL,
+      name          VARCHAR(100)  NOT NULL,
+      price         DECIMAL(10,2) NOT NULL DEFAULT 0
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id            VARCHAR(36)  NOT NULL PRIMARY KEY,
       restaurant_id VARCHAR(36)  NOT NULL,
@@ -113,7 +133,11 @@ export async function createSchema(): Promise<void> {
   };
   await addCol('restaurants', 'service_charge_pct', 'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('restaurants', 'tax_pct',            'DECIMAL(5,2) NOT NULL DEFAULT 0');
+  await addCol('restaurants', 'currency',           "VARCHAR(10) NOT NULL DEFAULT 'USD'");
   await addCol('menu_items',  'discount_pct',        'DECIMAL(5,2) NOT NULL DEFAULT 0');
+  await addCol('menu_items',  'large_price',         'DECIMAL(10,2) NULL');
+  await addCol('menu_items',  'large_discount_pct',  'DECIMAL(5,2) NOT NULL DEFAULT 0');
+  await addCol('order_items', 'size',                "VARCHAR(10) NULL");
 
   console.log('✓ Schema ready');
 }

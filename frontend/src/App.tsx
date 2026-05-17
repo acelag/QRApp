@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { CurrencyProvider } from './context/CurrencyContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 import { LoginPage } from './pages/LoginPage';
@@ -22,6 +23,7 @@ import { BillsPage } from './pages/admin/BillsPage';
 import { SessionReceiptPage } from './pages/admin/SessionReceiptPage';
 import { RestaurantsPage } from './pages/admin/RestaurantsPage';
 import { TakeawayOrderPage } from './pages/admin/TakeawayOrderPage';
+import { ReportsPage } from './pages/admin/ReportsPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -36,6 +38,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <CurrencyProvider>
         <CartProvider>
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
           <Routes>
@@ -64,6 +67,7 @@ export default function App() {
             <Route path="/admin/bills" element={<ProtectedRoute role="admin"><BillsPage /></ProtectedRoute>} />
             <Route path="/admin/restaurants" element={<ProtectedRoute role="super_admin"><RestaurantsPage /></ProtectedRoute>} />
             <Route path="/admin/takeaway" element={<ProtectedRoute role="admin"><TakeawayOrderPage /></ProtectedRoute>} />
+            <Route path="/admin/reports" element={<ProtectedRoute role="admin"><ReportsPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by both kitchen and admin */}
             <Route path="/kitchen" element={<ProtectedRoute role="any"><KitchenPage /></ProtectedRoute>} />
@@ -71,6 +75,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </CartProvider>
+        </CurrencyProvider>
       </AuthProvider>
     </BrowserRouter>
   );

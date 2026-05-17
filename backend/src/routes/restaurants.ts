@@ -6,14 +6,22 @@ import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest, JWT_SECRET } from '../middleware/auth';
 
 const router = Router();
-router.use(authenticate);
 
 const toRestaurant = (row: Record<string, unknown>) => ({
   id: row.id, name: row.name, slug: row.slug, active: row.active === true, createdAt: row.created_at,
   serviceChargePct: Number(row.service_charge_pct ?? 0), taxPct: Number(row.tax_pct ?? 0),
+  currency: (row.currency as string | null) ?? 'USD',
 });
 
-router.get('/', async (req: AuthRequest, res) => {
+// ── Public endpoint — no auth required ───────────────────────────────────────
+router.get('/:id/currency', async (req, res) => {
+  const result = await pool.query('SELECT currency FROM restaurants WHERE id = $1', [req.params.id]);
+  if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json({ currency: (result.rows[0] as Record<string, unknown>).currency ?? 'USD' });
+});
+
+// ── Authenticated routes ──────────────────────────────────────────────────────
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   if (req.user!.role === 'super_admin') {
     const result = await pool.query('SELECT * FROM restaurants ORDER BY name');
     res.json((result.rows as Record<string, unknown>[]).map(toRestaurant));
@@ -24,7 +32,7 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/:id', async (req: AuthRequest, res) => {
+router.get('/:id', authenticate, async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
   const result = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
@@ -32,13 +40,13 @@ router.get('/:id', async (req: AuthRequest, res) => {
   res.json(toRestaurant(result.rows[0] as Record<string, unknown>));
 });
 
-router.get('/:id/users', requireRole('super_admin'), async (req: AuthRequest, res) => {
+router.get('/:id/users', authenticate, requireRole('super_admin'), async (req: AuthRequest, res) => {
   const result = await pool.query(
     'SELECT id, username, name, role FROM users WHERE restaurant_id = $1 ORDER BY role, username', [req.params.id]);
   res.json(result.rows.map((u: Record<string, unknown>) => ({ id: u.id, username: u.username, name: u.name, role: u.role })));
 });
 
-router.post('/', requireRole('super_admin'), async (req, res) => {
+router.post('/', authenticate, requireRole('super_admin'), async (req, res) => {
   const { name, adminUsername, adminPassword, adminName } = req.body as { name: string; adminUsername: string; adminPassword: string; adminName?: string; };
   if (!name?.trim() || !adminUsername?.trim() || !adminPassword) { res.status(400).json({ error: 'name, adminUsername and adminPassword are required' }); return; }
   const baseSlug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -56,7 +64,7 @@ router.post('/', requireRole('super_admin'), async (req, res) => {
   res.status(201).json({ id: restaurantId, name: name.trim(), slug, active: true, createdAt: now });
 });
 
-router.put('/:id', async (req: AuthRequest, res) => {
+router.put('/:id', authenticate, async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
   const { name } = req.body as { name?: string };
@@ -67,20 +75,23 @@ router.put('/:id', async (req: AuthRequest, res) => {
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
 
-router.patch('/:id/charges', async (req: AuthRequest, res) => {
+router.patch('/:id/charges', authenticate, async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
-  const { serviceChargePct, taxPct } = req.body as { serviceChargePct?: number; taxPct?: number };
+  const { serviceChargePct, taxPct, currency } = req.body as { serviceChargePct?: number; taxPct?: number; currency?: string };
   const toNum = (v: unknown) => { const n = Number(v); return (isNaN(n) || n < 0 || n > 100) ? null : Math.round(n * 100) / 100; };
   const sc = toNum(serviceChargePct); const tax = toNum(taxPct);
   if (sc === null || tax === null) { res.status(400).json({ error: 'Values must be numbers between 0 and 100' }); return; }
-  const result = await pool.query('UPDATE restaurants SET service_charge_pct=$1, tax_pct=$2 WHERE id=$3', [sc, tax, id]);
+  const safeCurrency = typeof currency === 'string' && currency.trim().length > 0 ? currency.trim().toUpperCase() : null;
+  const result = safeCurrency
+    ? await pool.query('UPDATE restaurants SET service_charge_pct=$1, tax_pct=$2, currency=$3 WHERE id=$4', [sc, tax, safeCurrency, id])
+    : await pool.query('UPDATE restaurants SET service_charge_pct=$1, tax_pct=$2 WHERE id=$3', [sc, tax, id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
 
-router.patch('/:id/active', requireRole('super_admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/active', authenticate, requireRole('super_admin'), async (req: AuthRequest, res) => {
   const { id } = req.params; const { active } = req.body as { active: boolean };
   if (typeof active !== 'boolean') { res.status(400).json({ error: 'active (boolean) is required' }); return; }
   const result = await pool.query('UPDATE restaurants SET active = $1 WHERE id = $2', [active, id]);
@@ -88,7 +99,7 @@ router.patch('/:id/active', requireRole('super_admin'), async (req: AuthRequest,
   res.json({ id, active });
 });
 
-router.post('/impersonate/:userId', requireRole('super_admin'), async (_req, res) => {
+router.post('/impersonate/:userId', authenticate, requireRole('super_admin'), async (_req, res) => {
   const result = await pool.query('SELECT * FROM users WHERE id = $1', [_req.params.userId]);
   if (!result.rows.length) { res.status(404).json({ error: 'User not found' }); return; }
   const user = result.rows[0] as Record<string, unknown>;

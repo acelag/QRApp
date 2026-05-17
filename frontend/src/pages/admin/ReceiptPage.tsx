@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
-import { restaurantService, computeCharges, type RestaurantSettings } from '../../services/restaurantService';
+import { restaurantService, computeCharges, getCurrencySymbol, type RestaurantSettings } from '../../services/restaurantService';
 
 function Line({ char = '-' }: { char?: string }) {
   return <p style={{ margin: '4px 0' }}>{char.repeat(32)}</p>;
@@ -44,6 +44,8 @@ export function ReceiptPage() {
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const subtotal = order.totalAmount;
+  const sym = getCurrencySymbol(settings?.currency ?? 'USD');
+  const fmtAmt = (n: number) => `${sym}${n.toFixed(2)}`;
   // Service charge → dine-in only | Tax → all orders
   const charges = computeCharges(subtotal, {
     serviceChargePct: order.orderType === 'dine-in' ? (settings?.serviceChargePct ?? 0) : 0,
@@ -142,46 +144,58 @@ export function ReceiptPage() {
         <Line />
 
         {/* Items */}
-        {order.items.map((item, idx) => (
-          <div key={idx} style={{ marginBottom: 4 }}>
-            <div className="row">
-              <span className="name bold">{item.quantity}x {item.name}</span>
-              <span className="price">${(item.price * item.quantity).toFixed(2)}</span>
+        {order.items.map((item, idx) => {
+          const toppingsTotal = (item.toppings ?? []).reduce((s: number, t: { price: number }) => s + t.price, 0);
+          return (
+            <div key={idx} style={{ marginBottom: 4 }}>
+              <div className="row">
+                <span className="name bold">
+                  {item.quantity}x {item.name}
+                  {item.size ? ` (${item.size === 'large' ? 'Large' : 'Regular'})` : ''}
+                </span>
+                <span className="price">{fmtAmt((item.price + toppingsTotal) * item.quantity)}</span>
+              </div>
+              {(item.toppings ?? []).map((t: { name: string; price: number }, ti: number) => (
+                <div key={ti} className="row small" style={{ paddingLeft: 12 }}>
+                  <span>+ {t.name}</span>
+                  {t.price > 0 && <span>+{fmtAmt(t.price)}</span>}
+                </div>
+              ))}
+              {item.notes && (
+                <p className="small" style={{ paddingLeft: 12, color: '#555' }}>
+                  * {item.notes}
+                </p>
+              )}
+              <div className="row small" style={{ paddingLeft: 12 }}>
+                <span>{fmtAmt(item.price + toppingsTotal)} each</span>
+              </div>
             </div>
-            {item.notes && (
-              <p className="small" style={{ paddingLeft: 12, color: '#555' }}>
-                * {item.notes}
-              </p>
-            )}
-            <div className="row small" style={{ paddingLeft: 12 }}>
-              <span>${item.price.toFixed(2)} each</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         <Line />
 
         {/* Totals */}
         <div className="row">
           <span>Subtotal</span>
-          <span>${subtotal.toFixed(2)}</span>
+          <span>{fmtAmt(subtotal)}</span>
         </div>
         {charges.serviceCharge > 0 && (
           <div className="row">
             <span>Service Charge ({settings?.serviceChargePct}%)</span>
-            <span>${charges.serviceCharge.toFixed(2)}</span>
+            <span>{fmtAmt(charges.serviceCharge)}</span>
           </div>
         )}
         {charges.tax > 0 && (
           <div className="row">
             <span>Tax ({settings?.taxPct}%)</span>
-            <span>${charges.tax.toFixed(2)}</span>
+            <span>{fmtAmt(charges.tax)}</span>
           </div>
         )}
         <Line />
         <div className="total-row">
           <span>TOTAL</span>
-          <span>${charges.grandTotal.toFixed(2)}</span>
+          <span>{fmtAmt(charges.grandTotal)}</span>
         </div>
 
         <Line />

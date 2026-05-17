@@ -4,11 +4,16 @@ import { ArrowLeft, Trash2 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { QuantitySelector } from '../../components/QuantitySelector';
 import { orderService } from '../../services/orderService';
+import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
+
+const cartKey = (menuItemId: string, size?: 'regular' | 'large', toppingIds?: string[]) =>
+  `${menuItemId}|${size ?? 'regular'}|${(toppingIds ?? []).sort().join(',')}`;
 
 export function CartPage() {
   const navigate = useNavigate();
   const { items, tableId, tableNumber, sessionId, restaurantId, total, updateQty, removeItem, updateNotes, clearCart } = useCart();
+  const { fmt } = useCurrency();
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
 
@@ -52,63 +57,88 @@ export function CartPage() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 pt-4 space-y-3">
-        {items.map((item) => (
-          <div key={item.menuItemId} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                <p className="text-orange-600 font-medium text-sm">${item.price.toFixed(2)} each</p>
-              </div>
-              <button onClick={() => removeItem(item.menuItemId)} className="text-red-400 hover:text-red-500 ml-2">
-                <Trash2 size={16} />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <QuantitySelector
-                value={item.quantity}
-                onChange={(q) => updateQty(item.menuItemId, q)}
-                min={0}
-              />
-              <span className="font-bold text-gray-800">${(item.price * item.quantity).toFixed(2)}</span>
-            </div>
-
-            <div className="mt-3">
-              {editingNotes === item.menuItemId ? (
-                <input
-                  autoFocus
-                  type="text"
-                  value={item.notes ?? ''}
-                  onChange={(e) => updateNotes(item.menuItemId, e.target.value)}
-                  onBlur={() => setEditingNotes(null)}
-                  placeholder="e.g. less spicy, no onion"
-                  className="w-full text-sm border border-orange-200 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-orange-300"
-                />
-              ) : (
+        {items.map((item) => {
+          const key = cartKey(item.menuItemId, item.size, item.toppings?.map((t) => t.id));
+          const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
+          const lineUnit = item.price + toppingsTotal;
+          return (
+            <div key={key} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                    {item.size && (
+                      <span className="text-xs bg-orange-100 text-orange-600 font-medium px-2 py-0.5 rounded-full capitalize">
+                        {item.size}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-orange-600 font-medium text-sm">{fmt(item.price)} base</p>
+                  {(item.toppings ?? []).length > 0 && (
+                    <ul className="mt-1 space-y-0.5">
+                      {item.toppings!.map((t, ti) => (
+                        <li key={ti} className="text-xs text-gray-400 flex gap-1">
+                          <span>+ {t.name}</span>
+                          {t.price > 0 && <span className="text-orange-500">+{fmt(t.price)}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <button
-                  onClick={() => setEditingNotes(item.menuItemId)}
-                  className="text-xs text-orange-500 hover:underline"
+                  onClick={() => removeItem(item.menuItemId, item.size, item.toppings)}
+                  className="text-red-400 hover:text-red-500 ml-2"
                 >
-                  {item.notes ? `Note: ${item.notes}` : '+ Add note'}
+                  <Trash2 size={16} />
                 </button>
-              )}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <QuantitySelector
+                  value={item.quantity}
+                  onChange={(q) => updateQty(item.menuItemId, item.size, item.toppings, q)}
+                  min={0}
+                />
+                <span className="font-bold text-gray-800">{fmt(lineUnit * item.quantity)}</span>
+              </div>
+
+              <div className="mt-3">
+                {editingNotes === key ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={item.notes ?? ''}
+                    onChange={(e) => updateNotes(item.menuItemId, item.size, item.toppings, e.target.value)}
+                    onBlur={() => setEditingNotes(null)}
+                    placeholder="e.g. less spicy, no onion"
+                    className="w-full text-sm border border-orange-200 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-orange-300"
+                  />
+                ) : (
+                  <button
+                    onClick={() => setEditingNotes(key)}
+                    className="text-xs text-orange-500 hover:underline"
+                  >
+                    {item.notes ? `Note: ${item.notes}` : '+ Add note'}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4">
         <div className="max-w-lg mx-auto">
           <div className="flex justify-between text-sm text-gray-500 mb-1">
             <span>Subtotal</span>
-            <span>${total.toFixed(2)}</span>
+            <span>{fmt(total)}</span>
           </div>
           <button
             onClick={handlePlaceOrder}
             disabled={placing}
             className="w-full bg-orange-500 text-white py-4 rounded-2xl font-semibold text-base hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {placing ? 'Placing Order…' : `Place Order • $${total.toFixed(2)}`}
+            {placing ? 'Placing Order…' : `Place Order • ${fmt(total)}`}
           </button>
         </div>
       </div>

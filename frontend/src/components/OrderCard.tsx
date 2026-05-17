@@ -1,6 +1,7 @@
 import type { Order, OrderStatus } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { Clock, MapPin, ShoppingBag, Printer } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
 
@@ -14,6 +15,7 @@ interface Props {
 export function OrderCard({ order, onStatusChange, showActions = false, showPrint = false }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
+  const { fmt } = useCurrency();
 
   function handlePrint() {
     const url = order.sessionId
@@ -60,20 +62,44 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
         </div>
       </div>
 
-      <ul className="space-y-1.5 mb-3">
-        {order.items.map((item, idx) => (
-          <li key={idx} className="flex justify-between text-sm">
-            <span className="text-gray-700">
-              <span className="font-medium">{item.quantity}×</span> {item.name}
-              {item.notes && <span className="text-gray-400 italic ml-1">({item.notes})</span>}
-            </span>
-            <span className="text-gray-600">${(item.price * item.quantity).toFixed(2)}</span>
-          </li>
-        ))}
+      <ul className="space-y-2 mb-3">
+        {order.items.map((item, idx) => {
+          const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
+          const lineTotal = (item.price + toppingsTotal) * item.quantity;
+          return (
+            <li key={idx} className="text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-700 flex items-center gap-1.5 flex-wrap">
+                  <span className="font-medium">{item.quantity}×</span>
+                  {item.name}
+                  {item.size && (
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                      item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {item.size === 'large' ? 'L' : 'R'}
+                    </span>
+                  )}
+                  {item.notes && <span className="text-gray-400 italic">({item.notes})</span>}
+                </span>
+                <span className="text-gray-600 shrink-0 ml-2">{fmt(lineTotal)}</span>
+              </div>
+              {(item.toppings ?? []).length > 0 && (
+                <ul className="ml-6 mt-0.5 space-y-0.5">
+                  {item.toppings!.map((t, ti) => (
+                    <li key={ti} className="flex justify-between text-xs text-gray-400">
+                      <span>+ {t.name}</span>
+                      {t.price > 0 && <span>+{fmt(t.price)}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        <span className="font-semibold text-gray-900">Total: ${order.totalAmount.toFixed(2)}</span>
+        <span className="font-semibold text-gray-900">Total: {fmt(order.totalAmount)}</span>
         <div className="flex items-center gap-2">
           {showPrint && (
             <button

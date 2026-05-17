@@ -4,6 +4,7 @@ import { ClipboardList, UtensilsCrossed, CheckCircle2, RefreshCw } from 'lucide-
 import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useCurrency } from '../../context/CurrencyContext';
 import type { OrderStatus } from '../../types';
 
 function timeAgo(iso: string): string {
@@ -21,6 +22,7 @@ export function OrderHistoryPage() {
   const [notFound, setNotFound] = useState(false);
 
   const sessionId = tableId ? localStorage.getItem(`qra_session_${tableId}`) : null;
+  const { fmt } = useCurrency();
 
   useEffect(() => {
     if (!sessionId) { setLoading(false); setNotFound(true); return; }
@@ -110,23 +112,42 @@ export function OrderHistoryPage() {
                   <span className="text-xs text-gray-400">{timeAgo(order.createdAt)}</span>
                 </div>
                 <ul className="px-4 py-3 space-y-2">
-                  {order.items.map((item, i) => (
-                    <li key={i} className="flex justify-between text-sm">
-                      <span className="text-gray-700">
-                        <span className="font-medium">{item.quantity}×</span> {item.name}
-                        {item.notes && (
-                          <span className="text-gray-400 italic ml-1 text-xs">({item.notes})</span>
+                  {order.items.map((item, i) => {
+                    const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
+                    return (
+                      <li key={i} className="text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-700 flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium">{item.quantity}×</span> {item.name}
+                            {item.size && (
+                              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                                item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                              }`}>
+                                {item.size === 'large' ? 'Large' : 'Regular'}
+                              </span>
+                            )}
+                            {item.notes && (
+                              <span className="text-gray-400 italic text-xs">({item.notes})</span>
+                            )}
+                          </span>
+                          <span className="text-gray-600 tabular-nums shrink-0 ml-2">
+                            {fmt((item.price + toppingsTotal) * item.quantity)}
+                          </span>
+                        </div>
+                        {(item.toppings ?? []).length > 0 && (
+                          <ul className="ml-6 mt-0.5 space-y-0.5">
+                            {item.toppings!.map((t, ti) => (
+                              <li key={ti} className="text-xs text-gray-400">+ {t.name}{t.price > 0 ? ` (+${fmt(t.price)})` : ''}</li>
+                            ))}
+                          </ul>
                         )}
-                      </span>
-                      <span className="text-gray-600 tabular-nums shrink-0 ml-2">
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </span>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
                 <div className="flex justify-between px-4 py-3 border-t border-gray-100">
                   <span className="text-xs text-gray-400">Subtotal</span>
-                  <span className="font-semibold text-gray-800 text-sm">${order.totalAmount.toFixed(2)}</span>
+                  <span className="font-semibold text-gray-800 text-sm">{fmt(order.totalAmount)}</span>
                 </div>
               </div>
             ))}
@@ -134,7 +155,7 @@ export function OrderHistoryPage() {
             {/* Session total */}
             <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-4 flex justify-between items-center">
               <span className="font-semibold text-orange-800">Session Total</span>
-              <span className="text-xl font-bold text-orange-600">${(session?.totalAmount ?? 0).toFixed(2)}</span>
+              <span className="text-xl font-bold text-orange-600">{fmt(session?.totalAmount ?? 0)}</span>
             </div>
           </>
         )}

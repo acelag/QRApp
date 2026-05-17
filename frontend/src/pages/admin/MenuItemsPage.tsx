@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
+import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { uploadImage } from '../../services/uploadService';
+import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 
 const EMPTY: Omit<MenuItem, 'id'> = {
@@ -11,13 +13,20 @@ const EMPTY: Omit<MenuItem, 'id'> = {
   description: '',
   price: 0,
   discountPct: 0,
+  largePrice: undefined,
+  largeDiscountPct: 0,
   category: '',
   image: '',
   available: true,
 };
 
 export function MenuItemsPage() {
+  const { fmt } = useCurrency();
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [expandedToppings, setExpandedToppings] = useState<string | null>(null);
+  const [newTopping, setNewTopping] = useState<Record<string, { name: string; price: string }>>({});
+  const [editingTopping, setEditingTopping] = useState<{ itemId: string; toppingId: string; name: string; price: string } | null>(null);
+  const [savingTopping, setSavingTopping] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [form, setForm] = useState<Omit<MenuItem, 'id'>>(EMPTY);
@@ -46,7 +55,7 @@ export function MenuItemsPage() {
 
   function openEdit(item: MenuItem) {
     setEditing(item);
-    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, category: item.category, image: item.image ?? '', available: item.available });
+    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available });
     setPreview(item.image ?? '');
     setShowForm(true);
   }
@@ -145,6 +154,63 @@ export function MenuItemsPage() {
     }
   }
 
+  async function addTopping(itemId: string) {
+    const data = newTopping[itemId];
+    if (!data?.name?.trim()) return;
+    setSavingTopping(true);
+    try {
+      const t = await menuService.createTopping(itemId, { name: data.name.trim(), price: parseFloat(data.price) || 0 });
+      setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, toppings: [...(i.toppings ?? []), t] } : i));
+      setNewTopping((prev) => ({ ...prev, [itemId]: { name: '', price: '' } }));
+    } catch {
+      toast.error('Failed to add topping');
+    } finally {
+      setSavingTopping(false);
+    }
+  }
+
+  async function saveEditTopping() {
+    if (!editingTopping) return;
+    setSavingTopping(true);
+    try {
+      const t = await menuService.updateTopping(editingTopping.itemId, editingTopping.toppingId, {
+        name: editingTopping.name.trim(),
+        price: parseFloat(editingTopping.price) || 0,
+      });
+      setItems((prev) => prev.map((i) => i.id === editingTopping.itemId
+        ? { ...i, toppings: (i.toppings ?? []).map((tp) => tp.id === t.id ? t : tp) }
+        : i));
+      setEditingTopping(null);
+    } catch {
+      toast.error('Failed to update topping');
+    } finally {
+      setSavingTopping(false);
+    }
+  }
+
+  async function toggleToppingAvailable(itemId: string, topping: Topping) {
+    try {
+      const t = await menuService.updateTopping(itemId, topping.id, { available: !topping.available });
+      setItems((prev) => prev.map((i) => i.id === itemId
+        ? { ...i, toppings: (i.toppings ?? []).map((tp) => tp.id === t.id ? t : tp) }
+        : i));
+    } catch {
+      toast.error('Failed to update topping');
+    }
+  }
+
+  async function deleteTopping(itemId: string, toppingId: string) {
+    if (!confirm('Delete this topping?')) return;
+    try {
+      await menuService.deleteTopping(itemId, toppingId);
+      setItems((prev) => prev.map((i) => i.id === itemId
+        ? { ...i, toppings: (i.toppings ?? []).filter((tp) => tp.id !== toppingId) }
+        : i));
+    } catch {
+      toast.error('Failed to delete topping');
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm sticky top-0 z-40">
@@ -219,38 +285,163 @@ export function MenuItemsPage() {
         {/* Item list */}
         <div className="space-y-2">
           {items.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-3">
-              <div className="w-14 h-14 rounded-xl bg-orange-50 flex items-center justify-center text-xl overflow-hidden shrink-0">
-                {item.image
-                  ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                  : '🍽️'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 truncate">{item.name}</p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm text-gray-500">
-                    {categories.find((c) => c.id === item.category)?.name ?? item.category}
-                  </p>
-                  {item.discountPct > 0 ? (
-                    <>
-                      <span className="text-sm text-gray-400 line-through">${item.price.toFixed(2)}</span>
-                      <span className="text-sm text-green-600 font-semibold">
-                        ${(item.price * (1 - item.discountPct / 100)).toFixed(2)}
-                      </span>
-                      <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full">
-                        {item.discountPct}% OFF
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-gray-500">${item.price.toFixed(2)}</span>
-                  )}
+            <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Item row */}
+              <div className="p-4 flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl bg-orange-50 flex items-center justify-center text-xl overflow-hidden shrink-0">
+                  {item.image
+                    ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    : '🍽️'}
                 </div>
-                {!item.available && <span className="text-xs text-red-400">Unavailable</span>}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{item.name}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm text-gray-500">
+                      {categories.find((c) => c.id === item.category)?.name ?? item.category}
+                    </p>
+                    {item.discountPct > 0 ? (
+                      <>
+                        <span className="text-sm text-gray-400 line-through">{fmt(item.price)}</span>
+                        <span className="text-sm text-green-600 font-semibold">
+                          {fmt(item.price * (1 - item.discountPct / 100))}
+                        </span>
+                        <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full">
+                          {item.discountPct}% OFF
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-500">{fmt(item.price)}</span>
+                    )}
+                    {item.largePrice != null && item.largePrice > 0 && (
+                      <span className="text-xs text-gray-400">
+                        · L{' '}
+                        {(item.largeDiscountPct ?? 0) > 0 ? (
+                          <>
+                            <span className="line-through">{fmt(item.largePrice)}</span>
+                            {' '}
+                            <span className="text-green-600">{fmt(item.largePrice * (1 - (item.largeDiscountPct ?? 0) / 100))}</span>
+                          </>
+                        ) : (
+                          fmt(item.largePrice)
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  {!item.available && <span className="text-xs text-red-400">Unavailable</span>}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => setExpandedToppings(expandedToppings === item.id ? null : item.id)}
+                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                    title="Manage toppings"
+                  >
+                    Extras ({(item.toppings ?? []).length})
+                    {expandedToppings === item.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  </button>
+                  <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 transition-colors p-1"><Pencil size={16} /></button>
+                  <button onClick={() => del(item.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><Trash2 size={16} /></button>
+                </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 transition-colors"><Pencil size={16} /></button>
-                <button onClick={() => del(item.id)} className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-              </div>
+
+              {/* Toppings panel */}
+              {expandedToppings === item.id && (
+                <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Extras / Toppings</p>
+
+                  {(item.toppings ?? []).length === 0 && (
+                    <p className="text-xs text-gray-400">No extras yet. Add one below.</p>
+                  )}
+
+                  {(item.toppings ?? []).map((topping) => (
+                    <div key={topping.id} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-100">
+                      {editingTopping?.toppingId === topping.id ? (
+                        <>
+                          <input
+                            autoFocus
+                            value={editingTopping.name}
+                            onChange={(e) => setEditingTopping({ ...editingTopping, name: e.target.value })}
+                            className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-orange-300"
+                            placeholder="Name"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editingTopping.price}
+                            onChange={(e) => setEditingTopping({ ...editingTopping, price: e.target.value })}
+                            className="w-20 text-sm border border-gray-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-orange-300"
+                            placeholder="Price"
+                          />
+                          <button
+                            onClick={saveEditTopping}
+                            disabled={savingTopping}
+                            className="text-green-500 hover:text-green-600"
+                          ><Check size={15} /></button>
+                          <button onClick={() => setEditingTopping(null)} className="text-gray-400 hover:text-gray-600">
+                            <X size={15} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className={`flex-1 text-sm ${topping.available ? 'text-gray-800' : 'text-gray-400 line-through'}`}>
+                            {topping.name}
+                          </span>
+                          <span className="text-sm text-orange-600 font-medium">
+                            {topping.price > 0 ? fmt(topping.price) : 'Free'}
+                          </span>
+                          <button
+                            onClick={() => toggleToppingAvailable(item.id, topping)}
+                            title={topping.available ? 'Disable' : 'Enable'}
+                            className={`text-xs px-1.5 py-0.5 rounded-full font-medium transition-colors ${
+                              topping.available
+                                ? 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-600'
+                                : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'
+                            }`}
+                          >
+                            {topping.available ? 'ON' : 'OFF'}
+                          </button>
+                          <button
+                            onClick={() => setEditingTopping({ itemId: item.id, toppingId: topping.id, name: topping.name, price: String(topping.price) })}
+                            className="text-gray-400 hover:text-blue-500 transition-colors"
+                          ><Pencil size={13} /></button>
+                          <button
+                            onClick={() => deleteTopping(item.id, topping.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                          ><Trash2 size={13} /></button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Add new topping */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      value={newTopping[item.id]?.name ?? ''}
+                      onChange={(e) => setNewTopping((prev) => ({ ...prev, [item.id]: { ...prev[item.id], name: e.target.value } }))}
+                      onKeyDown={(e) => e.key === 'Enter' && addTopping(item.id)}
+                      placeholder="Topping name (e.g. Extra Cheese)"
+                      className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:ring-1 focus:ring-orange-300"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newTopping[item.id]?.price ?? ''}
+                      onChange={(e) => setNewTopping((prev) => ({ ...prev, [item.id]: { ...prev[item.id], price: e.target.value } }))}
+                      onKeyDown={(e) => e.key === 'Enter' && addTopping(item.id)}
+                      placeholder="Price"
+                      className="w-20 text-sm border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:ring-1 focus:ring-orange-300"
+                    />
+                    <button
+                      onClick={() => addTopping(item.id)}
+                      disabled={savingTopping || !newTopping[item.id]?.name?.trim()}
+                      className="bg-orange-500 text-white px-3 py-1.5 rounded-xl text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center gap-1"
+                    >
+                      <Plus size={14} /> Add
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -317,7 +508,7 @@ export function MenuItemsPage() {
             {[
               { label: 'Name *', key: 'name', type: 'text' },
               { label: 'Description', key: 'description', type: 'text' },
-              { label: 'Price *', key: 'price', type: 'number' },
+              { label: 'Regular Price *', key: 'price', type: 'number' },
             ].map(({ label, key, type }) => (
               <div key={key}>
                 <label className="text-sm text-gray-600 mb-1 block">{label}</label>
@@ -331,6 +522,54 @@ export function MenuItemsPage() {
                 />
               </div>
             ))}
+
+            {/* Large price + discount */}
+            <div>
+              <label className="text-sm text-gray-600 mb-1 block">
+                Large Price <span className="text-gray-400 font-normal">(leave empty if no large size)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.largePrice != null && form.largePrice > 0 ? form.largePrice : ''}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, largePrice: e.target.value ? parseFloat(e.target.value) || undefined : undefined }))
+                }
+                placeholder="e.g. 12.99"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+              />
+            </div>
+
+            {form.largePrice != null && form.largePrice > 0 && (
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">
+                  Large Discount % <span className="text-gray-400 font-normal">(0 = no discount)</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={form.largeDiscountPct ?? 0}
+                      onChange={(e) => setForm((f) => ({ ...f, largeDiscountPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                  </div>
+                  {(form.largeDiscountPct ?? 0) > 0 && form.largePrice > 0 && (
+                    <div className="text-sm shrink-0">
+                      <span className="text-gray-400 line-through">{fmt(form.largePrice)}</span>
+                      <span className="ml-1.5 text-green-600 font-semibold">
+                        {fmt(form.largePrice * (1 - (form.largeDiscountPct ?? 0) / 100))}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Discount */}
             <div>
@@ -352,9 +591,9 @@ export function MenuItemsPage() {
                 </div>
                 {form.discountPct > 0 && form.price > 0 && (
                   <div className="text-sm shrink-0">
-                    <span className="text-gray-400 line-through">${form.price.toFixed(2)}</span>
+                    <span className="text-gray-400 line-through">{fmt(form.price)}</span>
                     <span className="ml-1.5 text-green-600 font-semibold">
-                      ${(form.price * (1 - form.discountPct / 100)).toFixed(2)}
+                      {fmt(form.price * (1 - form.discountPct / 100))}
                     </span>
                   </div>
                 )}

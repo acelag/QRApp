@@ -2,33 +2,46 @@ import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
+import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
 import type { CartItem } from '../../types/Order';
 import { menuService } from '../../services/menuService';
 import { orderService } from '../../services/orderService';
 import { CategoryTabs } from '../../components/CategoryTabs';
+import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
+import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 
-// ── Local cart (no CartContext — doesn't interfere with dine-in sessions) ─────
+type Size = 'regular' | 'large';
+
+const toppingKey = (toppings?: SelectedTopping[]) => (toppings ?? []).map((t) => t.id).sort().join(',');
+const cartKey = (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) =>
+  `${menuItemId}|${size ?? 'regular'}|${toppingKey(toppings)}`;
+
 type CartAction =
-  | { type: 'ADD';    item: MenuItem }
-  | { type: 'INC';    id: string }
-  | { type: 'DEC';    id: string }
-  | { type: 'REMOVE'; id: string }
+  | { type: 'ADD';    item: MenuItem; size?: Size; toppings?: SelectedTopping[] }
+  | { type: 'INC';    key: string }
+  | { type: 'DEC';    key: string }
+  | { type: 'REMOVE'; key: string }
   | { type: 'CLEAR' };
 
 function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
   switch (action.type) {
     case 'ADD': {
-      const exists = state.find((c) => c.menuItemId === action.item.id);
-      if (exists) return state.map((c) => c.menuItemId === action.item.id ? { ...c, quantity: c.quantity + 1 } : c);
-      return [...state, { menuItemId: action.item.id, name: action.item.name, price: effectivePrice(action.item), quantity: 1 }];
+      const key = cartKey(action.item.id, action.size, action.toppings);
+      const price = effectivePrice(action.item, action.size);
+      const exists = state.find((c) => cartKey(c.menuItemId, c.size, c.toppings) === key);
+      if (exists) return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === key ? { ...c, quantity: c.quantity + 1 } : c);
+      return [...state, { menuItemId: action.item.id, name: action.item.name, price, quantity: 1, size: action.size, toppings: action.toppings }];
     }
-    case 'INC':    return state.map((c) => c.menuItemId === action.id ? { ...c, quantity: c.quantity + 1 } : c);
-    case 'DEC':    return state.map((c) => c.menuItemId === action.id ? { ...c, quantity: c.quantity - 1 } : c).filter((c) => c.quantity > 0);
-    case 'REMOVE': return state.filter((c) => c.menuItemId !== action.id);
-    case 'CLEAR':  return [];
-    default:       return state;
+    case 'INC':
+      return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === action.key ? { ...c, quantity: c.quantity + 1 } : c);
+    case 'DEC':
+      return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === action.key ? { ...c, quantity: c.quantity - 1 } : c).filter((c) => c.quantity > 0);
+    case 'REMOVE':
+      return state.filter((c) => cartKey(c.menuItemId, c.size, c.toppings) !== action.key);
+    case 'CLEAR': return [];
+    default: return state;
   }
 }
 
@@ -45,6 +58,9 @@ export function TakeawayMenuPage() {
   const [customerName, setCustomerName] = useState('');
   const [cartOpen, setCartOpen]       = useState(false);
   const [placing, setPlacing]         = useState(false);
+  const [selectedSizes, setSelectedSizes] = useState<Record<string, Size>>({});
+  const [toppingModal, setToppingModal] = useState<{ item: MenuItem; size?: Size } | null>(null);
+  const { fmt, loadCurrency } = useCurrency();
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -54,6 +70,7 @@ export function TakeawayMenuPage() {
     ]).then(([cats, menuItems]) => {
       setCategories(cats);
       setItems(menuItems.filter((i) => i.available));
+      if (restaurantId) loadCurrency(restaurantId);
     }).catch(() => toast.error('Failed to load menu'))
       .finally(() => setLoading(false));
   }, [restaurantId]);
@@ -61,8 +78,24 @@ export function TakeawayMenuPage() {
   const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
 
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
-  const total     = cart.reduce((s, c) => s + c.price * c.quantity, 0);
-  const cartQty   = (id: string) => cart.find((c) => c.menuItemId === id)?.quantity ?? 0;
+  const total = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
+
+  const getSizeFor = (item: MenuItem): Size => selectedSizes[item.id] ?? 'regular';
+  const cartQtyFor = (item: MenuItem) => {
+    const size = item.largePrice ? getSizeFor(item) : undefined;
+    return cart.filter((c) => c.menuItemId === item.id && c.size === size).reduce((s, c) => s + c.quantity, 0);
+  };
+
+  function handleAdd(item: MenuItem) {
+    const hasLarge = item.largePrice != null && item.largePrice > 0;
+    const size = hasLarge ? getSizeFor(item) : undefined;
+    const hasToppings = (item.toppings ?? []).some((t) => t.available);
+    if (hasToppings) {
+      setToppingModal({ item, size });
+    } else {
+      dispatch({ type: 'ADD', item, size });
+    }
+  }
 
   async function placeOrder() {
     if (cart.length === 0) return;
@@ -110,7 +143,15 @@ export function TakeawayMenuPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filtered.map((item) => {
-              const qty = cartQty(item.id);
+              const hasLarge = item.largePrice != null && item.largePrice > 0;
+              const hasToppings = (item.toppings ?? []).some((t) => t.available);
+              const size = hasLarge ? getSizeFor(item) : undefined;
+              const displayPrice = effectivePrice(item, size);
+              const isDiscounted = size === 'large' ? (item.largeDiscountPct ?? 0) > 0 : item.discountPct > 0;
+              const basePrice = size === 'large' ? item.largePrice! : item.price;
+              const discountPct = size === 'large' ? (item.largeDiscountPct ?? 0) : item.discountPct;
+              const qty = cartQtyFor(item);
+
               return (
                 <div key={item.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col transition-colors ${qty > 0 ? 'border-purple-200' : 'border-gray-100'}`}>
                   <div className="relative">
@@ -121,9 +162,14 @@ export function TakeawayMenuPage() {
                         <UtensilsCrossed size={32} className="text-purple-300" />
                       </div>
                     )}
-                    {item.discountPct > 0 && (
+                    {isDiscounted && (
                       <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {item.discountPct}% OFF
+                        {discountPct}% OFF
+                      </span>
+                    )}
+                    {hasToppings && (
+                      <span className="absolute top-2 right-2 bg-purple-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                        + Extras
                       </span>
                     )}
                   </div>
@@ -133,33 +179,38 @@ export function TakeawayMenuPage() {
                       <p className="text-xs text-gray-400 mt-1 line-clamp-2 flex-1">{item.description}</p>
                     )}
                     <div className="mt-2">
-                      {item.discountPct > 0 ? (
+                      {hasLarge && (
+                        <div className="flex gap-1 mb-2">
+                          {(['regular', 'large'] as const).map((s) => (
+                            <button
+                              key={s}
+                              onClick={() => setSelectedSizes((prev) => ({ ...prev, [item.id]: s }))}
+                              className={`flex-1 text-xs py-0.5 rounded-lg font-medium border transition-colors ${
+                                getSizeFor(item) === s
+                                  ? 'bg-purple-600 text-white border-purple-600'
+                                  : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300'
+                              }`}
+                            >
+                              {s === 'regular' ? 'Reg' : 'Lrg'}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {isDiscounted ? (
                         <div>
-                          <span className="text-xs text-gray-400 line-through">${item.price.toFixed(2)}</span>
-                          <span className="ml-1.5 text-green-600 font-bold">${effectivePrice(item).toFixed(2)}</span>
+                          <span className="text-xs text-gray-400 line-through">{fmt(basePrice)}</span>
+                          <span className="ml-1.5 text-green-600 font-bold">{fmt(displayPrice)}</span>
                         </div>
                       ) : (
-                        <span className="text-purple-600 font-bold">${item.price.toFixed(2)}</span>
+                        <span className="text-purple-600 font-bold">{fmt(displayPrice)}</span>
                       )}
                       <div className="mt-2">
-                        {qty === 0 ? (
-                          <button
-                            onClick={() => { dispatch({ type: 'ADD', item }); }}
-                            className="w-full flex items-center justify-center gap-1 bg-purple-600 text-white py-1.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
-                          >
-                            <Plus size={14} /> Add
-                          </button>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <button onClick={() => dispatch({ type: 'DEC', id: item.id })} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">
-                              <Minus size={14} />
-                            </button>
-                            <span className="font-bold text-gray-900">{qty}</span>
-                            <button onClick={() => dispatch({ type: 'INC', id: item.id })} className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700">
-                              <Plus size={14} />
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          onClick={() => handleAdd(item)}
+                          className="w-full flex items-center justify-center gap-1 bg-purple-600 text-white py-1.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
+                        >
+                          <Plus size={14} /> {qty > 0 ? `Add more (${qty})` : 'Add'}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -179,7 +230,6 @@ export function TakeawayMenuPage() {
               <div className="bg-white rounded-t-3xl shadow-2xl border border-gray-100 mb-0 max-h-[60vh] flex flex-col">
                 <div className="px-4 pt-4 pb-2 border-b border-gray-100">
                   <p className="font-semibold text-gray-900 mb-2">Your Order</p>
-                  {/* Customer name */}
                   <input
                     type="text"
                     value={customerName}
@@ -191,24 +241,40 @@ export function TakeawayMenuPage() {
 
                 {/* Cart items */}
                 <ul className="overflow-y-auto flex-1 divide-y divide-gray-50 px-4">
-                  {cart.map((c) => (
-                    <li key={c.menuItemId} className="flex items-center gap-3 py-2.5">
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button onClick={() => dispatch({ type: 'DEC', id: c.menuItemId })} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">
-                          <Minus size={12} />
-                        </button>
-                        <span className="w-5 text-center font-bold text-gray-900 text-sm">{c.quantity}</span>
-                        <button onClick={() => dispatch({ type: 'INC', id: c.menuItemId })} className="w-7 h-7 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center hover:bg-purple-200">
-                          <Plus size={12} />
-                        </button>
-                      </div>
-                      <span className="flex-1 text-sm text-gray-700 truncate">{c.name}</span>
-                      <span className="text-sm font-semibold text-gray-800 shrink-0">${(c.price * c.quantity).toFixed(2)}</span>
-                      <button onClick={() => dispatch({ type: 'REMOVE', id: c.menuItemId })} className="text-gray-300 hover:text-red-400 shrink-0">
-                        <Trash2 size={14} />
-                      </button>
-                    </li>
-                  ))}
+                  {cart.map((c) => {
+                    const key = cartKey(c.menuItemId, c.size, c.toppings);
+                    const toppingsTotal = (c.toppings ?? []).reduce((s, t) => s + t.price, 0);
+                    return (
+                      <li key={key} className="py-2.5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={() => dispatch({ type: 'DEC', key })} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">
+                              <Minus size={12} />
+                            </button>
+                            <span className="w-5 text-center font-bold text-gray-900 text-sm">{c.quantity}</span>
+                            <button onClick={() => dispatch({ type: 'INC', key })} className="w-7 h-7 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center hover:bg-purple-200">
+                              <Plus size={12} />
+                            </button>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm text-gray-700 truncate block">{c.name}</span>
+                            {c.size && <span className="text-xs text-purple-500 capitalize">{c.size}</span>}
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800 shrink-0">{fmt((c.price + toppingsTotal) * c.quantity)}</span>
+                          <button onClick={() => dispatch({ type: 'REMOVE', key })} className="text-gray-300 hover:text-red-400 shrink-0">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        {(c.toppings ?? []).length > 0 && (
+                          <ul className="ml-16 mt-0.5 space-y-0.5">
+                            {c.toppings!.map((t, ti) => (
+                              <li key={ti} className="text-xs text-gray-400">+ {t.name}{t.price > 0 ? ` (+${fmt(t.price)})` : ''}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -221,7 +287,7 @@ export function TakeawayMenuPage() {
             >
               <span className="bg-white/20 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">{itemCount}</span>
               <span className="font-semibold">
-                {placing ? 'Placing Order…' : cartOpen ? `Place Order • $${total.toFixed(2)}` : `View Order • $${total.toFixed(2)}`}
+                {placing ? 'Placing Order…' : cartOpen ? `Place Order • ${fmt(total)}` : `View Order • ${fmt(total)}`}
               </span>
               {cartOpen
                 ? <ChevronDown size={20} onClick={(e) => { e.stopPropagation(); setCartOpen(false); }} />
@@ -230,6 +296,18 @@ export function TakeawayMenuPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {toppingModal && (
+        <ToppingSelectionModal
+          item={toppingModal.item}
+          size={toppingModal.size}
+          onConfirm={(toppings) => {
+            dispatch({ type: 'ADD', item: toppingModal.item, size: toppingModal.size, toppings });
+            setToppingModal(null);
+          }}
+          onClose={() => setToppingModal(null)}
+        />
       )}
     </div>
   );

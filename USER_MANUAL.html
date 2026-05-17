@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QRA — User Manual</title>
+<style>
+  /* ── Fonts ── */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Mono:wght@400;500&display=swap');
+
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Variables ── */
+  :root {
+    --brand:       #f97316;
+    --brand-dark:  #c2410c;
+    --brand-light: #fff7ed;
+    --ink:         #1e293b;
+    --muted:       #64748b;
+    --border:      #e2e8f0;
+    --bg:          #f8fafc;
+    --white:       #ffffff;
+    --success:     #16a34a;
+    --danger:      #dc2626;
+    --info:        #0284c7;
+    --warn:        #d97706;
+    --radius:      10px;
+    --shadow:      0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  }
+
+  /* ── Base ── */
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--ink);
+    background: var(--bg);
+  }
+
+  /* ── Layout ── */
+  .page-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── Cover Page ── */
+  .cover {
+    min-height: 340px;
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 60%, #fb923c 100%);
+    border-radius: 0 0 var(--radius) var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 48px 32px 56px;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .cover-logo {
+    font-size: 52px;
+    margin-bottom: 8px;
+  }
+  .cover h1 {
+    font-size: 38px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+    margin-bottom: 6px;
+  }
+  .cover h1 span { color: rgba(255,255,255,.7); font-weight: 300; }
+  .cover-sub {
+    font-size: 16px;
+    color: rgba(255,255,255,.85);
+    font-weight: 400;
+    margin-bottom: 24px;
+  }
+  .cover-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .cover-badge {
+    background: rgba(255,255,255,.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* ── TOC ── */
+  .toc-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-bottom: 40px;
+    box-shadow: var(--shadow);
+  }
+  .toc-card h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 24px;
+  }
+  .toc-grid a {
+    color: var(--brand-dark);
+    text-decoration: none;
+    font-size: 13.5px;
+    padding: 4px 0;
+    border-bottom: 1px solid transparent;
+    transition: border-color .15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toc-grid a:hover { border-color: var(--brand); }
+  .toc-num {
+    background: var(--brand-light);
+    color: var(--brand-dark);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* ── Section Headers ── */
+  .section {
+    margin-bottom: 48px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .section-header .sec-num {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .subsection {
+    margin-bottom: 32px;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h3::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: var(--brand);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  h4 {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin: 20px 0 8px;
+  }
+
+  p { margin-bottom: 12px; color: #334155; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 12px 0 20px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  thead tr { background: var(--ink); color: #fff; }
+  thead th {
+    padding: 11px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  tbody tr { background: var(--white); }
+  tbody tr:nth-child(even) { background: var(--bg); }
+  tbody td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: #334155;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* Checkmark table */
+  .perm-table td:not(:first-child) { text-align: center; }
+  .yes { color: var(--success); font-weight: 700; font-size: 15px; }
+  .no  { color: #cbd5e1; font-size: 15px; }
+
+  /* ── Callouts ── */
+  .callout {
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13.5px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.6;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout.tip     { background: #f0fdf4; border-left: 4px solid var(--success); }
+  .callout.warn    { background: #fffbeb; border-left: 4px solid var(--warn); }
+  .callout.danger  { background: #fef2f2; border-left: 4px solid var(--danger); }
+  .callout.info    { background: #f0f9ff; border-left: 4px solid var(--info); }
+
+  /* ── Steps ── */
+  .steps { counter-reset: step; padding: 0; list-style: none; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    min-width: 28px;
+    height: 28px;
+    background: var(--brand);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .steps li p { margin: 0; color: #334155; }
+
+  /* ── Status pills ── */
+  .pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pill-orange  { background: #fff7ed; color: var(--brand-dark); border: 1px solid #fed7aa; }
+  .pill-blue    { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .pill-green   { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+  .pill-purple  { background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+    padding: 16px 20px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .flow-item {
+    background: var(--brand-light);
+    border: 1px solid #fed7aa;
+    color: var(--brand-dark);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .flow-arrow { color: var(--muted); font-size: 18px; font-weight: 300; }
+
+  /* ── Code / credentials ── */
+  .cred-box {
+    background: #1e293b;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'Fira Mono', monospace;
+    font-size: 13px;
+    color: #e2e8f0;
+  }
+  .cred-box .label { color: #94a3b8; margin-right: 8px; }
+  .cred-box .val   { color: #f97316; font-weight: 500; }
+
+  /* ── Role cards ── */
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .role-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .role-card .emoji { font-size: 28px; margin-bottom: 8px; display: block; }
+  .role-card h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .role-card p { font-size: 12px; color: var(--muted); margin: 0; }
+
+  /* ── Quick Ref ── */
+  .qr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .qr-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .qr-card h4 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--brand-dark);
+    margin: 0 0 10px;
+  }
+  .qr-card p { margin: 0; font-size: 13px; }
+
+  /* ── Print styles ── */
+  @media print {
+    body { background: #fff; font-size: 12px; }
+    .cover { border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .toc-card, .card, .flow, .role-card, .qr-card { box-shadow: none; break-inside: avoid; }
+    .section { break-inside: avoid; }
+    h2, h3 { break-after: avoid; }
+    a { color: inherit; text-decoration: none; }
+    thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .callout { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 24px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════ COVER ══════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">🍽️</div>
+  <h1>QRA <span>User Manual</span></h1>
+  <p class="cover-sub">QR Code Restaurant Ordering System — Complete Guide</p>
+  <div class="cover-badges">
+    <span class="cover-badge">👤 Customers</span>
+    <span class="cover-badge">🛠️ Admins</span>
+    <span class="cover-badge">🍳 Kitchen Staff</span>
+    <span class="cover-badge">⭐ Super Admin</span>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+<!-- ══════════════════════════ TOC ══════════════════════════ -->
+<div class="toc-card">
+  <h2>Table of Contents</h2>
+  <div class="toc-grid">
+    <a href="#s1"><span class="toc-num">1</span> System Overview</a>
+    <a href="#s6"><span class="toc-num">6</span> Kitchen Staff Guide</a>
+    <a href="#s2"><span class="toc-num">2</span> Getting Started</a>
+    <a href="#s7"><span class="toc-num">7</span> Super Admin Guide</a>
+    <a href="#s3"><span class="toc-num">3</span> Customer — Dine-In</a>
+    <a href="#s8"><span class="toc-num">8</span> Push Notifications</a>
+    <a href="#s4"><span class="toc-num">4</span> Customer — Takeaway</a>
+    <a href="#s9"><span class="toc-num">9</span> Permissions Summary</a>
+    <a href="#s5"><span class="toc-num">5</span> Admin Guide</a>
+    <a href="#s10"><span class="toc-num">10</span> Troubleshooting</a>
+  </div>
+</div>
+
+<!-- ══════════════════════════ 1 — OVERVIEW ══════════════════════════ -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <div class="section-icon">🔍</div>
+    <div>
+      <div class="sec-num">Section 1</div>
+      <h2>System Overview</h2>
+    </div>
+  </div>
+
+  <p><strong>QRA</strong> is a web-based restaurant ordering system. Customers browse the menu and place orders by scanning a QR code at their table — no app download required.</p>
+
+  <h3>How it works</h3>
+  <div class="flow">
+    <span class="flow-item">📱 Scan QR Code</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">🍕 Browse Menu</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">🛒 Place Order</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">🍳 Kitchen Cooks</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">✅ Served & Paid</span>
+  </div>
+
+  <h3>User Roles</h3>
+  <div class="role-grid">
+    <div class="role-card">
+      <span class="emoji">👤</span>
+      <h4>Customer</h4>
+      <p>Restaurant guests. Browse menu, add to cart, place orders.</p>
+    </div>
+    <div class="role-card">
+      <span class="emoji">🛠️</span>
+      <h4>Admin</h4>
+      <p>Restaurant manager. Full control over menu, orders, staff, billing.</p>
+    </div>
+    <div class="role-card">
+      <span class="emoji">🍳</span>
+      <h4>Kitchen</h4>
+      <p>Kitchen staff. Kitchen display system only — update order status.</p>
+    </div>
+    <div class="role-card">
+      <span class="emoji">⭐</span>
+      <h4>Super Admin</h4>
+      <p>Platform owner. Manages all restaurants across the system.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ 2 — GETTING STARTED ══════════════════════════ -->
+<div class="section" id="s2">
+  <div class="section-header">
+    <div class="section-icon">🚀</div>
+    <div>
+      <div class="sec-num">Section 2</div>
+      <h2>Getting Started</h2>
+    </div>
+  </div>
+
+  <h3>Accessing the System</h3>
+  <table>
+    <thead><tr><th>Page</th><th>URL</th></tr></thead>
+    <tbody>
+      <tr><td>Customer menu (via QR)</td><td>Opened automatically by scanning QR code</td></tr>
+      <tr><td>Staff login</td><td><code>https://your-domain.com/login</code></td></tr>
+      <tr><td>Admin panel</td><td><code>https://your-domain.com/admin</code></td></tr>
+      <tr><td>Kitchen display</td><td><code>https://your-domain.com/kitchen</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Logging In</h3>
+  <ol class="steps">
+    <li><p>Open your browser and go to <strong>/login</strong></p></li>
+    <li><p>Enter your <strong>Username</strong> and <strong>Password</strong></p></li>
+    <li><p>Click <strong>Login</strong> — you are redirected based on your role</p></li>
+  </ol>
+
+  <div class="flow">
+    <span class="flow-item">Admin / Super Admin</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Admin Dashboard</span>
+    &nbsp;&nbsp;
+    <span class="flow-item">Kitchen Staff</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Kitchen Display</span>
+  </div>
+
+  <h3>Default Super Admin Credentials</h3>
+  <div class="cred-box">
+    <div><span class="label">Username:</span><span class="val">superadmin</span></div>
+    <div><span class="label">Password:</span><span class="val">super123</span></div>
+  </div>
+  <div class="callout warn">
+    <span class="callout-icon">⚠️</span>
+    <span>Change the default password immediately after your first login. Go to <strong>Admin → Settings → Change Password</strong>.</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════ 3 — CUSTOMER DINE-IN ══════════════════════════ -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <div class="section-icon">📱</div>
+    <div>
+      <div class="sec-num">Section 3</div>
+      <h2>Customer Guide — Dine-In</h2>
+    </div>
+  </div>
+
+  <h3>Step 1 — Scan the QR Code</h3>
+  <p>Each table has a unique QR code. Customers point their phone camera at it — the menu opens instantly in the browser. <strong>No app download needed.</strong></p>
+
+  <h3>Step 2 — Browse the Menu</h3>
+  <ul style="padding-left:20px; color:#334155; margin-bottom:12px;">
+    <li>Menu is organized by <strong>categories</strong> (Starters, Mains, Drinks, etc.)</li>
+    <li>Tap a category to filter items</li>
+    <li>Each item shows name, description, price, photo, and availability</li>
+    <li>Discounted items show the original price crossed out and the new price in red</li>
+  </ul>
+
+  <h3>Step 3 — Add Items to Cart</h3>
+  <ol class="steps">
+    <li><p>Tap <strong>+</strong> on any item to add it to the cart</p></li>
+    <li><p>Optionally tap the item to add a <strong>special note</strong> (e.g., "no onions", "extra spicy")</p></li>
+    <li><p>Use <strong>+</strong> / <strong>−</strong> to adjust quantities</p></li>
+    <li><p>Tap the <strong>View Cart</strong> button to review</p></li>
+  </ol>
+
+  <h3>Step 4 — Place Order</h3>
+  <ol class="steps">
+    <li><p>Review all items, quantities, and notes in the cart</p></li>
+    <li><p>Adjust or remove items if needed</p></li>
+    <li><p>Tap <strong>Place Order</strong></p></li>
+    <li><p>An <strong>Order Confirmation</strong> page appears with your Order ID</p></li>
+  </ol>
+
+  <h3>Step 5 — Track Your Order</h3>
+  <table>
+    <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill pill-orange">Pending</span></td><td>Received — waiting to be prepared</td></tr>
+      <tr><td><span class="pill pill-blue">Preparing</span></td><td>Kitchen is cooking your order</td></tr>
+      <tr><td><span class="pill pill-purple">Ready</span></td><td>Ready to be served</td></tr>
+      <tr><td><span class="pill pill-green">Served</span></td><td>Delivered to your table</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <span>You can place <strong>multiple orders</strong> during your visit. All orders are grouped into a single running bill for your table.</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════ 4 — CUSTOMER TAKEAWAY ══════════════════════════ -->
+<div class="section" id="s4">
+  <div class="section-header">
+    <div class="section-icon">🥡</div>
+    <div>
+      <div class="sec-num">Section 4</div>
+      <h2>Customer Guide — Takeaway</h2>
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li><p>Scan the <strong>Takeaway QR code</strong> displayed at the counter</p></li>
+    <li><p>Browse the menu and add items to your cart (same as dine-in)</p></li>
+    <li><p>Enter your <strong>name</strong> so the kitchen can call you when ready</p></li>
+    <li><p>Tap <strong>Place Order</strong> — you receive a confirmation with your order ID</p></li>
+  </ol>
+</div>
+
+<!-- ══════════════════════════ 5 — ADMIN ══════════════════════════ -->
+<div class="section" id="s5">
+  <div class="section-header">
+    <div class="section-icon">🛠️</div>
+    <div>
+      <div class="sec-num">Section 5</div>
+      <h2>Admin Guide</h2>
+    </div>
+  </div>
+
+  <!-- 5.1 Dashboard -->
+  <h3>5.1 Dashboard</h3>
+  <p>The home screen shows a quick overview of your restaurant's activity.</p>
+  <table>
+    <thead><tr><th>Stat</th><th>What it shows</th></tr></thead>
+    <tbody>
+      <tr><td>Today's Orders</td><td>Total orders placed today</td></tr>
+      <tr><td>Active Orders</td><td>Orders currently being processed</td></tr>
+      <tr><td>Today's Revenue</td><td>Total revenue from today's orders</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 5.2 Orders -->
+  <h3>5.2 Orders Management</h3>
+  <p><strong>Path:</strong> Admin → Orders &nbsp;|&nbsp; Auto-refreshes every few seconds.</p>
+
+  <h4>Status Tabs</h4>
+  <table>
+    <thead><tr><th>Tab</th><th>Shows</th></tr></thead>
+    <tbody>
+      <tr><td>All</td><td>Every order</td></tr>
+      <tr><td>Takeaway</td><td>Takeaway orders only</td></tr>
+      <tr><td>Pending</td><td>New orders waiting to be prepared</td></tr>
+      <tr><td>Preparing</td><td>Orders in the kitchen</td></tr>
+      <tr><td>Ready</td><td>Orders ready to serve</td></tr>
+      <tr><td>Served</td><td>Completed orders</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Managing an Order</h4>
+  <div class="flow">
+    <span class="flow-item">Pending</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Start Preparing</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Mark Ready</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Mark Served</span>
+  </div>
+  <p>Click the <strong>print icon</strong> on any order to print a receipt for that order.</p>
+
+  <!-- 5.3 Menu -->
+  <h3>5.3 Menu Management</h3>
+  <p><strong>Path:</strong> Admin → Menu</p>
+
+  <h4>Adding a Menu Item</h4>
+  <ol class="steps">
+    <li><p>Click <strong>Add Item</strong></p></li>
+    <li><p>Fill in the details:</p></li>
+  </ol>
+  <table>
+    <thead><tr><th>Field</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Name</td><td>Item name (e.g., "Grilled Chicken Burger")</td></tr>
+      <tr><td>Description</td><td>Short description (optional)</td></tr>
+      <tr><td>Category</td><td>Select from existing categories</td></tr>
+      <tr><td>Price</td><td>Full price</td></tr>
+      <tr><td>Discount %</td><td>0–100 to apply a discount (e.g., 10 = 10% off)</td></tr>
+      <tr><td>Available</td><td>Toggle on/off to show or hide from customers</td></tr>
+      <tr><td>Image</td><td>Upload a photo (JPEG/PNG, max 5 MB)</td></tr>
+    </tbody>
+  </table>
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <span>Toggle <strong>Available OFF</strong> to temporarily hide an item (e.g., sold out) without deleting it.</span>
+  </div>
+
+  <!-- 5.4 Categories -->
+  <h3>5.4 Categories</h3>
+  <p><strong>Path:</strong> Admin → Menu (Categories panel)</p>
+  <table>
+    <thead><tr><th>Action</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td>Add category</td><td>Type the name → click <strong>Add</strong></td></tr>
+      <tr><td>Rename category</td><td>Click the edit icon → type new name → save</td></tr>
+      <tr><td>Delete category</td><td>Click the delete icon → confirm</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <span class="callout-icon">⚠️</span>
+    <span>You cannot delete a category that still has menu items. Reassign or delete those items first.</span>
+  </div>
+
+  <!-- 5.5 Tables -->
+  <h3>5.5 Tables &amp; QR Codes</h3>
+  <p><strong>Path:</strong> Admin → Tables</p>
+
+  <h4>Adding a Table</h4>
+  <ol class="steps">
+    <li><p>Click <strong>Add Table</strong></p></li>
+    <li><p>Enter the Table Number and number of Seats</p></li>
+    <li><p>Click <strong>Save</strong> — a QR code is generated automatically</p></li>
+  </ol>
+
+  <h4>Printing QR Codes</h4>
+  <table>
+    <thead><tr><th>Option</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td>Print one table's QR</td><td>Click the print icon on that table row</td></tr>
+      <tr><td>Print all QR codes</td><td>Click <strong>Print All QR Codes</strong> button</td></tr>
+      <tr><td>Print Takeaway QR</td><td>Click <strong>Print Takeaway QR</strong> at the bottom of the page</td></tr>
+    </tbody>
+  </table>
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <span>Print QR codes and laminate them. Place one on each table. Customers scan to order instantly.</span>
+  </div>
+
+  <!-- 5.6 Bills -->
+  <h3>5.6 Bills &amp; Payments</h3>
+  <p><strong>Path:</strong> Admin → Bills</p>
+  <p>A <strong>session</strong> tracks a group's entire visit. All orders from the same table are grouped into one session until you mark it as Paid.</p>
+
+  <h4>Bill Flow</h4>
+  <div class="flow">
+    <span class="flow-item">Customer scans QR</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Session opens</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Orders added</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Print Bill</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-item">Mark Paid</span>
+  </div>
+
+  <table>
+    <thead><tr><th>Action</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td>View bill</td><td>Click the table row in Open Sessions — see all items, subtotal, charges, total</td></tr>
+      <tr><td>Print bill</td><td>Click <strong>Print Bill</strong> — opens a print-ready receipt in a new tab</td></tr>
+      <tr><td>Mark as paid</td><td>Click <strong>Mark as Paid</strong> → confirm — session closes, table resets</td></tr>
+      <tr><td>View history</td><td>Click the <strong>Paid</strong> tab to see all past sessions</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 5.7 Users -->
+  <h3>5.7 Users Management</h3>
+  <p><strong>Path:</strong> Admin → Users</p>
+
+  <h4>Creating a Staff Account</h4>
+  <ol class="steps">
+    <li><p>Click <strong>Add User</strong></p></li>
+    <li><p>Enter full name, username, password, and select a role</p></li>
+    <li><p>Click <strong>Save</strong> — share credentials with the staff member</p></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Role</th><th>Access</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Admin</strong></td><td>Full admin panel — orders, menu, tables, bills, users, settings</td></tr>
+      <tr><td><strong>Kitchen</strong></td><td>Kitchen display only — cannot access the admin panel</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><span class="callout-icon">⚠️</span><span>You cannot delete your own account.</span></div>
+
+  <!-- 5.8 Settings -->
+  <h3>5.8 Settings</h3>
+  <p><strong>Path:</strong> Admin → Settings</p>
+  <table>
+    <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Update Profile</td><td>Change your name, username, or password</td></tr>
+      <tr><td>Service Charge %</td><td>Added to dine-in bills only (e.g., enter 10 for 10%)</td></tr>
+      <tr><td>Tax %</td><td>Added to all orders (e.g., enter 8 for 8%)</td></tr>
+    </tbody>
+  </table>
+  <div class="callout tip"><span class="callout-icon">💡</span><span>A live preview shows how service charge and tax affect a sample bill as you type.</span></div>
+</div>
+
+<!-- ══════════════════════════ 6 — KITCHEN ══════════════════════════ -->
+<div class="section" id="s6">
+  <div class="section-header">
+    <div class="section-icon">🍳</div>
+    <div>
+      <div class="sec-num">Section 6</div>
+      <h2>Kitchen Staff Guide</h2>
+    </div>
+  </div>
+
+  <p>The Kitchen Display System (KDS) uses a dark theme and large text for easy reading under kitchen conditions. It auto-refreshes every few seconds.</p>
+
+  <h3>Screen Layout</h3>
+  <p>Shows <strong>Pending</strong> and <strong>Preparing</strong> orders side by side. Each card shows:</p>
+  <ul style="padding-left:20px; color:#334155; margin-bottom:12px;">
+    <li>Table number or customer name (takeaway)</li>
+    <li>Order type (Dine-In / Takeaway)</li>
+    <li>Items with quantities and special notes</li>
+    <li>Time since the order was placed</li>
+  </ul>
+
+  <h3>Processing Orders</h3>
+  <table>
+    <thead><tr><th>Action</th><th>Button</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Start cooking</td><td><strong>Start Preparing</strong></td><td>Pending → Preparing</td></tr>
+      <tr><td>Dish is ready</td><td><strong>Ready</strong></td><td>Preparing → Ready (disappears from KDS)</td></tr>
+    </tbody>
+  </table>
+  <div class="callout info"><span class="callout-icon">ℹ️</span><span>Once you mark an order <strong>Ready</strong>, it disappears from the kitchen screen. The admin then delivers it and marks it <strong>Served</strong>.</span></div>
+</div>
+
+<!-- ══════════════════════════ 7 — SUPER ADMIN ══════════════════════════ -->
+<div class="section" id="s7">
+  <div class="section-header">
+    <div class="section-icon">⭐</div>
+    <div>
+      <div class="sec-num">Section 7</div>
+      <h2>Super Admin Guide</h2>
+    </div>
+  </div>
+
+  <p>After login you are taken to <strong>Admin → Restaurants</strong>, the platform-wide management panel.</p>
+
+  <h3>Creating a New Restaurant</h3>
+  <ol class="steps">
+    <li><p>Click <strong>Add Restaurant</strong></p></li>
+    <li><p>Enter the restaurant name, admin username, admin password, and admin full name</p></li>
+    <li><p>Click <strong>Create</strong> — the restaurant and its admin account are ready</p></li>
+  </ol>
+
+  <h3>Managing Restaurants</h3>
+  <table>
+    <thead><tr><th>Action</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td>Edit name</td><td>Click the edit icon next to the restaurant name</td></tr>
+      <tr><td>View users</td><td>Expand the restaurant row — see all staff accounts</td></tr>
+      <tr><td>Activate / Deactivate</td><td>Toggle the Active switch</td></tr>
+      <tr><td>Impersonate user</td><td>Expand restaurant → find user → click <strong>Impersonate</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout info">
+    <span class="callout-icon">ℹ️</span>
+    <span><strong>Deactivating</strong> a restaurant blocks all logins for that restaurant's staff and stops customers from placing orders.</span>
+  </div>
+  <div class="callout warn">
+    <span class="callout-icon">⚠️</span>
+    <span><strong>Impersonate</strong> lets you log in as any user for support purposes. To return to super admin, log out and log back in with your super admin credentials.</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════ 8 — PUSH NOTIFICATIONS ══════════════════════════ -->
+<div class="section" id="s8">
+  <div class="section-header">
+    <div class="section-icon">🔔</div>
+    <div>
+      <div class="sec-num">Section 8</div>
+      <h2>Push Notifications</h2>
+    </div>
+  </div>
+
+  <p>Staff receive instant browser notifications when new orders arrive — even if the browser tab is in the background.</p>
+
+  <h3>Enabling Notifications</h3>
+  <ol class="steps">
+    <li><p>Log in to the admin or kitchen panel</p></li>
+    <li><p>When the browser asks for notification permission, click <strong>Allow</strong></p></li>
+    <li><p>Notifications are now active on your device</p></li>
+  </ol>
+
+  <h3>What a Notification Looks Like</h3>
+  <div class="cred-box">
+    <div><span class="val">🍽️ New Order — Table 5</span></div>
+    <div><span class="label" style="margin-left:0">3 items · $24.50</span></div>
+  </div>
+
+  <p>To disable, go to your browser's site settings and revoke notification permission for this site.</p>
+</div>
+
+<!-- ══════════════════════════ 9 — PERMISSIONS ══════════════════════════ -->
+<div class="section" id="s9">
+  <div class="section-header">
+    <div class="section-icon">🔐</div>
+    <div>
+      <div class="sec-num">Section 9</div>
+      <h2>Roles &amp; Permissions Summary</h2>
+    </div>
+  </div>
+
+  <table class="perm-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Customer</th>
+        <th>Kitchen</th>
+        <th>Admin</th>
+        <th>Super Admin</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Browse menu &amp; order</td><td class="yes">✓</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>View order history</td><td class="yes">✓</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Kitchen display</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Update order status</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Manage menu &amp; categories</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Manage tables &amp; QR codes</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>View &amp; print bills</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Mark table as paid</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Manage staff accounts</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Configure service charge &amp; tax</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Create restaurants</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+      <tr><td>Deactivate restaurant</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+      <tr><td>Impersonate users</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════ 10 — TROUBLESHOOTING ══════════════════════════ -->
+<div class="section" id="s10">
+  <div class="section-header">
+    <div class="section-icon">🔧</div>
+    <div>
+      <div class="sec-num">Section 10</div>
+      <h2>Troubleshooting</h2>
+    </div>
+  </div>
+
+  <h3>Customer Issues</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr><td>QR code doesn't open</td><td>Check internet connection; ask staff to verify the table is active</td></tr>
+      <tr><td>Menu items not showing</td><td>Item may be marked unavailable — contact staff</td></tr>
+      <tr><td>Order placed but nothing happened</td><td>Wait a moment and refresh; if nothing changes, ask staff to check</td></tr>
+      <tr><td>Can't see previous orders</td><td>Order history is table-specific — scan the same table's QR code</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Admin &amp; Kitchen Issues</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr><td>Can't log in</td><td>Check username/password; Caps Lock off; contact super admin to reset</td></tr>
+      <tr><td>Restaurant says "inactive"</td><td>Super admin has suspended the restaurant — contact platform support</td></tr>
+      <tr><td>Orders not appearing</td><td>Refresh the page; check internet connection</td></tr>
+      <tr><td>Kitchen display is empty</td><td>No pending or preparing orders at this time</td></tr>
+      <tr><td>Image upload fails</td><td>Ensure file is JPG/PNG and under 5 MB; check internet connection</td></tr>
+      <tr><td>Bill totals look wrong</td><td>Verify service charge and tax % in Settings</td></tr>
+      <tr><td>Push notifications not working</td><td>Check browser notification permissions — re-enable in browser site settings</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Super Admin Issues</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr><td>Can't create restaurant</td><td>Check all fields are filled; username must be unique across the system</td></tr>
+      <tr><td>Impersonate not working</td><td>Refresh and try again; verify the target user account exists</td></tr>
+      <tr><td>Backend slow to respond</td><td>Render free tier sleeps after 15 min inactivity — first request takes ~30 sec to wake up</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════ QUICK REF ══════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon">⚡</div>
+    <div><h2>Quick Reference Card</h2></div>
+  </div>
+  <div class="qr-grid">
+    <div class="qr-card">
+      <h4>Order Status Flow</h4>
+      <div class="flow" style="padding:10px 14px; margin:0; flex-wrap:nowrap; font-size:12px;">
+        <span class="flow-item" style="padding:4px 10px; font-size:12px;">Pending</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-item" style="padding:4px 10px; font-size:12px;">Preparing</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-item" style="padding:4px 10px; font-size:12px;">Ready</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-item" style="padding:4px 10px; font-size:12px;">Served</span>
+      </div>
+    </div>
+    <div class="qr-card">
+      <h4>Bill Flow</h4>
+      <div class="flow" style="padding:10px 14px; margin:0; flex-wrap:wrap; font-size:12px;">
+        <span class="flow-item" style="padding:4px 10px; font-size:12px;">Scan QR</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-item" style="padding:4px 10px; font-size:12px;">Order(s)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-item" style="padding:4px 10px; font-size:12px;">Print Bill</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-item" style="padding:4px 10px; font-size:12px;">Mark Paid</span>
+      </div>
+    </div>
+    <div class="qr-card">
+      <h4>QR Code Setup</h4>
+      <ol style="padding-left:16px; font-size:13px; color:#334155; margin:0;">
+        <li>Admin → Tables → Add tables</li>
+        <li>Print QR codes for each table</li>
+        <li>Laminate &amp; place on tables</li>
+        <li>Customers scan to order</li>
+      </ol>
+    </div>
+    <div class="qr-card">
+      <h4>New Staff Account</h4>
+      <ol style="padding-left:16px; font-size:13px; color:#334155; margin:0;">
+        <li>Admin → Users → Add User</li>
+        <li>Set name, username, password, role</li>
+        <li>Share credentials with staff</li>
+        <li>Staff changes password on first login</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  QRA Restaurant Ordering System &nbsp;·&nbsp; User Manual &nbsp;·&nbsp; For technical support contact your system administrator
+</div>
+
+</div><!-- /page-wrap -->
+</body>
+</html>

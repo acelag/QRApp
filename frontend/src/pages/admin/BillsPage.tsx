@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
 import { restaurantService, computeCharges, type RestaurantSettings } from '../../services/restaurantService';
+import { useCurrency } from '../../context/CurrencyContext';
 
 function elapsed(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -22,6 +23,7 @@ export function BillsPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
   const [billingSettings, setBillingSettings] = useState<RestaurantSettings | null>(null);
+  const { fmt } = useCurrency();
 
   useEffect(() => {
     restaurantService.getMyRestaurant().then(setBillingSettings).catch(() => {});
@@ -110,7 +112,7 @@ export function BillsPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xl font-bold text-orange-600">
-                          ${(session.totalAmount ?? 0).toFixed(2)}
+                          {fmt(session.totalAmount ?? 0)}
                         </p>
                         <p className="text-xs text-gray-400">
                           {(session.orders ?? []).length} order{(session.orders ?? []).length !== 1 ? 's' : ''}
@@ -124,11 +126,27 @@ export function BillsPage() {
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Bill Summary</p>
                         <ul className="space-y-1.5">
                           {session.billItems!.map((item, i) => (
-                            <li key={i} className="flex justify-between text-sm">
-                              <span className="text-gray-700">
-                                <span className="font-medium text-gray-900">{item.quantity}×</span> {item.name}
-                              </span>
-                              <span className="text-gray-700 tabular-nums">${item.total.toFixed(2)}</span>
+                            <li key={i} className="text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-700 flex items-center gap-1.5">
+                                  <span className="font-medium text-gray-900">{item.quantity}×</span> {item.name}
+                                  {item.size && (
+                                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                                      item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                      {item.size === 'large' ? 'L' : 'R'}
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-gray-700 tabular-nums">{fmt(item.total)}</span>
+                              </div>
+                              {(item.toppings ?? []).length > 0 && (
+                                <ul className="ml-6 mt-0.5 space-y-0.5">
+                                  {item.toppings!.map((t: { id: string; name: string; price: number }, ti: number) => (
+                                    <li key={ti} className="text-xs text-gray-400">+ {t.name}{t.price > 0 ? ` (+${fmt(t.price)})` : ''}</li>
+                                  ))}
+                                </ul>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -144,47 +162,27 @@ export function BillsPage() {
                             <div className="mt-3 pt-2 border-t border-gray-100 space-y-1 text-sm text-gray-600">
                               <div className="flex justify-between">
                                 <span>Subtotal</span>
-                                <span>${subtotal.toFixed(2)}</span>
+                                <span>{fmt(subtotal)}</span>
                               </div>
                               {charges.serviceCharge > 0 && (
                                 <div className="flex justify-between">
                                   <span>Service Charge ({billingSettings.serviceChargePct}%)</span>
-                                  <span>+${charges.serviceCharge.toFixed(2)}</span>
+                                  <span>+{fmt(charges.serviceCharge)}</span>
                                 </div>
                               )}
                               {charges.tax > 0 && (
                                 <div className="flex justify-between">
                                   <span>Tax ({billingSettings.taxPct}%)</span>
-                                  <span>+${charges.tax.toFixed(2)}</span>
+                                  <span>+{fmt(charges.tax)}</span>
                                 </div>
                               )}
                               <div className="flex justify-between font-bold text-gray-900 border-t border-gray-100 pt-1">
                                 <span>Grand Total</span>
-                                <span>${charges.grandTotal.toFixed(2)}</span>
+                                <span>{fmt(charges.grandTotal)}</span>
                               </div>
                             </div>
                           );
                         })()}
-                      </div>
-                    )}
-
-                    {/* Sub-orders list */}
-                    {(session.orders ?? []).length > 0 && (
-                      <div className="px-5 py-3 border-b border-gray-100">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Orders</p>
-                        <div className="space-y-1">
-                          {session.orders!.map((order, idx) => (
-                            <div key={order.id} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-500">
-                                Order #{idx + 1}
-                                <span className="text-gray-400 ml-1 text-xs">
-                                  · {order.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}
-                                </span>
-                              </span>
-                              <span className="text-gray-600 tabular-nums">${order.totalAmount.toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
                       </div>
                     )}
 
@@ -242,7 +240,7 @@ export function BillsPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-gray-700">${(session.totalAmount ?? 0).toFixed(2)}</p>
+                      <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
                       <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
                         Paid
                       </span>

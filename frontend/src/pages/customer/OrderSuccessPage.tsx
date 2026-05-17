@@ -4,10 +4,12 @@ import { CheckCircle } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useCurrency } from '../../context/CurrencyContext';
 
 export function OrderSuccessPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
+  const { fmt } = useCurrency();
 
   useEffect(() => {
     if (!orderId) return;
@@ -42,20 +44,39 @@ export function OrderSuccessPage() {
         </div>
 
         <ul className="space-y-2 mb-4">
-          {order.items.map((item, idx) => (
-            <li key={idx} className="flex justify-between text-sm">
-              <span className="text-gray-700">
-                {item.quantity}× {item.name}
-                {item.notes && <span className="text-gray-400 italic ml-1">({item.notes})</span>}
-              </span>
-              <span className="text-gray-600">${(item.price * item.quantity).toFixed(2)}</span>
-            </li>
-          ))}
+          {order.items.map((item, idx) => {
+            const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
+            return (
+              <li key={idx} className="text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-700 flex items-center gap-1.5 flex-wrap">
+                    {item.quantity}× {item.name}
+                    {item.size && (
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                        item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {item.size === 'large' ? 'Large' : 'Regular'}
+                      </span>
+                    )}
+                    {item.notes && <span className="text-gray-400 italic">({item.notes})</span>}
+                  </span>
+                  <span className="text-gray-600 shrink-0 ml-2">{fmt((item.price + toppingsTotal) * item.quantity)}</span>
+                </div>
+                {(item.toppings ?? []).length > 0 && (
+                  <ul className="ml-6 mt-0.5 space-y-0.5">
+                    {item.toppings!.map((t, ti) => (
+                      <li key={ti} className="text-xs text-gray-400">+ {t.name}{t.price > 0 ? ` (+${fmt(t.price)})` : ''}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         <div className="border-t border-gray-100 pt-3 flex justify-between font-semibold">
           <span>Total</span>
-          <span>${order.totalAmount.toFixed(2)}</span>
+          <span>{fmt(order.totalAmount)}</span>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">

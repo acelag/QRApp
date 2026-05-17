@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { Category, MenuItem } from '../types';
+import type { Topping } from '../types/MenuItem';
 
 const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
@@ -29,4 +30,17 @@ export const menuService = {
     axios.patch<Category>(`${BASE}/categories/${id}`, { name }).then((r) => r.data),
 
   deleteCategory: (id: string) => axios.delete(`${BASE}/categories/${id}`),
+
+  // Toppings
+  getToppings: (menuItemId: string) =>
+    axios.get<Topping[]>(`${BASE}/menu-items/${menuItemId}/toppings`).then((r) => r.data),
+
+  createTopping: (menuItemId: string, data: { name: string; price: number; available?: boolean }) =>
+    axios.post<Topping>(`${BASE}/menu-items/${menuItemId}/toppings`, data).then((r) => r.data),
+
+  updateTopping: (menuItemId: string, toppingId: string, data: Partial<{ name: string; price: number; available: boolean }>) =>
+    axios.patch<Topping>(`${BASE}/menu-items/${menuItemId}/toppings/${toppingId}`, data).then((r) => r.data),
+
+  deleteTopping: (menuItemId: string, toppingId: string) =>
+    axios.delete(`${BASE}/menu-items/${menuItemId}/toppings/${toppingId}`),
 };

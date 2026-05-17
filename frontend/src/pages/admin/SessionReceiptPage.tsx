@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
-import { restaurantService, computeCharges, type RestaurantSettings } from '../../services/restaurantService';
+import { restaurantService, computeCharges, getCurrencySymbol, type RestaurantSettings } from '../../services/restaurantService';
 
 function Line({ char = '-' }: { char?: string }) {
   return <p style={{ margin: '4px 0' }}>{char.repeat(32)}</p>;
@@ -32,6 +32,8 @@ export function SessionReceiptPage() {
   const billItems   = session.billItems ?? [];
   const totalAmount = session.totalAmount ?? 0;
   const orders      = session.orders ?? [];
+  const sym = getCurrencySymbol(settings?.currency ?? 'USD');
+  const fmtAmt = (n: number) => `${sym}${n.toFixed(2)}`;
   // Session = dine-in: service charge always | tax always
   const charges = computeCharges(totalAmount, {
     serviceChargePct: settings?.serviceChargePct ?? 0,
@@ -124,55 +126,53 @@ export function SessionReceiptPage() {
         <Line />
 
         {/* Aggregated items */}
-        {billItems.map((item, idx) => (
-          <div key={idx} style={{ marginBottom: 4 }}>
-            <div className="row">
-              <span className="name bold">{item.quantity}x {item.name}</span>
-              <span className="price">${item.total.toFixed(2)}</span>
+        {billItems.map((item, idx) => {
+          const toppingsTotal = (item.toppings ?? []).reduce((s: number, t: { price: number }) => s + t.price, 0);
+          return (
+            <div key={idx} style={{ marginBottom: 4 }}>
+              <div className="row">
+                <span className="name bold">
+                  {item.quantity}x {item.name}
+                  {item.size ? ` (${item.size === 'large' ? 'Large' : 'Regular'})` : ''}
+                </span>
+                <span className="price">{fmtAmt(item.total)}</span>
+              </div>
+              {(item.toppings ?? []).map((t: { name: string; price: number }, ti: number) => (
+                <div key={ti} className="row small" style={{ paddingLeft: 12 }}>
+                  <span>+ {t.name}</span>
+                  {t.price > 0 && <span>+{fmtAmt(t.price)}</span>}
+                </div>
+              ))}
+              <div className="row small" style={{ paddingLeft: 12 }}>
+                <span>{fmtAmt(item.price + toppingsTotal)} each</span>
+              </div>
             </div>
-            <div className="row small" style={{ paddingLeft: 12 }}>
-              <span>${item.price.toFixed(2)} each</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         <Line />
-
-        {/* Per-order breakdown */}
-        {orders.length > 1 && (
-          <>
-            <p className="small bold" style={{ marginBottom: 4 }}>Order Breakdown:</p>
-            {orders.map((order, idx) => (
-              <div key={order.id} className="row small">
-                <span>Order #{idx + 1}</span>
-                <span>${order.totalAmount.toFixed(2)}</span>
-              </div>
-            ))}
-            <Line />
-          </>
-        )}
 
         {/* Totals */}
         <div className="row">
           <span>Subtotal</span>
-          <span>${totalAmount.toFixed(2)}</span>
+          <span>{fmtAmt(totalAmount)}</span>
         </div>
         {charges.serviceCharge > 0 && (
           <div className="row">
             <span>Service Charge ({settings?.serviceChargePct}%)</span>
-            <span>${charges.serviceCharge.toFixed(2)}</span>
+            <span>{fmtAmt(charges.serviceCharge)}</span>
           </div>
         )}
         {charges.tax > 0 && (
           <div className="row">
             <span>Tax ({settings?.taxPct}%)</span>
-            <span>${charges.tax.toFixed(2)}</span>
+            <span>{fmtAmt(charges.tax)}</span>
           </div>
         )}
         <Line />
         <div className="total-row">
           <span>TOTAL</span>
-          <span>${charges.grandTotal.toFixed(2)}</span>
+          <span>{fmtAmt(charges.grandTotal)}</span>
         </div>
 
         <Line />

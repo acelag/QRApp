@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Loader2, CheckCircle, Users, Receipt } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { restaurantService, type RestaurantSettings } from '../../services/restaurantService';
+import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
+import { useCurrency } from '../../context/CurrencyContext';
 
 export function SettingsPage() {
   const { user, updateProfile, logout } = useAuth();
@@ -23,8 +24,10 @@ export function SettingsPage() {
   const [restaurant, setRestaurant] = useState<RestaurantSettings | null>(null);
   const [serviceChargePct, setServiceChargePct] = useState('0');
   const [taxPct, setTaxPct] = useState('0');
+  const [currency, setCurrency] = useState('USD');
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingSuccess, setBillingSuccess] = useState(false);
+  const { loadCurrency } = useCurrency();
 
   useEffect(() => {
     restaurantService.getMyRestaurant().then((r) => {
@@ -32,6 +35,7 @@ export function SettingsPage() {
       setRestaurant(r);
       setServiceChargePct(String(r.serviceChargePct));
       setTaxPct(String(r.taxPct));
+      setCurrency(r.currency ?? 'USD');
     });
   }, []);
 
@@ -46,8 +50,10 @@ export function SettingsPage() {
       const updated = await restaurantService.updateCharges(restaurant.id, {
         serviceChargePct: sc,
         taxPct: tax,
+        currency,
       });
       setRestaurant(updated);
+      loadCurrency(updated.id);
       setBillingSuccess(true);
       setTimeout(() => setBillingSuccess(false), 3000);
     } finally {
@@ -279,6 +285,22 @@ export function SettingsPage() {
               ))}
             </div>
 
+            {/* Currency */}
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1.5 block">Currency</label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.symbol} — {c.name} ({c.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Live preview */}
             <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-600 space-y-1 border border-gray-100">
               <p className="font-medium text-gray-700 mb-2">Preview on $100.00 subtotal</p>
@@ -289,12 +311,14 @@ export function SettingsPage() {
                 const tot = sub + sc + tax;
                 return (
                   <>
-                    <div className="flex justify-between"><span>Subtotal</span><span>$100.00</span></div>
-                    {sc  > 0 && <div className="flex justify-between"><span>Service Charge ({serviceChargePct}%)</span><span>+${sc.toFixed(2)}</span></div>}
-                    {tax > 0 && <div className="flex justify-between"><span>Tax ({taxPct}%)</span><span>+${tax.toFixed(2)}</span></div>}
+                    {(() => { const sym = CURRENCIES.find((c) => c.code === currency)?.symbol ?? currency; return (<>
+                    <div className="flex justify-between"><span>Subtotal</span><span>{sym}100.00</span></div>
+                    {sc  > 0 && <div className="flex justify-between"><span>Service Charge ({serviceChargePct}%)</span><span>+{sym}{sc.toFixed(2)}</span></div>}
+                    {tax > 0 && <div className="flex justify-between"><span>Tax ({taxPct}%)</span><span>+{sym}{tax.toFixed(2)}</span></div>}
                     <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-1 mt-1">
-                      <span>Total</span><span>${tot.toFixed(2)}</span>
+                      <span>Total</span><span>{sym}{tot.toFixed(2)}</span>
                     </div>
+                  </>); })()}
                   </>
                 );
               })()}

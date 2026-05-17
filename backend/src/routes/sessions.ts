@@ -5,35 +5,73 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
+interface SessionTopping { id: string | null; name: string; price: number; }
+
 const rowToSession = (row: Record<string, unknown>) => ({
   id: row.id, restaurantId: row.restaurant_id, tableId: row.table_id,
   tableNumber: row.table_number, status: row.status as 'open' | 'paid',
   createdAt: row.created_at, closedAt: row.closed_at ?? null,
 });
 
+const ORDER_ITEMS_SQL = `
+  SELECT oi.*,
+    COALESCE(
+      json_agg(
+        json_build_object('id', oit.topping_id, 'name', oit.name, 'price', oit.price::float)
+        ORDER BY oit.name
+      ) FILTER (WHERE oit.id IS NOT NULL),
+      '[]'::json
+    ) AS toppings
+  FROM order_items oi
+  LEFT JOIN order_item_toppings oit ON oit.order_item_id = oi.id
+  WHERE oi.order_id = $1
+  GROUP BY oi.id
+`;
+
 async function buildSessionDetail(row: Record<string, unknown>) {
   const sessionId = row.id as string;
   const ordersRes = await pool.query('SELECT * FROM orders WHERE session_id = $1 ORDER BY created_at ASC', [sessionId]);
   const orders = await Promise.all(ordersRes.rows.map(async (o: Record<string, unknown>) => {
-    const itemsRes = await pool.query('SELECT * FROM order_items WHERE order_id = $1', [o.id as string]);
+    const itemsRes = await pool.query(ORDER_ITEMS_SQL, [o.id as string]);
     return {
       id: o.id, status: o.status, totalAmount: Number(o.total_amount), createdAt: o.created_at,
-      items: itemsRes.rows.map((i: Record<string, unknown>) => ({
+      items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
         menuItemId: i.menu_item_id as string, name: i.name as string,
-        price: Number(i.price), quantity: i.quantity as number, notes: i.notes != null ? (i.notes as string) : undefined,
+        price: Number(i.price), quantity: i.quantity as number,
+        notes: i.notes != null ? (i.notes as string) : undefined,
+        size: i.size != null ? (i.size as 'regular' | 'large') : undefined,
+        toppings: ((i.toppings as SessionTopping[] | null) ?? []).filter((t) => t.id != null) as { id: string; name: string; price: number }[],
       })),
     };
   }));
 
-  const billMap = new Map<string, { menuItemId: string; name: string; price: number; quantity: number }>();
+  type BillItem = {
+    menuItemId: string; name: string; price: number; quantity: number;
+    size?: 'regular' | 'large';
+    toppings: { id: string; name: string; price: number }[];
+  };
+  const billMap = new Map<string, BillItem>();
+
   for (const order of orders) {
     for (const item of order.items) {
-      const existing = billMap.get(item.menuItemId);
-      if (existing) existing.quantity += item.quantity;
-      else billMap.set(item.menuItemId, { ...item });
+      const toppingKey = item.toppings.map((t) => t.id).sort().join(',');
+      const key = `${item.menuItemId}|${item.size ?? 'regular'}|${toppingKey}`;
+      const existing = billMap.get(key);
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        billMap.set(key, { ...item, toppings: item.toppings });
+      }
     }
   }
-  const billItems = Array.from(billMap.values()).map((i) => ({ ...i, total: Number((i.price * i.quantity).toFixed(2)) }));
+
+  const billItems = Array.from(billMap.values()).map((i) => {
+    const toppingsTotal = i.toppings.reduce((s, t) => s + t.price, 0);
+    return {
+      ...i,
+      total: Number(((i.price + toppingsTotal) * i.quantity).toFixed(2)),
+    };
+  });
   const totalAmount = Number(billItems.reduce((s, i) => s + i.total, 0).toFixed(2));
   return { ...rowToSession(row), orders, billItems, totalAmount };
 }

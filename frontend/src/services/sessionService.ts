@@ -6,6 +6,8 @@ export interface BillItem {
   price: number;
   quantity: number;
   total: number;
+  size?: 'regular' | 'large';
+  toppings?: { id: string; name: string; price: number }[];
 }
 
 export interface SessionOrder {
@@ -13,7 +15,7 @@ export interface SessionOrder {
   status: string;
   totalAmount: number;
   createdAt: string;
-  items: { menuItemId: string; name: string; price: number; quantity: number; notes?: string }[];
+  items: { menuItemId: string; name: string; price: number; quantity: number; notes?: string; size?: 'regular' | 'large'; toppings?: { id: string; name: string; price: number }[] }[];
 }
 
 export interface Session {

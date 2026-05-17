@@ -6,13 +6,34 @@ import { sendPushToAll, newOrderPayload } from '../lib/pushNotifier';
 
 const router = Router();
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served';
-interface CartItem { menuItemId: string; name: string; price: number; quantity: number; notes?: string; }
+
+interface SelectedTopping { id: string; name: string; price: number; }
+interface CartItem {
+  menuItemId: string; name: string; price: number; quantity: number;
+  notes?: string; size?: 'regular' | 'large';
+  toppings?: SelectedTopping[];
+}
+
+const ITEMS_SQL = `
+  SELECT oi.*,
+    COALESCE(
+      json_agg(
+        json_build_object('id', oit.topping_id, 'name', oit.name, 'price', oit.price::float)
+        ORDER BY oit.name
+      ) FILTER (WHERE oit.id IS NOT NULL),
+      '[]'::json
+    ) AS toppings
+  FROM order_items oi
+  LEFT JOIN order_item_toppings oit ON oit.order_item_id = oi.id
+  WHERE oi.order_id = $1
+  GROUP BY oi.id
+`;
 
 async function buildOrder(orderId: string) {
   const orderRes = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
   const o = orderRes.rows[0] as Record<string, unknown> | undefined;
   if (!o) return null;
-  const itemsRes = await pool.query('SELECT * FROM order_items WHERE order_id = $1', [orderId]);
+  const itemsRes = await pool.query(ITEMS_SQL, [orderId]);
   return {
     id: o.id, restaurantId: o.restaurant_id ?? null, sessionId: o.session_id ?? null,
     tableId: o.table_id ?? null,
@@ -20,8 +41,10 @@ async function buildOrder(orderId: string) {
     orderType: (o.order_type as string) ?? 'dine-in', customerName: (o.customer_name as string) ?? null,
     status: o.status as OrderStatus, totalAmount: Number(o.total_amount),
     createdAt: o.created_at, updatedAt: o.updated_at,
-    items: itemsRes.rows.map((i: Record<string, unknown>) => ({
-      menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity, notes: i.notes ?? undefined,
+    items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
+      menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
+      notes: i.notes ?? undefined, size: (i.size as string | null) ?? undefined,
+      toppings: ((i.toppings as SelectedTopping[] | null) ?? []).filter((t) => t.id != null),
     })),
   };
 }
@@ -56,7 +79,11 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     }
   }
 
-  const totalAmount = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const totalAmount = items.reduce((s, i) => {
+    const toppingsTotal = (i.toppings ?? []).reduce((t, tp) => t + tp.price, 0);
+    return s + (i.price + toppingsTotal) * i.quantity;
+  }, 0);
+
   const now = new Date().toISOString();
   const orderId = uuid();
 
@@ -69,10 +96,17 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
       [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, orderType, customerName ?? null, totalAmount, now],
     );
     for (const item of items) {
+      const orderItemId = uuid();
       await client.query(
-        `INSERT INTO order_items (id,order_id,menu_item_id,name,price,quantity,notes) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [uuid(), orderId, item.menuItemId, item.name, item.price, item.quantity, item.notes ?? null],
+        `INSERT INTO order_items (id,order_id,menu_item_id,name,price,quantity,notes,size) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [orderItemId, orderId, item.menuItemId, item.name, item.price, item.quantity, item.notes ?? null, item.size ?? null],
       );
+      for (const topping of (item.toppings ?? [])) {
+        await client.query(
+          `INSERT INTO order_item_toppings (id,order_item_id,topping_id,name,price) VALUES ($1,$2,$3,$4,$5)`,
+          [uuid(), orderItemId, topping.id, topping.name, topping.price],
+        );
+      }
     }
     await client.query('COMMIT');
   } catch (err) {
