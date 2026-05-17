@@ -1,10 +1,24 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Loader2, CheckCircle, Users, Receipt, ImagePlus, X } from 'lucide-react';
+import {
+  ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Users,
+  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const input = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors";
 
 export function SettingsPage() {
   const { user, updateProfile, logout } = useAuth();
@@ -21,7 +35,6 @@ export function SettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // ── Billing settings ──────────────────────────────────────────────────────
   const [restaurant, setRestaurant] = useState<RestaurantSettings | null>(null);
   const [serviceChargePct, setServiceChargePct] = useState('0');
   const [taxPct, setTaxPct] = useState('0');
@@ -49,7 +62,7 @@ export function SettingsPage() {
       const updated = await restaurantService.updateLogo(restaurant.id, url);
       setRestaurant(updated);
     } catch {
-      // silent — toast is already shown by uploadImage on error
+      //
     } finally {
       setLogoUploading(false);
       e.target.value = '';
@@ -70,11 +83,7 @@ export function SettingsPage() {
     setBillingLoading(true);
     setBillingSuccess(false);
     try {
-      const updated = await restaurantService.updateCharges(restaurant.id, {
-        serviceChargePct: sc,
-        taxPct: tax,
-        currency,
-      });
+      const updated = await restaurantService.updateCharges(restaurant.id, { serviceChargePct: sc, taxPct: tax, currency });
       setRestaurant(updated);
       loadCurrency(updated.id);
       setBillingSuccess(true);
@@ -88,22 +97,16 @@ export function SettingsPage() {
     e.preventDefault();
     setError('');
     setSuccess(false);
-
     if (!currentPassword) { setError('Current password is required'); return; }
-    if (newPassword && newPassword !== confirmPassword) {
-      setError('New passwords do not match'); return;
-    }
-    if (newPassword && newPassword.length < 6) {
-      setError('New password must be at least 6 characters'); return;
-    }
-
+    if (newPassword && newPassword !== confirmPassword) { setError('New passwords do not match'); return; }
+    if (newPassword && newPassword.length < 6) { setError('New password must be at least 6 characters'); return; }
     setLoading(true);
     try {
       await updateProfile({
         currentPassword,
-        newUsername:  newUsername.trim()  !== user?.username ? newUsername.trim()  : undefined,
-        newName:      newName.trim()      !== user?.name     ? newName.trim()      : undefined,
-        newPassword:  newPassword || undefined,
+        newUsername: newUsername.trim() !== user?.username ? newUsername.trim() : undefined,
+        newName:     newName.trim()     !== user?.name     ? newName.trim()     : undefined,
+        newPassword: newPassword || undefined,
       });
       setSuccess(true);
       setCurrentPassword('');
@@ -117,278 +120,289 @@ export function SettingsPage() {
     }
   }
 
+  const sym = CURRENCIES.find((c) => c.code === currency)?.symbol ?? currency;
+  const previewSC  = 100 * (parseFloat(serviceChargePct) || 0) / 100;
+  const previewTax = (100 + previewSC) * (parseFloat(taxPct) || 0) / 100;
+  const previewTotal = 100 + previewSC + previewTax;
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
+      {/* Top nav */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <h1 className="text-xl font-bold text-gray-900">Account Settings</h1>
+          <Link to="/admin" className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-600">
+            <ArrowLeft size={18} />
+          </Link>
+          <h1 className="text-lg font-bold text-gray-900">Settings</h1>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6">
-        {/* Current user info + restaurant logo */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 flex items-center gap-4">
-          {/* Logo upload avatar */}
-          <label className="relative cursor-pointer group flex-shrink-0">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden border border-gray-200 bg-orange-50 flex items-center justify-center">
-              {restaurant?.logo
-                ? <img src={restaurant.logo} alt="logo" className="w-full h-full object-contain" />
-                : <span className="text-orange-600 font-bold text-2xl">{user?.name.charAt(0).toUpperCase()}</span>}
-            </div>
-            <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              {logoUploading
-                ? <Loader2 size={16} className="animate-spin text-white" />
-                : <ImagePlus size={16} className="text-white" />}
-            </div>
-            <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
-          </label>
+      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
 
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900">{user?.name}</p>
-            <p className="text-sm text-gray-500">@{user?.username} · <span className="capitalize">{user?.role}</span></p>
-            {restaurant && (
-              <p className="text-xs text-gray-400 mt-0.5 truncate">{restaurant.name}</p>
+        {/* ── Hero profile card ─────────────────────────────────────────── */}
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
+          <div className="flex items-center gap-5">
+            {/* Logo / avatar */}
+            <label className="relative cursor-pointer group flex-shrink-0">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center shadow-inner">
+                {restaurant?.logo
+                  ? <img src={restaurant.logo} alt="logo" className="w-full h-full object-contain" />
+                  : <span className="text-white font-bold text-3xl">{user?.name.charAt(0).toUpperCase()}</span>}
+              </div>
+              {/* Hover overlay */}
+              <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                {logoUploading
+                  ? <Loader2 size={18} className="animate-spin text-white" />
+                  : <><ImagePlus size={18} className="text-white" /><span className="text-white text-[10px] font-medium">Upload</span></>}
+              </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+            </label>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xl font-bold truncate">{user?.name}</p>
+              <p className="text-sm text-orange-100 truncate">@{user?.username}</p>
+              {restaurant && (
+                <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur rounded-full px-3 py-1">
+                  <span className="text-xs font-medium text-white truncate">{restaurant.name}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Remove logo */}
+            {restaurant?.logo && (
+              <button
+                onClick={handleLogoRemove}
+                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
+                title="Remove logo"
+              >
+                <X size={13} className="text-white" />
+              </button>
             )}
           </div>
 
-          {restaurant?.logo && (
-            <button onClick={handleLogoRemove} className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0" title="Remove logo">
-              <X size={16} />
-            </button>
+          {!restaurant?.logo && (
+            <p className="text-xs text-orange-200 mt-3 text-center">
+              Tap the avatar to upload your restaurant logo
+            </p>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-          <h2 className="font-semibold text-gray-800">Change Credentials</h2>
-
-          {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
-              {error}
+        {/* ── Account credentials ───────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+              <User size={15} className="text-blue-500" />
             </div>
-          )}
-          {success && (
-            <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-              <CheckCircle size={16} /> Credentials updated successfully!
-            </div>
-          )}
-
-          {/* Display name */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Display Name</label>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-            />
+            <h2 className="font-semibold text-gray-800">Account</h2>
           </div>
 
-          {/* New username */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Username</label>
-            <input
-              type="text"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              autoComplete="username"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-            />
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* New password */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-              New Password <span className="text-gray-400 font-normal">(leave blank to keep current)</span>
-            </label>
-            <div className="relative">
-              <input
-                type={showNew ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
-                placeholder="Min. 6 characters"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-              />
-              <button type="button" onClick={() => setShowNew((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Confirm new password */}
-          {newPassword && (
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Confirm New Password</label>
-              <input
-                type={showNew ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                placeholder="Repeat new password"
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent ${
-                  confirmPassword && confirmPassword !== newPassword
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-gray-200'
-                }`}
-              />
-              {confirmPassword && confirmPassword !== newPassword && (
-                <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
-              )}
-            </div>
-          )}
-
-          <hr className="border-gray-100" />
-
-          {/* Current password to confirm identity */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Current Password <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <input
-                type={showCurrent ? 'text' : 'password'}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder="Enter current password to confirm"
-                required
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-              />
-              <button type="button" onClick={() => setShowCurrent((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'Saving…' : 'Save Changes'}
-          </button>
-        </form>
-
-        {/* User management */}
-        <Link
-          to="/admin/users"
-          className="mt-4 flex items-center gap-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-orange-200 transition-colors"
-        >
-          <div className="bg-orange-50 p-3 rounded-xl text-orange-600">
-            <Users size={20} />
-          </div>
-          <div>
-            <p className="font-semibold text-gray-900">Manage Users</p>
-            <p className="text-sm text-gray-500">Add, edit or remove admin &amp; kitchen accounts</p>
-          </div>
-        </Link>
-
-        {/* Billing settings */}
-        {restaurant && (
-          <div className="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Receipt size={18} className="text-orange-500" />
-              <h2 className="font-semibold text-gray-800">Billing Configuration</h2>
-            </div>
-            <p className="text-xs text-gray-400 -mt-2">
-              Service charge applies to dine-in orders only. Tax applies to all orders.
-            </p>
-
-            {billingSuccess && (
+          <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                <X size={14} /> {error}
+              </div>
+            )}
+            {success && (
               <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                <CheckCircle size={15} /> Billing settings saved!
+                <CheckCircle2 size={14} /> Credentials updated successfully!
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: 'Service Charge', value: serviceChargePct, set: setServiceChargePct },
-                { label: 'Tax',            value: taxPct,            set: setTaxPct },
-              ].map(({ label, value, set }) => (
-                <div key={label}>
-                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">{label}</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={value}
-                      onChange={(e) => set(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
-                  </div>
+              <Field label="Display Name">
+                <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className={input} />
+              </Field>
+              <Field label="Username">
+                <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoComplete="username" className={input} />
+              </Field>
+            </div>
+
+            <div className="border-t border-gray-50 pt-4 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Lock size={13} className="text-gray-400" />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Change Password</span>
+              </div>
+
+              <Field label="New Password">
+                <div className="relative">
+                  <input
+                    type={showNew ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    placeholder="Leave blank to keep current"
+                    className={input + ' pr-11'}
+                  />
+                  <button type="button" onClick={() => setShowNew((p) => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
                 </div>
-              ))}
+              </Field>
+
+              {newPassword && (
+                <Field label="Confirm Password">
+                  <input
+                    type={showNew ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    placeholder="Repeat new password"
+                    className={`${input} ${confirmPassword && confirmPassword !== newPassword ? 'border-red-300 bg-red-50' : ''}`}
+                  />
+                  {confirmPassword && confirmPassword !== newPassword && (
+                    <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                  )}
+                </Field>
+              )}
             </div>
 
-            {/* Currency */}
-            <div>
-              <label className="text-xs font-medium text-gray-600 mb-1.5 block">Currency</label>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.symbol} — {c.name} ({c.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Live preview */}
-            <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-600 space-y-1 border border-gray-100">
-              <p className="font-medium text-gray-700 mb-2">Preview on $100.00 subtotal</p>
-              {(() => {
-                const sub = 100;
-                const sc  = sub * (parseFloat(serviceChargePct) || 0) / 100;
-                const tax = (sub + sc) * (parseFloat(taxPct) || 0) / 100;
-                const tot = sub + sc + tax;
-                return (
-                  <>
-                    {(() => { const sym = CURRENCIES.find((c) => c.code === currency)?.symbol ?? currency; return (<>
-                    <div className="flex justify-between"><span>Subtotal</span><span>{sym}100.00</span></div>
-                    {sc  > 0 && <div className="flex justify-between"><span>Service Charge ({serviceChargePct}%)</span><span>+{sym}{sc.toFixed(2)}</span></div>}
-                    {tax > 0 && <div className="flex justify-between"><span>Tax ({taxPct}%)</span><span>+{sym}{tax.toFixed(2)}</span></div>}
-                    <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-1 mt-1">
-                      <span>Total</span><span>{sym}{tot.toFixed(2)}</span>
-                    </div>
-                  </>); })()}
-                  </>
-                );
-              })()}
+            <div className="border-t border-gray-50 pt-4">
+              <Field label="Current Password *">
+                <div className="relative">
+                  <input
+                    type={showCurrent ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                    placeholder="Required to save changes"
+                    required
+                    className={input + ' pr-11'}
+                  />
+                  <button type="button" onClick={() => setShowCurrent((p) => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </Field>
             </div>
 
             <button
-              onClick={saveBilling}
-              disabled={billingLoading}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
             >
-              {billingLoading && <Loader2 size={15} className="animate-spin" />}
-              {billingLoading ? 'Saving…' : 'Save Billing Settings'}
+              {loading && <Loader2 size={15} className="animate-spin" />}
+              {loading ? 'Saving…' : 'Save Account Changes'}
             </button>
+          </form>
+        </div>
+
+        {/* ── Billing configuration ─────────────────────────────────────── */}
+        {restaurant && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
+                <DollarSign size={15} className="text-green-500" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-800">Billing</h2>
+                <p className="text-xs text-gray-400">Service charge: dine-in only · Tax: all orders</p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {billingSuccess && (
+                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Billing settings saved!
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Service Charge', value: serviceChargePct, set: setServiceChargePct },
+                  { label: 'Tax',            value: taxPct,            set: setTaxPct },
+                ].map(({ label, value, set }) => (
+                  <Field key={label} label={label}>
+                    <div className="relative">
+                      <input
+                        type="number" min="0" max="100" step="0.01"
+                        value={value} onChange={(e) => set(e.target.value)}
+                        className={input + ' pr-8'}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">%</span>
+                    </div>
+                  </Field>
+                ))}
+              </div>
+
+              <Field label="Currency">
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className={input}
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.symbol} — {c.name} ({c.code})</option>
+                  ))}
+                </select>
+              </Field>
+
+              {/* Live preview */}
+              <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                <div className="px-4 py-2.5 bg-gray-100/60 border-b border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Preview · {sym}100 subtotal</p>
+                </div>
+                <div className="px-4 py-3 space-y-1.5 text-sm">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span><span>{sym}100.00</span>
+                  </div>
+                  {previewSC > 0 && (
+                    <div className="flex justify-between text-gray-500 text-xs">
+                      <span>Service Charge ({serviceChargePct}%)</span><span>+{sym}{previewSC.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {previewTax > 0 && (
+                    <div className="flex justify-between text-gray-500 text-xs">
+                      <span>Tax ({taxPct}%)</span><span>+{sym}{previewTax.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 mt-1">
+                    <span>Total</span><span className="text-orange-600">{sym}{previewTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={saveBilling}
+                disabled={billingLoading}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+              >
+                {billingLoading && <Loader2 size={15} className="animate-spin" />}
+                {billingLoading ? 'Saving…' : 'Save Billing Settings'}
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Danger zone */}
-        <div className="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Session</h2>
-          <button
-            onClick={() => { logout(); navigate('/login', { replace: true }); }}
-            className="w-full border border-red-200 text-red-500 hover:bg-red-50 py-2.5 rounded-xl text-sm font-medium transition-colors"
+        {/* ── Quick links ───────────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
+          <Link
+            to="/admin/users"
+            className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
           >
-            Log out of this device
-          </button>
+            <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+              <Users size={17} className="text-purple-500" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-800 text-sm">Manage Users</p>
+              <p className="text-xs text-gray-400">Add, edit or remove admin &amp; kitchen accounts</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-300" />
+          </Link>
         </div>
+
+        {/* ── Sign out ──────────────────────────────────────────────────── */}
+        <button
+          onClick={() => { logout(); navigate('/login', { replace: true }); }}
+          className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-500 hover:bg-red-50 py-3.5 rounded-2xl text-sm font-semibold transition-colors"
+        >
+          <LogOut size={16} />
+          Log out of this device
+        </button>
+
+        <div className="h-4" />
       </main>
     </div>
   );
