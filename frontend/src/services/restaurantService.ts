@@ -12,6 +12,7 @@ export interface RestaurantSettings {
   taxPct: number;
   currency: string;
   logo?: string | null;
+  themeColor?: string | null;
 }
 
 export interface BillingCharges {
@@ -57,13 +58,16 @@ export const restaurantService = {
   getRestaurantCurrency: (id: string): Promise<string> =>
     axios.get<{ currency: string }>(`${BASE}/restaurants/${id}/currency`).then((r) => r.data.currency),
 
-  /** Public — no auth required. Returns name and logo for a restaurant. */
-  getRestaurantInfo: (id: string): Promise<{ name: string; logo: string | null }> =>
-    axios.get<{ name: string; logo: string | null }>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
+  /** Public — no auth required. Returns name, logo and themeColor for a restaurant. */
+  getRestaurantInfo: (id: string): Promise<{ name: string; logo: string | null; themeColor: string | null }> =>
+    axios.get<{ name: string; logo: string | null; themeColor: string | null }>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
 
   updateCharges: (id: string, charges: BillingCharges) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/charges`, charges).then((r) => r.data),
 
   updateLogo: (id: string, logo: string | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/logo`, { logo }).then((r) => r.data),
+
+  updateTheme: (id: string, themeColor: string) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/theme`, { themeColor }).then((r) => r.data),
 };

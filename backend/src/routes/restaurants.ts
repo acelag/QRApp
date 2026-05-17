@@ -12,6 +12,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   serviceChargePct: Number(row.service_charge_pct ?? 0), taxPct: Number(row.tax_pct ?? 0),
   currency: (row.currency as string | null) ?? 'USD',
   logo: (row.logo as string | null) ?? null,
+  themeColor: (row.theme_color as string | null) ?? '#f97316',
 });
 
 // ── Public endpoints — no auth required ──────────────────────────────────────
@@ -22,10 +23,10 @@ router.get('/:id/currency', async (req, res) => {
 });
 
 router.get('/:id/info', async (req, res) => {
-  const result = await pool.query('SELECT name, logo FROM restaurants WHERE id = $1', [req.params.id]);
+  const result = await pool.query('SELECT name, logo, theme_color FROM restaurants WHERE id = $1', [req.params.id]);
   if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = result.rows[0] as Record<string, unknown>;
-  res.json({ name: row.name, logo: row.logo ?? null });
+  res.json({ name: row.name, logo: row.logo ?? null, themeColor: (row.theme_color as string | null) ?? '#f97316' });
 });
 
 // ── Authenticated routes ──────────────────────────────────────────────────────
@@ -95,6 +96,16 @@ router.patch('/:id/charges', authenticate, async (req: AuthRequest, res) => {
     ? await pool.query('UPDATE restaurants SET service_charge_pct=$1, tax_pct=$2, currency=$3 WHERE id=$4', [sc, tax, safeCurrency, id])
     : await pool.query('UPDATE restaurants SET service_charge_pct=$1, tax_pct=$2 WHERE id=$3', [sc, tax, id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/theme', authenticate, async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { themeColor } = req.body as { themeColor: string };
+  if (!themeColor || !/^#[0-9a-fA-F]{6}$/.test(themeColor)) { res.status(400).json({ error: 'Invalid color' }); return; }
+  await pool.query('UPDATE restaurants SET theme_color = $1 WHERE id = $2', [themeColor, id]);
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });

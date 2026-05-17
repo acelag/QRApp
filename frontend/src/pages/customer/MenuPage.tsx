@@ -10,12 +10,14 @@ import { CartButton } from '../../components/CartButton';
 import { useCart } from '../../context/CartContext';
 import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useTheme } from '../../context/ThemeContext';
 import { UtensilsCrossed, ClipboardList } from 'lucide-react';
 
 export function MenuPage() {
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
   const { setTable, setSession, setRestaurant, tableNumber, tableId } = useCart();
   const { loadCurrency } = useCurrency();
+  const { loadTheme } = useTheme();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -28,6 +30,7 @@ export function MenuPage() {
       setTable(table.id, table.number);
       setRestaurant(table.restaurantId);
       loadCurrency(table.restaurantId);
+      loadTheme(table.restaurantId);
       restaurantService.getRestaurantInfo(table.restaurantId).then(setRestaurantInfo).catch(() => {});
       return Promise.all([
         menuService.getCategories(table.restaurantId),

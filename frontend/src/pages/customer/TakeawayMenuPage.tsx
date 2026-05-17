@@ -11,6 +11,7 @@ import { orderService } from '../../services/orderService';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useTheme } from '../../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 type Size = 'regular' | 'large';
@@ -63,6 +64,7 @@ export function TakeawayMenuPage() {
   const [selectedSizes, setSelectedSizes] = useState<Record<string, Size>>({});
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem; size?: Size } | null>(null);
   const { fmt, loadCurrency } = useCurrency();
+  const { loadTheme } = useTheme();
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -73,7 +75,7 @@ export function TakeawayMenuPage() {
     ]).then(([cats, menuItems]) => {
       setCategories(cats);
       setItems(menuItems.filter((i) => i.available));
-      if (restaurantId) loadCurrency(restaurantId);
+      if (restaurantId) { loadCurrency(restaurantId); loadTheme(restaurantId); }
     }).catch(() => toast.error('Failed to load menu'))
       .finally(() => setLoading(false));
   }, [restaurantId]);

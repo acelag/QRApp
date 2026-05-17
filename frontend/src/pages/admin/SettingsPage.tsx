@@ -2,12 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Users,
-  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight,
+  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
+import { THEME_COLORS, applyTheme } from '../../context/ThemeContext';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -42,6 +43,8 @@ export function SettingsPage() {
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingSuccess, setBillingSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [themeColor, setThemeColor] = useState('#f97316');
+  const [themeSaving, setThemeSaving] = useState(false);
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export function SettingsPage() {
       setServiceChargePct(String(r.serviceChargePct));
       setTaxPct(String(r.taxPct));
       setCurrency(r.currency ?? 'USD');
+      setThemeColor(r.themeColor ?? '#f97316');
     });
   }, []);
 
@@ -73,6 +77,19 @@ export function SettingsPage() {
     if (!restaurant) return;
     const updated = await restaurantService.updateLogo(restaurant.id, null);
     setRestaurant(updated);
+  }
+
+  async function saveTheme(hex: string) {
+    if (!restaurant) return;
+    setThemeColor(hex);
+    applyTheme(hex); // instant preview
+    setThemeSaving(true);
+    try {
+      const updated = await restaurantService.updateTheme(restaurant.id, hex);
+      setRestaurant(updated);
+    } finally {
+      setThemeSaving(false);
+    }
   }
 
   async function saveBilling() {
@@ -372,6 +389,49 @@ export function SettingsPage() {
                 {billingLoading && <Loader2 size={15} className="animate-spin" />}
                 {billingLoading ? 'Saving…' : 'Save Billing Settings'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Theme colour ─────────────────────────────────────────────── */}
+        {restaurant && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '22' }}>
+                <Palette size={15} style={{ color: themeColor }} />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-800">Theme Colour</h2>
+                <p className="text-xs text-gray-400">Applied to buttons, icons and accents across the app</p>
+              </div>
+              {themeSaving && <Loader2 size={14} className="animate-spin text-gray-400 flex-shrink-0" />}
+            </div>
+
+            <div className="p-5">
+              <div className="grid grid-cols-4 gap-3">
+                {THEME_COLORS.map((t) => {
+                  const active = themeColor === t.hex;
+                  return (
+                    <button
+                      key={t.hex}
+                      onClick={() => saveTheme(t.hex)}
+                      className="flex flex-col items-center gap-2 group"
+                    >
+                      <div
+                        className="w-full aspect-square rounded-2xl transition-transform group-hover:scale-105 flex items-center justify-center shadow-sm"
+                        style={{ backgroundColor: t.hex, outline: active ? `3px solid ${t.hex}` : '3px solid transparent', outlineOffset: 2 }}
+                      >
+                        {active && (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`text-xs font-medium ${active ? 'text-gray-900' : 'text-gray-400'}`}>{t.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
