@@ -287,59 +287,60 @@ export function MenuItemsPage() {
           {items.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               {/* Item row */}
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-4 flex items-start gap-3">
                 <div className="w-14 h-14 rounded-xl bg-orange-50 flex items-center justify-center text-xl overflow-hidden shrink-0">
                   {item.image
                     ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     : '🍽️'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 truncate">{item.name}</p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm text-gray-500">
+                  {/* Name row + edit/delete icons */}
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-gray-900 leading-snug">{item.name}</p>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 transition-colors p-1"><Pencil size={15} /></button>
+                      <button onClick={() => del(item.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><Trash2 size={15} /></button>
+                    </div>
+                  </div>
+
+                  {/* Category + prices */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                    <span className="text-sm text-gray-500">
                       {categories.find((c) => c.id === item.category)?.name ?? item.category}
-                    </p>
+                    </span>
                     {item.discountPct > 0 ? (
                       <>
-                        <span className="text-sm text-gray-400 line-through">{fmt(item.price)}</span>
-                        <span className="text-sm text-green-600 font-semibold">
+                        <span className="text-sm text-gray-400 line-through whitespace-nowrap">{fmt(item.price)}</span>
+                        <span className="text-sm text-green-600 font-semibold whitespace-nowrap">
                           {fmt(item.price * (1 - item.discountPct / 100))}
                         </span>
-                        <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
                           {item.discountPct}% OFF
                         </span>
                       </>
                     ) : (
-                      <span className="text-sm text-gray-500">{fmt(item.price)}</span>
+                      <span className="text-sm text-gray-500 whitespace-nowrap">{fmt(item.price)}</span>
                     )}
                     {item.largePrice != null && item.largePrice > 0 && (
-                      <span className="text-xs text-gray-400">
-                        · L{' '}
-                        {(item.largeDiscountPct ?? 0) > 0 ? (
-                          <>
-                            <span className="line-through">{fmt(item.largePrice)}</span>
-                            {' '}
-                            <span className="text-green-600">{fmt(item.largePrice * (1 - (item.largeDiscountPct ?? 0) / 100))}</span>
-                          </>
-                        ) : (
-                          fmt(item.largePrice)
-                        )}
+                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                        · L {(item.largeDiscountPct ?? 0) > 0 ? (
+                          <><span className="line-through">{fmt(item.largePrice)}</span>{' '}
+                          <span className="text-green-600">{fmt(item.largePrice * (1 - (item.largeDiscountPct ?? 0) / 100))}</span></>
+                        ) : fmt(item.largePrice)}
                       </span>
                     )}
                   </div>
+
                   {!item.available && <span className="text-xs text-red-400">Unavailable</span>}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
+
+                  {/* Extras toggle — full width, below price */}
                   <button
                     onClick={() => setExpandedToppings(expandedToppings === item.id ? null : item.id)}
-                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
-                    title="Manage toppings"
+                    className="mt-1.5 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     Extras ({(item.toppings ?? []).length})
                     {expandedToppings === item.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                   </button>
-                  <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 transition-colors p-1"><Pencil size={16} /></button>
-                  <button onClick={() => del(item.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><Trash2 size={16} /></button>
                 </div>
               </div>
 

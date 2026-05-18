@@ -194,13 +194,13 @@ export function TakeawayOrderPage() {
                     )}
 
                     {isDiscounted ? (
-                      <div className="mt-0.5">
-                        <span className="text-xs text-gray-400 line-through">{fmt(basePrice)}</span>
-                        <span className="ml-1.5 text-green-600 text-sm font-semibold">{fmt(displayPrice)}</span>
-                        <span className="ml-1 text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full">{discPct}% OFF</span>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                        <span className="text-xs text-gray-400 line-through whitespace-nowrap">{fmt(basePrice)}</span>
+                        <span className="text-green-600 text-sm font-semibold whitespace-nowrap">{fmt(displayPrice)}</span>
+                        <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">{discPct}% OFF</span>
                       </div>
                     ) : (
-                      <p className="text-orange-600 text-sm font-medium mt-0.5">{fmt(displayPrice)}</p>
+                      <p className="text-orange-600 text-sm font-medium mt-0.5 whitespace-nowrap">{fmt(displayPrice)}</p>
                     )}
 
                     <div className="mt-2">
