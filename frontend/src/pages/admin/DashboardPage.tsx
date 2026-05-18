@@ -29,9 +29,9 @@ export function DashboardPage() {
   const todayRevenue = todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
 
   const stats = [
-    { label: "Today's Orders", value: todayOrders.length, icon: ClipboardList, color: 'bg-blue-50 text-blue-600' },
+    { label: "Today's Orders", value: todayOrders.length, icon: ClipboardList, color: 'bg-orange-50 text-orange-600' },
     { label: 'Active Orders', value: activeOrders.length, icon: TrendingUp, color: 'bg-orange-50 text-orange-600' },
-    { label: "Today's Revenue", value: fmt(todayRevenue), icon: TrendingUp, color: 'bg-green-50 text-green-600' },
+    { label: "Today's Revenue", value: fmt(todayRevenue), icon: TrendingUp, color: 'bg-orange-50 text-orange-600' },
   ];
 
   const navItems = [
