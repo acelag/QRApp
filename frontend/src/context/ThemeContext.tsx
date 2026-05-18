@@ -83,26 +83,36 @@ export function applyTheme(hex: string) {
   `;
 }
 
-interface ThemeCtx {
-  loadTheme: (restaurantId: string) => void;
+function clearTheme() {
+  const el = document.getElementById('qra-theme');
+  if (el) el.remove();
+  const root = document.documentElement;
+  ['--clr', '--clr-light', '--clr-dark', '--clr-border', '--clr-ring'].forEach((v) =>
+    root.style.removeProperty(v),
+  );
+  try { localStorage.removeItem('qra-theme'); } catch { /* storage unavailable */ }
 }
 
-const ThemeContext = createContext<ThemeCtx>({ loadTheme: () => {} });
+interface ThemeCtx {
+  loadTheme: (restaurantId: string) => void;
+  clearTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeCtx>({ loadTheme: () => {}, clearTheme: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  // Auto-load for authenticated admin/kitchen users
+  // Auto-load for authenticated admin/kitchen users once auth resolves
   useEffect(() => {
+    if (loading) return;
     if (user?.restaurantId) {
       restaurantService
         .getRestaurantInfo(user.restaurantId)
         .then((r) => applyTheme(r.themeColor ?? '#f97316'))
         .catch(() => {});
-    } else if (!user) {
-      applyTheme('#f97316');
     }
-  }, [user?.restaurantId]);
+  }, [loading, user?.restaurantId]);
 
   // Called from customer-facing pages that know their restaurantId
   const loadTheme = useCallback((restaurantId: string) => {
@@ -113,7 +123,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ loadTheme }}>
+    <ThemeContext.Provider value={{ loadTheme, clearTheme }}>
       {children}
     </ThemeContext.Provider>
   );

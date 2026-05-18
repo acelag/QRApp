@@ -1,11 +1,15 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UtensilsCrossed, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export function LoginPage() {
   const { login } = useAuth();
+  const { clearTheme } = useTheme();
   const navigate = useNavigate();
+
+  useEffect(() => { clearTheme(); }, []);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
