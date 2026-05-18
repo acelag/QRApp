@@ -21,7 +21,6 @@ export function MenuCard({ item }: Props) {
   const regPrice  = effectivePrice(item, 'regular');
   const lrgPrice  = hasLarge ? effectivePrice(item, 'large') : 0;
   const regBase   = item.price;
-  const lrgBase   = item.largePrice ?? 0;
   const regDisc   = item.discountPct > 0;
   const lrgDisc   = (item.largeDiscountPct ?? 0) > 0;
 

@@ -49,7 +49,7 @@ export function ToppingSelectionModal({ item, size: sizeProp, onConfirm, onClose
           <div>
             <h2 className="text-lg font-bold text-gray-900">{item.name}</h2>
             <p className="text-sm text-gray-500">
-              {size && <span className="capitalize mr-1">{size}</span>}
+              {sizeProp && <span className="capitalize mr-1">{sizeProp}</span>}
               base: {fmt(basePrice)}
             </p>
           </div>

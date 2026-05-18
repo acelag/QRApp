@@ -84,8 +84,6 @@ export function TakeawayMenuPage() {
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
   const total = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
 
-  const cartQtyFor = (item: MenuItem, size?: Size) =>
-    cart.filter((c) => c.menuItemId === item.id && c.size === size).reduce((s, c) => s + c.quantity, 0);
 
   function handleAdd(item: MenuItem) {
     const hasLarge = (item.largePrice ?? 0) > 0;
