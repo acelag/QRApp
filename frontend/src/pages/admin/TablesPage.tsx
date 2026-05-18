@@ -161,7 +161,7 @@ export function TablesPage() {
 
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Tables & QR Codes</h1>
           {tables.length > 0 && (
@@ -175,7 +175,7 @@ export function TablesPage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {/* Takeaway QR card */}
         {takeawayUrl && (
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
