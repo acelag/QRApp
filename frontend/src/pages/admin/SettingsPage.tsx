@@ -451,7 +451,7 @@ export function SettingsPage() {
                 <div className="flex gap-2 flex-wrap">
                   {[1, 2, 3].map((n) => (
                     <span key={n} className="bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wide">
-                      {(orderPrefix || 'ORD')}{String(n).padStart(6, '0')}
+                      {(orderPrefix || 'ORD')}{String(n).padStart(3, '0')}
                     </span>
                   ))}
                 </div>

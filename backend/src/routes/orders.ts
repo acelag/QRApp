@@ -98,7 +98,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     const seqRow = seqRes.rows[0] as Record<string, unknown>;
     const seq = Number(seqRow.next_order_seq);
     const prefix = (seqRow.order_number_prefix as string | null) ?? 'ORD';
-    const orderNumber = `${prefix}${String(seq).padStart(6, '0')}`;
+    const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
     await client.query(
       `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,order_type,customer_name,status,total_amount,order_number,created_at,updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,$10)`,
