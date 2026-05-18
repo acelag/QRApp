@@ -71,18 +71,16 @@ export function TakeawayOrderPage() {
 
   const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
 
-  const cartQtyFor = (item: MenuItem, size?: Size) =>
-    cart.filter((c) => c.menuItemId === item.id && c.size === size).reduce((s, c) => s + c.quantity, 0);
-
   const total     = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
 
-  function handleAddItem(item: MenuItem, size?: Size) {
+  function handleAddItem(item: MenuItem) {
+    const hasLarge = (item.largePrice ?? 0) > 0;
     const hasToppings = (item.toppings ?? []).some((t) => t.available);
-    if (hasToppings) {
-      setToppingModal({ item, size });
+    if (hasLarge || hasToppings) {
+      setToppingModal({ item });
     } else {
-      dispatch({ type: 'ADD', item, size });
+      dispatch({ type: 'ADD', item });
     }
   }
 
@@ -141,73 +139,44 @@ export function TakeawayOrderPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {filtered.map((item) => {
-                const hasLarge = item.largePrice != null && item.largePrice > 0;
+                const hasLarge = (item.largePrice ?? 0) > 0;
                 const hasToppings = (item.toppings ?? []).some((t) => t.available);
                 const regPrice = effectivePrice(item, 'regular');
                 const lrgPrice = hasLarge ? effectivePrice(item, 'large') : 0;
                 const regDisc  = item.discountPct > 0;
-                const lrgDisc  = (item.largeDiscountPct ?? 0) > 0;
-                const qtyReg   = cartQtyFor(item, hasLarge ? 'regular' : undefined);
-                const qtyLrg   = cartQtyFor(item, 'large');
-                const anyInCart = qtyReg > 0 || qtyLrg > 0;
+                const totalInCart = cart.filter((c) => c.menuItemId === item.id).reduce((s, c) => s + c.quantity, 0);
 
                 return (
                   <div
                     key={item.id}
                     className={`bg-white rounded-2xl border shadow-sm p-3 flex flex-col transition-colors ${
-                      anyInCart ? 'border-orange-200' : 'border-gray-100'
+                      totalInCart > 0 ? 'border-orange-200' : 'border-gray-100'
                     }`}
                   >
                     <div className="relative w-full h-28 rounded-xl bg-orange-50 overflow-hidden mb-2">
                       {item.image
                         ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center text-3xl">🍽️</div>}
-                      {hasToppings && (
+                      {(hasToppings || hasLarge) && (
                         <span className="absolute top-1 right-1 bg-orange-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
-                          + Extras
+                          {hasToppings ? '+ Extras' : 'R / L'}
                         </span>
                       )}
                     </div>
-                    <p className="font-semibold text-gray-800 text-sm leading-tight mb-1.5">{item.name}</p>
-
-                    {hasLarge ? (
-                      <div className="flex gap-1.5 mt-auto">
-                        <div className="flex-1 flex flex-col gap-1">
-                          {regDisc
-                            ? <><span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span><span className="text-green-600 text-xs font-semibold">{fmt(regPrice)}</span></>
-                            : <span className="text-orange-600 text-xs font-semibold">{fmt(regPrice)}</span>}
-                          <button onClick={() => handleAddItem(item, 'regular')}
-                            className={`flex items-center justify-center gap-0.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${qtyReg > 0 ? 'bg-orange-100 text-orange-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
-                            <Plus size={11} /> Add R{qtyReg > 0 ? ` (${qtyReg})` : ''}
-                          </button>
+                    <p className="font-semibold text-gray-800 text-sm leading-tight mb-1">{item.name}</p>
+                    {regDisc
+                      ? <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 mb-1">
+                          <span className="text-xs text-gray-400 line-through whitespace-nowrap">{fmt(item.price)}</span>
+                          <span className="text-green-600 text-sm font-semibold whitespace-nowrap">{fmt(regPrice)}</span>
+                          <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">{item.discountPct}% OFF</span>
                         </div>
-                        <div className="flex-1 flex flex-col gap-1">
-                          {lrgDisc
-                            ? <><span className="text-xs text-gray-400 line-through">{fmt(item.largePrice!)}</span><span className="text-green-600 text-xs font-semibold">{fmt(lrgPrice)}</span></>
-                            : <span className="text-orange-600 text-xs font-semibold">{fmt(lrgPrice)}</span>}
-                          <button onClick={() => handleAddItem(item, 'large')}
-                            className={`flex items-center justify-center gap-0.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${qtyLrg > 0 ? 'bg-orange-100 text-orange-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
-                            <Plus size={11} /> Add L{qtyLrg > 0 ? ` (${qtyLrg})` : ''}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {regDisc
-                          ? <div className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                              <span className="text-xs text-gray-400 line-through whitespace-nowrap">{fmt(item.price)}</span>
-                              <span className="text-green-600 text-sm font-semibold whitespace-nowrap">{fmt(regPrice)}</span>
-                              <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">{item.discountPct}% OFF</span>
-                            </div>
-                          : <p className="text-orange-600 text-sm font-medium mt-0.5 whitespace-nowrap">{fmt(regPrice)}</p>}
-                        <div className="mt-2">
-                          <button onClick={() => handleAddItem(item, undefined)}
-                            className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${qtyReg > 0 ? 'bg-orange-100 text-orange-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
-                            <Plus size={14} /> {qtyReg > 0 ? `Add more (${qtyReg})` : 'Add'}
-                          </button>
-                        </div>
-                      </>
-                    )}
+                      : <p className="text-orange-600 text-sm font-medium whitespace-nowrap mb-1">{fmt(regPrice)}{hasLarge ? ` / L ${fmt(lrgPrice)}` : ''}</p>}
+                    <div className="mt-auto">
+                      <button onClick={() => handleAddItem(item)}
+                        className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${totalInCart > 0 ? 'bg-orange-100 text-orange-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
+                        <Plus size={14} /> {totalInCart > 0 ? `Add more (${totalInCart})` : 'Add'}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -315,9 +284,8 @@ export function TakeawayOrderPage() {
       {toppingModal && (
         <ToppingSelectionModal
           item={toppingModal.item}
-          size={toppingModal.size}
-          onConfirm={(toppings) => {
-            dispatch({ type: 'ADD', item: toppingModal.item, size: toppingModal.size, toppings });
+          onConfirm={(toppings, size) => {
+            dispatch({ type: 'ADD', item: toppingModal.item, size, toppings });
             setToppingModal(null);
           }}
           onClose={() => setToppingModal(null)}

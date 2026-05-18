@@ -87,12 +87,13 @@ export function TakeawayMenuPage() {
   const cartQtyFor = (item: MenuItem, size?: Size) =>
     cart.filter((c) => c.menuItemId === item.id && c.size === size).reduce((s, c) => s + c.quantity, 0);
 
-  function handleAdd(item: MenuItem, size?: Size) {
+  function handleAdd(item: MenuItem) {
+    const hasLarge = (item.largePrice ?? 0) > 0;
     const hasToppings = (item.toppings ?? []).some((t) => t.available);
-    if (hasToppings) {
-      setToppingModal({ item, size });
+    if (hasLarge || hasToppings) {
+      setToppingModal({ item });
     } else {
-      dispatch({ type: 'ADD', item, size });
+      dispatch({ type: 'ADD', item });
     }
   }
 
@@ -150,12 +151,10 @@ export function TakeawayMenuPage() {
               const lrgPrice   = hasLarge ? effectivePrice(item, 'large') : 0;
               const regDisc    = item.discountPct > 0;
               const lrgDisc    = (item.largeDiscountPct ?? 0) > 0;
-              const qtyReg     = cartQtyFor(item, hasLarge ? 'regular' : undefined);
-              const qtyLrg     = cartQtyFor(item, 'large');
-              const anyInCart  = qtyReg > 0 || qtyLrg > 0;
+              const totalInCart = cart.filter((c) => c.menuItemId === item.id).reduce((s, c) => s + c.quantity, 0);
 
               return (
-                <div key={item.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col transition-colors ${anyInCart ? 'border-purple-200' : 'border-gray-100'}`}>
+                <div key={item.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col transition-colors ${totalInCart > 0 ? 'border-purple-200' : 'border-gray-100'}`}>
                   <div className="relative">
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="w-full h-36 object-cover" />
@@ -169,9 +168,9 @@ export function TakeawayMenuPage() {
                         {regDisc ? item.discountPct : item.largeDiscountPct}% OFF
                       </span>
                     )}
-                    {hasToppings && (
+                    {(hasToppings || hasLarge) && (
                       <span className="absolute top-2 right-2 bg-purple-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-                        + Extras
+                        {hasToppings ? '+ Extras' : 'R / L'}
                       </span>
                     )}
                   </div>
@@ -181,48 +180,18 @@ export function TakeawayMenuPage() {
                       <p className="text-xs text-gray-400 mt-1 line-clamp-2 flex-1">{item.description}</p>
                     )}
                     <div className="mt-2">
-                      {hasLarge ? (
-                        <div className="flex gap-1.5">
-                          {/* Regular */}
-                          <div className="flex-1 flex flex-col gap-1">
-                            {regDisc
-                              ? <><span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span><span className="text-green-600 font-bold text-xs">{fmt(regPrice)}</span></>
-                              : <span className="text-purple-600 font-bold text-xs">{fmt(regPrice)}</span>}
-                            <button
-                              onClick={() => handleAdd(item, 'regular')}
-                              className={`flex items-center justify-center gap-0.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${qtyReg > 0 ? 'bg-purple-100 text-purple-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
-                            >
-                              <Plus size={11} /> Add R{qtyReg > 0 ? ` (${qtyReg})` : ''}
-                            </button>
-                          </div>
-                          {/* Large */}
-                          <div className="flex-1 flex flex-col gap-1">
-                            {lrgDisc
-                              ? <><span className="text-xs text-gray-400 line-through">{fmt(item.largePrice!)}</span><span className="text-green-600 font-bold text-xs">{fmt(lrgPrice)}</span></>
-                              : <span className="text-purple-600 font-bold text-xs">{fmt(lrgPrice)}</span>}
-                            <button
-                              onClick={() => handleAdd(item, 'large')}
-                              className={`flex items-center justify-center gap-0.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${qtyLrg > 0 ? 'bg-purple-100 text-purple-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
-                            >
-                              <Plus size={11} /> Add L{qtyLrg > 0 ? ` (${qtyLrg})` : ''}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {regDisc
-                            ? <div><span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span><span className="ml-1.5 text-green-600 font-bold">{fmt(regPrice)}</span></div>
-                            : <span className="text-purple-600 font-bold">{fmt(regPrice)}</span>}
-                          <div className="mt-2">
-                            <button
-                              onClick={() => handleAdd(item, undefined)}
-                              className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${qtyReg > 0 ? 'bg-purple-100 text-purple-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
-                            >
-                              <Plus size={14} /> {qtyReg > 0 ? `Add more (${qtyReg})` : 'Add'}
-                            </button>
-                          </div>
-                        </>
-                      )}
+                      {regDisc
+                        ? <div><span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span><span className="ml-1.5 text-green-600 font-bold">{fmt(regPrice)}</span></div>
+                        : <span className="text-purple-600 font-bold">{fmt(regPrice)}</span>}
+                      {hasLarge && <span className="text-xs text-gray-400 ml-1">/ L {fmt(lrgPrice)}</span>}
+                      <div className="mt-2">
+                        <button
+                          onClick={() => handleAdd(item)}
+                          className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${totalInCart > 0 ? 'bg-purple-100 text-purple-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+                        >
+                          <Plus size={14} /> {totalInCart > 0 ? `Add more (${totalInCart})` : 'Add'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -312,9 +281,8 @@ export function TakeawayMenuPage() {
       {toppingModal && (
         <ToppingSelectionModal
           item={toppingModal.item}
-          size={toppingModal.size}
-          onConfirm={(toppings) => {
-            dispatch({ type: 'ADD', item: toppingModal.item, size: toppingModal.size, toppings });
+          onConfirm={(toppings, size) => {
+            dispatch({ type: 'ADD', item: toppingModal.item, size, toppings });
             setToppingModal(null);
           }}
           onClose={() => setToppingModal(null)}

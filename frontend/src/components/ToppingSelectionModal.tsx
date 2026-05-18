@@ -8,16 +8,20 @@ import { useCurrency } from '../context/CurrencyContext';
 interface Props {
   item: MenuItem;
   size?: 'regular' | 'large';
-  onConfirm: (toppings: SelectedTopping[]) => void;
+  onConfirm: (toppings: SelectedTopping[], size?: 'regular' | 'large') => void;
   onClose: () => void;
 }
 
-export function ToppingSelectionModal({ item, size, onConfirm, onClose }: Props) {
+export function ToppingSelectionModal({ item, size: sizeProp, onConfirm, onClose }: Props) {
   const { fmt } = useCurrency();
+  const hasLarge = (item.largePrice ?? 0) > 0;
+  const showSizePicker = hasLarge && sizeProp === undefined;
+  const [selectedSize, setSelectedSize] = useState<'regular' | 'large'>(sizeProp ?? 'regular');
   const availableToppings = (item.toppings ?? []).filter((t) => t.available);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const basePrice = effectivePrice(item, size);
+  const activeSize = sizeProp ?? (hasLarge ? selectedSize : undefined);
+  const basePrice = effectivePrice(item, activeSize);
   const selectedToppings = availableToppings.filter((t) => selected.has(t.id));
   const toppingsTotal = selectedToppings.reduce((s, t) => s + t.price, 0);
 
@@ -31,7 +35,10 @@ export function ToppingSelectionModal({ item, size, onConfirm, onClose }: Props)
   }
 
   function handleConfirm() {
-    onConfirm(selectedToppings.map((t) => ({ id: t.id, name: t.name, price: t.price })));
+    onConfirm(
+      selectedToppings.map((t) => ({ id: t.id, name: t.name, price: t.price })),
+      hasLarge ? activeSize : undefined,
+    );
   }
 
   return (
@@ -54,7 +61,41 @@ export function ToppingSelectionModal({ item, size, onConfirm, onClose }: Props)
           </button>
         </div>
 
+        {/* Size picker */}
+        {showSizePicker && (
+          <div className="px-5 py-4 border-b border-gray-100">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Choose Size</p>
+            <div className="flex gap-3">
+              {(['regular', 'large'] as const).map((s) => {
+                const price = effectivePrice(item, s);
+                const isDisc = s === 'large' ? (item.largeDiscountPct ?? 0) > 0 : item.discountPct > 0;
+                const origPrice = s === 'large' ? item.largePrice! : item.price;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setSelectedSize(s)}
+                    className={`flex-1 py-3 px-4 rounded-2xl border-2 text-left transition-colors ${
+                      selectedSize === s
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 bg-white hover:border-orange-200'
+                    }`}
+                  >
+                    <span className={`text-sm font-bold block ${selectedSize === s ? 'text-orange-600' : 'text-gray-700'}`}>
+                      {s === 'regular' ? 'Regular (R)' : 'Large (L)'}
+                    </span>
+                    {isDisc ? (
+                      <span className="text-xs text-gray-400 line-through block">{fmt(origPrice)}</span>
+                    ) : null}
+                    <span className={`text-sm font-semibold ${isDisc ? 'text-green-600' : 'text-gray-500'}`}>{fmt(price)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Toppings list */}
+        {availableToppings.length > 0 && (
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-2">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
             Choose Extras (optional)
@@ -90,6 +131,7 @@ export function ToppingSelectionModal({ item, size, onConfirm, onClose }: Props)
             );
           })}
         </div>
+        )}
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-gray-100 space-y-3">
