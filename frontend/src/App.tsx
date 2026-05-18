@@ -5,6 +5,12 @@ import { CartProvider } from './context/CartContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { InstallPrompt } from './components/InstallPrompt';
+
+// Register the PWA service worker early so the install prompt can fire
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+}
 
 import { LoginPage } from './pages/LoginPage';
 import { MenuPage } from './pages/customer/MenuPage';
@@ -43,6 +49,7 @@ export default function App() {
         <ThemeProvider>
         <CartProvider>
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+          <InstallPrompt />
           <Routes>
             {/* Root redirect */}
             <Route path="/" element={<RootRedirect />} />

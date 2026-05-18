@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-const SW_PATH = '/sw.js';
-
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64   = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -24,14 +22,13 @@ export const pushService = {
 
   async getSubscription(): Promise<PushSubscription | null> {
     if (!this.isSupported()) return null;
-    const reg = await navigator.serviceWorker.getRegistration(SW_PATH);
-    return reg ? reg.pushManager.getSubscription() : null;
+    const reg = await navigator.serviceWorker.ready;
+    return reg.pushManager.getSubscription();
   },
 
   async subscribe(): Promise<PushSubscription> {
-    // 1. Register (or retrieve) service worker
-    const reg = await navigator.serviceWorker.register(SW_PATH, { scope: '/' });
-    await navigator.serviceWorker.ready;
+    // 1. Use the SW already registered by the PWA (vite-plugin-pwa registers /sw.js on load)
+    const reg = await navigator.serviceWorker.ready;
 
     // 2. Request notification permission
     const permission = await Notification.requestPermission();
