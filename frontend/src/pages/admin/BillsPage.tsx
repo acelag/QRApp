@@ -285,9 +285,18 @@ export function BillsPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
-                        <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
+                          <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                        </div>
+                        <button
+                          onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
+                          className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                          title="Print Receipt"
+                        >
+                          <Printer size={16} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -407,33 +416,32 @@ export function BillsPage() {
                 </h2>
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
                   {paidTodayTakeaway.map((order) => (
-                    <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden opacity-80">
-                      <div className="px-5 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
-                            <ShoppingBag size={16} />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-700 text-sm">
-                              {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
-                            </p>
-                            {order.customerName && <p className="text-xs text-gray-400">{order.customerName}</p>}
-                            <p className="text-xs text-gray-400">
-                              {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
+                    <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-80">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
+                          <ShoppingBag size={16} />
                         </div>
+                        <div>
+                          <p className="font-medium text-gray-700 text-sm">
+                            {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                          </p>
+                          {order.customerName && <p className="text-xs text-gray-400">{order.customerName}</p>}
+                          <p className="text-xs text-gray-400">
+                            {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="font-bold text-gray-700">{fmt(order.totalAmount)}</p>
                           <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
                         </div>
-                      </div>
-                      <div className="px-5 pb-3">
                         <button
                           onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
-                          className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-500 text-sm font-medium py-2 rounded-xl hover:bg-gray-50 transition-colors"
+                          className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                          title="Print Receipt"
                         >
-                          <Printer size={14} /> Print Receipt
+                          <Printer size={16} />
                         </button>
                       </div>
                     </div>
