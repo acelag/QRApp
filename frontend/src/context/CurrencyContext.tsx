@@ -13,7 +13,7 @@ interface CurrencyContextValue {
 const CurrencyContext = createContext<CurrencyContextValue>({
   symbol: '$',
   currencyCode: 'USD',
-  fmt: (n) => `$${n.toFixed(2)}`,
+  fmt: (n) => `$ ${n.toFixed(2)}`,
   loadCurrency: () => {},
 });
 
@@ -21,7 +21,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [currencyCode, setCurrencyCode] = useState('USD');
   const symbol = getCurrencySymbol(currencyCode);
-  const fmt = useCallback((n: number) => `${getCurrencySymbol(currencyCode)}${n.toFixed(2)}`, [currencyCode]);
+  const fmt = useCallback((n: number) => `${getCurrencySymbol(currencyCode)} ${n.toFixed(2)}`, [currencyCode]);
 
   // Auto-load for authenticated admin/kitchen users
   useEffect(() => {
