@@ -131,15 +131,18 @@ export async function createSchema(): Promise<void> {
   const addCol = async (table: string, col: string, def: string) => {
     await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${def};`);
   };
-  await addCol('restaurants', 'service_charge_pct', 'DECIMAL(5,2) NOT NULL DEFAULT 0');
-  await addCol('restaurants', 'tax_pct',            'DECIMAL(5,2) NOT NULL DEFAULT 0');
-  await addCol('restaurants', 'currency',           "VARCHAR(10) NOT NULL DEFAULT 'USD'");
-  await addCol('restaurants', 'logo',               'VARCHAR(500) NULL');
-  await addCol('restaurants', 'theme_color',        "VARCHAR(20) NOT NULL DEFAULT '#f97316'");
-  await addCol('menu_items',  'discount_pct',        'DECIMAL(5,2) NOT NULL DEFAULT 0');
-  await addCol('menu_items',  'large_price',         'DECIMAL(10,2) NULL');
-  await addCol('menu_items',  'large_discount_pct',  'DECIMAL(5,2) NOT NULL DEFAULT 0');
-  await addCol('order_items', 'size',                "VARCHAR(10) NULL");
+  await addCol('restaurants', 'service_charge_pct',   'DECIMAL(5,2) NOT NULL DEFAULT 0');
+  await addCol('restaurants', 'tax_pct',               'DECIMAL(5,2) NOT NULL DEFAULT 0');
+  await addCol('restaurants', 'currency',              "VARCHAR(10) NOT NULL DEFAULT 'USD'");
+  await addCol('restaurants', 'logo',                  'VARCHAR(500) NULL');
+  await addCol('restaurants', 'theme_color',           "VARCHAR(20) NOT NULL DEFAULT '#f97316'");
+  await addCol('restaurants', 'order_number_prefix',   "VARCHAR(20) NOT NULL DEFAULT 'ORD'");
+  await addCol('restaurants', 'next_order_seq',        'INTEGER NOT NULL DEFAULT 0');
+  await addCol('menu_items',  'discount_pct',           'DECIMAL(5,2) NOT NULL DEFAULT 0');
+  await addCol('menu_items',  'large_price',            'DECIMAL(10,2) NULL');
+  await addCol('menu_items',  'large_discount_pct',     'DECIMAL(5,2) NOT NULL DEFAULT 0');
+  await addCol('order_items', 'size',                   "VARCHAR(10) NULL");
+  await addCol('orders',      'order_number',           'VARCHAR(30) NULL');
 
   console.log('✓ Schema ready');
 }

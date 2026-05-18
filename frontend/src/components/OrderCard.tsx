@@ -10,10 +10,10 @@ interface Props {
   onStatusChange?: (id: string, status: OrderStatus) => void;
   showActions?: boolean;
   showPrint?: boolean;
-  orderNumber?: number;
+  isNext?: boolean;
 }
 
-export function OrderCard({ order, onStatusChange, showActions = false, showPrint = false, orderNumber }: Props) {
+export function OrderCard({ order, onStatusChange, showActions = false, showPrint = false, isNext = false }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
   const { fmt } = useCurrency();
@@ -27,12 +27,12 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-      {orderNumber !== undefined && (
+      {order.orderNumber && (
         <div className="flex items-center gap-2 mb-2">
-          <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
-            #{orderNumber}
+          <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wide">
+            {order.orderNumber}
           </span>
-          {orderNumber === 1 && (
+          {isNext && (
             <span className="text-xs font-semibold text-orange-500">Next up</span>
           )}
         </div>

@@ -13,6 +13,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   currency: (row.currency as string | null) ?? 'USD',
   logo: (row.logo as string | null) ?? null,
   themeColor: (row.theme_color as string | null) ?? '#f97316',
+  orderNumberPrefix: (row.order_number_prefix as string | null) ?? 'ORD',
 });
 
 // ── Public endpoints — no auth required ──────────────────────────────────────
@@ -117,6 +118,17 @@ router.patch('/:id/logo', authenticate, async (req: AuthRequest, res) => {
   await pool.query('UPDATE restaurants SET logo = $1 WHERE id = $2', [logo ?? null, id]);
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/order-prefix', authenticate, async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { orderNumberPrefix } = req.body as { orderNumberPrefix: string };
+  const prefix = (orderNumberPrefix ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  if (!prefix) { res.status(400).json({ error: 'Prefix must be 1–10 alphanumeric characters' }); return; }
+  await pool.query('UPDATE restaurants SET order_number_prefix = $1 WHERE id = $2', [prefix, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
 

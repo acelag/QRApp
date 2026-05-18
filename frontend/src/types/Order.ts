@@ -29,6 +29,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber?: string | null;
   restaurantId?: string | null;
   sessionId?: string | null;
   tableId?: string | null;

@@ -13,6 +13,7 @@ export interface RestaurantSettings {
   currency: string;
   logo?: string | null;
   themeColor?: string | null;
+  orderNumberPrefix?: string;
 }
 
 export interface BillingCharges {
@@ -70,4 +71,7 @@ export const restaurantService = {
 
   updateTheme: (id: string, themeColor: string) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/theme`, { themeColor }).then((r) => r.data),
+
+  updateOrderPrefix: (id: string, orderNumberPrefix: string) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/order-prefix`, { orderNumberPrefix }).then((r) => r.data),
 };

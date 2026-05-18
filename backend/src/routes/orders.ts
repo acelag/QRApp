@@ -35,7 +35,8 @@ async function buildOrder(orderId: string) {
   if (!o) return null;
   const itemsRes = await pool.query(ITEMS_SQL, [orderId]);
   return {
-    id: o.id, restaurantId: o.restaurant_id ?? null, sessionId: o.session_id ?? null,
+    id: o.id, orderNumber: (o.order_number as string | null) ?? null,
+    restaurantId: o.restaurant_id ?? null, sessionId: o.session_id ?? null,
     tableId: o.table_id ?? null,
     tableNumber: o.table_number !== null && o.table_number !== undefined ? Number(o.table_number) : null,
     orderType: (o.order_type as string) ?? 'dine-in', customerName: (o.customer_name as string) ?? null,
@@ -90,10 +91,18 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const seqRes = await client.query(
+      `UPDATE restaurants SET next_order_seq = next_order_seq + 1 WHERE id = $1 RETURNING next_order_seq, order_number_prefix`,
+      [resolvedRestaurantId],
+    );
+    const seqRow = seqRes.rows[0] as Record<string, unknown>;
+    const seq = Number(seqRow.next_order_seq);
+    const prefix = (seqRow.order_number_prefix as string | null) ?? 'ORD';
+    const orderNumber = `${prefix}${String(seq).padStart(6, '0')}`;
     await client.query(
-      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,order_type,customer_name,status,total_amount,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$9)`,
-      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, orderType, customerName ?? null, totalAmount, now],
+      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,order_type,customer_name,status,total_amount,order_number,created_at,updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,$10)`,
+      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, orderType, customerName ?? null, totalAmount, orderNumber, now],
     );
     for (const item of items) {
       const orderItemId = uuid();

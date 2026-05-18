@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Users,
-  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette,
+  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
@@ -45,6 +45,9 @@ export function SettingsPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [themeColor, setThemeColor] = useState('#f97316');
   const [themeSaving, setThemeSaving] = useState(false);
+  const [orderPrefix, setOrderPrefix] = useState('ORD');
+  const [prefixSaving, setPrefixSaving] = useState(false);
+  const [prefixSuccess, setPrefixSuccess] = useState(false);
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -55,6 +58,7 @@ export function SettingsPage() {
       setTaxPct(String(r.taxPct));
       setCurrency(r.currency ?? 'USD');
       setThemeColor(r.themeColor ?? '#f97316');
+      setOrderPrefix(r.orderNumberPrefix ?? 'ORD');
     });
   }, []);
 
@@ -89,6 +93,23 @@ export function SettingsPage() {
       setRestaurant(updated);
     } finally {
       setThemeSaving(false);
+    }
+  }
+
+  async function saveOrderPrefix() {
+    if (!restaurant) return;
+    const clean = orderPrefix.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+    if (!clean) return;
+    setPrefixSaving(true);
+    setPrefixSuccess(false);
+    try {
+      const updated = await restaurantService.updateOrderPrefix(restaurant.id, clean);
+      setRestaurant(updated);
+      setOrderPrefix(updated.orderNumberPrefix ?? clean);
+      setPrefixSuccess(true);
+      setTimeout(() => setPrefixSuccess(false), 3000);
+    } finally {
+      setPrefixSaving(false);
     }
   }
 
@@ -388,6 +409,60 @@ export function SettingsPage() {
               >
                 {billingLoading && <Loader2 size={15} className="animate-spin" />}
                 {billingLoading ? 'Saving…' : 'Save Billing Settings'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Order Number Prefix ──────────────────────────────────────── */}
+        {restaurant && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                <Hash size={15} className="text-blue-500" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-800">Order Number</h2>
+                <p className="text-xs text-gray-400">Prefix for sequential 6-digit order numbers</p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {prefixSuccess && (
+                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Order prefix saved!
+                </div>
+              )}
+
+              <Field label="Prefix (letters / numbers only)">
+                <input
+                  type="text"
+                  value={orderPrefix}
+                  onChange={(e) => setOrderPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))}
+                  placeholder="e.g. ORD"
+                  maxLength={10}
+                  className={input}
+                />
+              </Field>
+
+              <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3">
+                <p className="text-xs text-gray-500 mb-1.5 font-semibold uppercase tracking-wide">Preview</p>
+                <div className="flex gap-2 flex-wrap">
+                  {[1, 2, 3].map((n) => (
+                    <span key={n} className="bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wide">
+                      {(orderPrefix || 'ORD')}{String(n).padStart(6, '0')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={saveOrderPrefix}
+                disabled={prefixSaving || !orderPrefix.trim()}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+              >
+                {prefixSaving && <Loader2 size={15} className="animate-spin" />}
+                {prefixSaving ? 'Saving…' : 'Save Order Prefix'}
               </button>
             </div>
           </div>
