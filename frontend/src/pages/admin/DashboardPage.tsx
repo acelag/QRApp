@@ -71,14 +71,14 @@ export function DashboardPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <div className={`inline-flex p-2 rounded-xl mb-2 ${s.color}`}>
-                <s.icon size={18} />
+            <div key={s.label} className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100 min-w-0">
+              <div className={`inline-flex p-1.5 sm:p-2 rounded-xl mb-2 ${s.color}`}>
+                <s.icon size={16} />
               </div>
-              <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+              <p className="text-base sm:text-2xl font-bold text-gray-900 truncate">{s.value}</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</p>
             </div>
           ))}
         </div>
