@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
@@ -56,6 +56,8 @@ export function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [report, setReport]   = useState<Report | null>(null);
   const [tab, setTab]         = useState<Tab>('sales');
+
+  useEffect(() => { fetchReport(initial.from, initial.to); }, []);
 
   async function fetchReport(f: string, t: string) {
     if (f > t) { toast.error('From date must be before To date'); return; }
