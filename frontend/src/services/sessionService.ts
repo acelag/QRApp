@@ -12,6 +12,7 @@ export interface BillItem {
 
 export interface SessionOrder {
   id: string;
+  orderNumber?: string | null;
   status: string;
   totalAmount: number;
   createdAt: string;

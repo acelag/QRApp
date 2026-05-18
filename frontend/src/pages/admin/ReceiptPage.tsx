@@ -139,10 +139,26 @@ export function ReceiptPage() {
           <span>Time:</span><span>{timeStr}</span>
         </div>
         <div className="row">
-          <span>Table:</span><span>{order.tableNumber}</span>
+          <span>Type:</span>
+          <span>{order.orderType === 'takeaway' ? 'Takeaway' : 'Dine-in'}</span>
         </div>
+        {order.orderType === 'dine-in' && order.tableNumber != null && (
+          <div className="row">
+            <span>Table:</span><span>{order.tableNumber}</span>
+          </div>
+        )}
+        {order.orderType === 'takeaway' && order.customerName && (
+          <div className="row">
+            <span>Name:</span><span>{order.customerName}</span>
+          </div>
+        )}
+        {order.orderNumber && (
+          <div className="row bold">
+            <span>Order No:</span><span>{order.orderNumber}</span>
+          </div>
+        )}
         <div className="row">
-          <span>Order #:</span><span>{order.id.slice(0, 8).toUpperCase()}</span>
+          <span>Ref:</span><span>{order.id.slice(0, 8).toUpperCase()}</span>
         </div>
 
         <Line />
