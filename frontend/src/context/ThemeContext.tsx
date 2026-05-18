@@ -32,6 +32,7 @@ function darken(hex: string, amount: number): string {
 
 export function applyTheme(hex: string) {
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+  try { localStorage.setItem('qra-theme', hex); } catch { /* storage unavailable */ }
   const preset = THEME_COLORS.find((c) => c.hex === hex);
   const light  = preset?.light  ?? mix(hex, 0.92);
   const dark   = preset?.dark   ?? darken(hex, 0.12);
