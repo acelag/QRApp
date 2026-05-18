@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, Check } from 'lucide-react';
+
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
@@ -55,7 +56,6 @@ export function TakeawayOrderPage() {
   const [cart, dispatch]            = useReducer(cartReducer, []);
   const [customerName, setCustomerName] = useState('');
   const [placing, setPlacing]       = useState(false);
-  const [selectedSizes, setSelectedSizes] = useState<Record<string, Size>>({});
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem; size?: Size } | null>(null);
   const { fmt } = useCurrency();
 
@@ -71,19 +71,13 @@ export function TakeawayOrderPage() {
 
   const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
 
-  const getSizeFor = (item: MenuItem): Size => selectedSizes[item.id] ?? 'regular';
-  const cartQtyFor = (item: MenuItem) => {
-    const hasLarge = item.largePrice != null && item.largePrice > 0;
-    const size = hasLarge ? getSizeFor(item) : undefined;
-    return cart.filter((c) => c.menuItemId === item.id && c.size === size).reduce((s, c) => s + c.quantity, 0);
-  };
+  const cartQtyFor = (item: MenuItem, size?: Size) =>
+    cart.filter((c) => c.menuItemId === item.id && c.size === size).reduce((s, c) => s + c.quantity, 0);
 
   const total     = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
 
-  function handleAddItem(item: MenuItem) {
-    const hasLarge = item.largePrice != null && item.largePrice > 0;
-    const size = hasLarge ? getSizeFor(item) : undefined;
+  function handleAddItem(item: MenuItem, size?: Size) {
     const hasToppings = (item.toppings ?? []).some((t) => t.available);
     if (hasToppings) {
       setToppingModal({ item, size });
@@ -149,18 +143,19 @@ export function TakeawayOrderPage() {
               {filtered.map((item) => {
                 const hasLarge = item.largePrice != null && item.largePrice > 0;
                 const hasToppings = (item.toppings ?? []).some((t) => t.available);
-                const size = hasLarge ? getSizeFor(item) : undefined;
-                const displayPrice = effectivePrice(item, size);
-                const isDiscounted = size === 'large' ? (item.largeDiscountPct ?? 0) > 0 : item.discountPct > 0;
-                const basePrice = size === 'large' ? item.largePrice! : item.price;
-                const discPct = size === 'large' ? (item.largeDiscountPct ?? 0) : item.discountPct;
-                const qty = cartQtyFor(item);
+                const regPrice = effectivePrice(item, 'regular');
+                const lrgPrice = hasLarge ? effectivePrice(item, 'large') : 0;
+                const regDisc  = item.discountPct > 0;
+                const lrgDisc  = (item.largeDiscountPct ?? 0) > 0;
+                const qtyReg   = cartQtyFor(item, hasLarge ? 'regular' : undefined);
+                const qtyLrg   = cartQtyFor(item, 'large');
+                const anyInCart = qtyReg > 0 || qtyLrg > 0;
 
                 return (
                   <div
                     key={item.id}
                     className={`bg-white rounded-2xl border shadow-sm p-3 flex flex-col transition-colors ${
-                      qty > 0 ? 'border-orange-200' : 'border-gray-100'
+                      anyInCart ? 'border-orange-200' : 'border-gray-100'
                     }`}
                   >
                     <div className="relative w-full h-28 rounded-xl bg-orange-50 overflow-hidden mb-2">
@@ -173,44 +168,46 @@ export function TakeawayOrderPage() {
                         </span>
                       )}
                     </div>
-                    <p className="font-semibold text-gray-800 text-sm leading-tight">{item.name}</p>
+                    <p className="font-semibold text-gray-800 text-sm leading-tight mb-1.5">{item.name}</p>
 
-                    {hasLarge && (
-                      <div className="flex gap-1 mt-1.5">
-                        {(['regular', 'large'] as const).map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => setSelectedSizes((prev) => ({ ...prev, [item.id]: s }))}
-                            className={`flex-1 text-xs py-0.5 rounded-lg font-medium border transition-colors ${
-                              getSizeFor(item) === s
-                                ? 'bg-orange-500 text-white border-orange-500'
-                                : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300'
-                            }`}
-                          >
-                            {s === 'regular' ? 'R' : 'L'}
+                    {hasLarge ? (
+                      <div className="flex gap-1.5 mt-auto">
+                        <div className="flex-1 flex flex-col gap-1">
+                          {regDisc
+                            ? <><span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span><span className="text-green-600 text-xs font-semibold">{fmt(regPrice)}</span></>
+                            : <span className="text-orange-600 text-xs font-semibold">{fmt(regPrice)}</span>}
+                          <button onClick={() => handleAddItem(item, 'regular')}
+                            className={`flex items-center justify-center gap-0.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${qtyReg > 0 ? 'bg-orange-100 text-orange-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
+                            <Plus size={11} /> Add R{qtyReg > 0 ? ` (${qtyReg})` : ''}
                           </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {isDiscounted ? (
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                        <span className="text-xs text-gray-400 line-through whitespace-nowrap">{fmt(basePrice)}</span>
-                        <span className="text-green-600 text-sm font-semibold whitespace-nowrap">{fmt(displayPrice)}</span>
-                        <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">{discPct}% OFF</span>
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1">
+                          {lrgDisc
+                            ? <><span className="text-xs text-gray-400 line-through">{fmt(item.largePrice!)}</span><span className="text-green-600 text-xs font-semibold">{fmt(lrgPrice)}</span></>
+                            : <span className="text-orange-600 text-xs font-semibold">{fmt(lrgPrice)}</span>}
+                          <button onClick={() => handleAddItem(item, 'large')}
+                            className={`flex items-center justify-center gap-0.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${qtyLrg > 0 ? 'bg-orange-100 text-orange-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
+                            <Plus size={11} /> Add L{qtyLrg > 0 ? ` (${qtyLrg})` : ''}
+                          </button>
+                        </div>
                       </div>
                     ) : (
-                      <p className="text-orange-600 text-sm font-medium mt-0.5 whitespace-nowrap">{fmt(displayPrice)}</p>
+                      <>
+                        {regDisc
+                          ? <div className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                              <span className="text-xs text-gray-400 line-through whitespace-nowrap">{fmt(item.price)}</span>
+                              <span className="text-green-600 text-sm font-semibold whitespace-nowrap">{fmt(regPrice)}</span>
+                              <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">{item.discountPct}% OFF</span>
+                            </div>
+                          : <p className="text-orange-600 text-sm font-medium mt-0.5 whitespace-nowrap">{fmt(regPrice)}</p>}
+                        <div className="mt-2">
+                          <button onClick={() => handleAddItem(item, undefined)}
+                            className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${qtyReg > 0 ? 'bg-orange-100 text-orange-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
+                            <Plus size={14} /> {qtyReg > 0 ? `Add more (${qtyReg})` : 'Add'}
+                          </button>
+                        </div>
+                      </>
                     )}
-
-                    <div className="mt-2">
-                      <button
-                        onClick={() => handleAddItem(item)}
-                        className="w-full flex items-center justify-center gap-1 bg-orange-500 text-white py-1.5 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors"
-                      >
-                        <Plus size={14} /> {qty > 0 ? `Add more (${qty})` : 'Add'}
-                      </button>
-                    </div>
                   </div>
                 );
               })}

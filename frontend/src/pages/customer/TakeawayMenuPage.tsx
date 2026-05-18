@@ -61,7 +61,6 @@ export function TakeawayMenuPage() {
   const [customerName, setCustomerName] = useState('');
   const [cartOpen, setCartOpen]       = useState(false);
   const [placing, setPlacing]         = useState(false);
-  const [selectedSizes, setSelectedSizes] = useState<Record<string, Size>>({});
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem; size?: Size } | null>(null);
   const { fmt, loadCurrency } = useCurrency();
   const { loadTheme } = useTheme();
@@ -85,15 +84,10 @@ export function TakeawayMenuPage() {
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
   const total = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
 
-  const getSizeFor = (item: MenuItem): Size => selectedSizes[item.id] ?? 'regular';
-  const cartQtyFor = (item: MenuItem) => {
-    const size = item.largePrice ? getSizeFor(item) : undefined;
-    return cart.filter((c) => c.menuItemId === item.id && c.size === size).reduce((s, c) => s + c.quantity, 0);
-  };
+  const cartQtyFor = (item: MenuItem, size?: Size) =>
+    cart.filter((c) => c.menuItemId === item.id && c.size === size).reduce((s, c) => s + c.quantity, 0);
 
-  function handleAdd(item: MenuItem) {
-    const hasLarge = item.largePrice != null && item.largePrice > 0;
-    const size = hasLarge ? getSizeFor(item) : undefined;
+  function handleAdd(item: MenuItem, size?: Size) {
     const hasToppings = (item.toppings ?? []).some((t) => t.available);
     if (hasToppings) {
       setToppingModal({ item, size });
@@ -152,15 +146,16 @@ export function TakeawayMenuPage() {
             {filtered.map((item) => {
               const hasLarge = item.largePrice != null && item.largePrice > 0;
               const hasToppings = (item.toppings ?? []).some((t) => t.available);
-              const size = hasLarge ? getSizeFor(item) : undefined;
-              const displayPrice = effectivePrice(item, size);
-              const isDiscounted = size === 'large' ? (item.largeDiscountPct ?? 0) > 0 : item.discountPct > 0;
-              const basePrice = size === 'large' ? item.largePrice! : item.price;
-              const discountPct = size === 'large' ? (item.largeDiscountPct ?? 0) : item.discountPct;
-              const qty = cartQtyFor(item);
+              const regPrice   = effectivePrice(item, 'regular');
+              const lrgPrice   = hasLarge ? effectivePrice(item, 'large') : 0;
+              const regDisc    = item.discountPct > 0;
+              const lrgDisc    = (item.largeDiscountPct ?? 0) > 0;
+              const qtyReg     = cartQtyFor(item, hasLarge ? 'regular' : undefined);
+              const qtyLrg     = cartQtyFor(item, 'large');
+              const anyInCart  = qtyReg > 0 || qtyLrg > 0;
 
               return (
-                <div key={item.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col transition-colors ${qty > 0 ? 'border-purple-200' : 'border-gray-100'}`}>
+                <div key={item.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col transition-colors ${anyInCart ? 'border-purple-200' : 'border-gray-100'}`}>
                   <div className="relative">
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="w-full h-36 object-cover" />
@@ -169,9 +164,9 @@ export function TakeawayMenuPage() {
                         <UtensilsCrossed size={32} className="text-purple-300" />
                       </div>
                     )}
-                    {isDiscounted && (
+                    {(regDisc || lrgDisc) && (
                       <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {discountPct}% OFF
+                        {regDisc ? item.discountPct : item.largeDiscountPct}% OFF
                       </span>
                     )}
                     {hasToppings && (
@@ -186,39 +181,48 @@ export function TakeawayMenuPage() {
                       <p className="text-xs text-gray-400 mt-1 line-clamp-2 flex-1">{item.description}</p>
                     )}
                     <div className="mt-2">
-                      {hasLarge && (
-                        <div className="flex gap-1 mb-2">
-                          {(['regular', 'large'] as const).map((s) => (
+                      {hasLarge ? (
+                        <div className="flex gap-1.5">
+                          {/* Regular */}
+                          <div className="flex-1 flex flex-col gap-1">
+                            {regDisc
+                              ? <><span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span><span className="text-green-600 font-bold text-xs">{fmt(regPrice)}</span></>
+                              : <span className="text-purple-600 font-bold text-xs">{fmt(regPrice)}</span>}
                             <button
-                              key={s}
-                              onClick={() => setSelectedSizes((prev) => ({ ...prev, [item.id]: s }))}
-                              className={`flex-1 text-xs py-0.5 rounded-lg font-medium border transition-colors ${
-                                getSizeFor(item) === s
-                                  ? 'bg-purple-600 text-white border-purple-600'
-                                  : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300'
-                              }`}
+                              onClick={() => handleAdd(item, 'regular')}
+                              className={`flex items-center justify-center gap-0.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${qtyReg > 0 ? 'bg-purple-100 text-purple-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
                             >
-                              {s === 'regular' ? 'R' : 'L'}
+                              <Plus size={11} /> Add R{qtyReg > 0 ? ` (${qtyReg})` : ''}
                             </button>
-                          ))}
-                        </div>
-                      )}
-                      {isDiscounted ? (
-                        <div>
-                          <span className="text-xs text-gray-400 line-through">{fmt(basePrice)}</span>
-                          <span className="ml-1.5 text-green-600 font-bold">{fmt(displayPrice)}</span>
+                          </div>
+                          {/* Large */}
+                          <div className="flex-1 flex flex-col gap-1">
+                            {lrgDisc
+                              ? <><span className="text-xs text-gray-400 line-through">{fmt(item.largePrice!)}</span><span className="text-green-600 font-bold text-xs">{fmt(lrgPrice)}</span></>
+                              : <span className="text-purple-600 font-bold text-xs">{fmt(lrgPrice)}</span>}
+                            <button
+                              onClick={() => handleAdd(item, 'large')}
+                              className={`flex items-center justify-center gap-0.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${qtyLrg > 0 ? 'bg-purple-100 text-purple-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+                            >
+                              <Plus size={11} /> Add L{qtyLrg > 0 ? ` (${qtyLrg})` : ''}
+                            </button>
+                          </div>
                         </div>
                       ) : (
-                        <span className="text-purple-600 font-bold">{fmt(displayPrice)}</span>
+                        <>
+                          {regDisc
+                            ? <div><span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span><span className="ml-1.5 text-green-600 font-bold">{fmt(regPrice)}</span></div>
+                            : <span className="text-purple-600 font-bold">{fmt(regPrice)}</span>}
+                          <div className="mt-2">
+                            <button
+                              onClick={() => handleAdd(item, undefined)}
+                              className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${qtyReg > 0 ? 'bg-purple-100 text-purple-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+                            >
+                              <Plus size={14} /> {qtyReg > 0 ? `Add more (${qtyReg})` : 'Add'}
+                            </button>
+                          </div>
+                        </>
                       )}
-                      <div className="mt-2">
-                        <button
-                          onClick={() => handleAdd(item)}
-                          className="w-full flex items-center justify-center gap-1 bg-purple-600 text-white py-1.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
-                        >
-                          <Plus size={14} /> {qty > 0 ? `Add more (${qty})` : 'Add'}
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>

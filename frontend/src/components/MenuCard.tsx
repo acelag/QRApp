@@ -16,31 +16,26 @@ export function MenuCard({ item }: Props) {
   const { fmt } = useCurrency();
   const hasLarge = item.largePrice != null && item.largePrice > 0;
   const hasToppings = (item.toppings ?? []).some((t) => t.available);
-  const [selectedSize, setSelectedSize] = useState<'regular' | 'large'>('regular');
   const [showModal, setShowModal] = useState(false);
+  const [pendingSize, setPendingSize] = useState<'regular' | 'large' | undefined>(undefined);
 
-  const size = hasLarge ? selectedSize : undefined;
-  const finalPrice = effectivePrice(item, size);
+  const regPrice  = effectivePrice(item, 'regular');
+  const lrgPrice  = hasLarge ? effectivePrice(item, 'large') : 0;
+  const regBase   = item.price;
+  const lrgBase   = item.largePrice ?? 0;
+  const regDisc   = item.discountPct > 0;
+  const lrgDisc   = (item.largeDiscountPct ?? 0) > 0;
 
-  const isDiscounted = size === 'large'
-    ? (item.largeDiscountPct ?? 0) > 0
-    : item.discountPct > 0;
-  const basePrice = size === 'large' ? item.largePrice! : item.price;
-  const discountPct = size === 'large' ? (item.largeDiscountPct ?? 0) : item.discountPct;
+  const inCartReg = items.filter((i) => i.menuItemId === item.id && (!hasLarge || i.size === 'regular')).reduce((s, i) => s + i.quantity, 0);
+  const inCartLrg = items.filter((i) => i.menuItemId === item.id && i.size === 'large').reduce((s, i) => s + i.quantity, 0);
 
-  const inCart = items.filter((i) => i.menuItemId === item.id && i.size === size);
-  const inCartCount = inCart.reduce((s, i) => s + i.quantity, 0);
-
-  function handleAdd() {
-    if (hasToppings) {
-      setShowModal(true);
-    } else {
-      addItem(item, size);
-    }
+  function handleAdd(sz: 'regular' | 'large' | undefined) {
+    if (hasToppings) { setPendingSize(sz); setShowModal(true); }
+    else { addItem(item, sz); }
   }
 
   function handleToppingConfirm(toppings: SelectedTopping[]) {
-    addItem(item, size, undefined, toppings);
+    addItem(item, pendingSize, undefined, toppings);
     setShowModal(false);
   }
 
@@ -72,49 +67,64 @@ export function MenuCard({ item }: Props) {
             <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">{item.description}</p>
           )}
 
-          {hasLarge && (
-            <div className="flex gap-1.5 mt-2">
-              {(['regular', 'large'] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSelectedSize(s)}
-                  className={`flex-1 text-xs py-1 rounded-lg font-medium border transition-colors ${
-                    selectedSize === s
-                      ? 'bg-orange-500 text-white border-orange-500'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300'
-                  }`}
-                >
-                  {s === 'regular' ? 'R' : 'L'}
-                </button>
-              ))}
-            </div>
-          )}
-
           <div className="mt-3 space-y-2">
-            <div>
-              {isDiscounted ? (
-                <>
-                  <span className="text-xs text-gray-400 line-through">{fmt(basePrice)}</span>
-                  <span className="block text-green-600 font-bold text-lg leading-tight">{fmt(finalPrice)}</span>
-                </>
-              ) : (
-                <span className="text-orange-600 font-bold text-lg">{fmt(finalPrice)}</span>
-              )}
-            </div>
-            <button
-              onClick={handleAdd}
-              disabled={!item.available}
-              className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                !item.available
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : inCartCount > 0
-                  ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-                  : 'bg-orange-500 text-white hover:bg-orange-600'
-              }`}
-            >
-              <Plus size={14} />
-              {inCartCount > 0 ? `${inCartCount} in cart` : 'Add'}
-            </button>
+            {hasLarge ? (
+              <>
+                <div className="flex gap-1.5">
+                  {/* Regular */}
+                  <div className="flex-1 flex flex-col gap-1">
+                    {regDisc
+                      ? <><span className="text-xs text-gray-400 line-through">{fmt(regBase)}</span><span className="text-green-600 font-bold text-sm leading-tight">{fmt(regPrice)}</span></>
+                      : <span className="text-orange-600 font-bold text-sm">{fmt(regPrice)}</span>}
+                    <button
+                      onClick={() => handleAdd('regular')}
+                      disabled={!item.available}
+                      className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                        !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : inCartReg > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                        : 'bg-orange-500 text-white hover:bg-orange-600'}`}
+                    >
+                      <Plus size={12} /> Add R{inCartReg > 0 ? ` (${inCartReg})` : ''}
+                    </button>
+                  </div>
+                  {/* Large */}
+                  <div className="flex-1 flex flex-col gap-1">
+                    {lrgDisc
+                      ? <><span className="text-xs text-gray-400 line-through">{fmt(lrgBase)}</span><span className="text-green-600 font-bold text-sm leading-tight">{fmt(lrgPrice)}</span></>
+                      : <span className="text-orange-600 font-bold text-sm">{fmt(lrgPrice)}</span>}
+                    <button
+                      onClick={() => handleAdd('large')}
+                      disabled={!item.available}
+                      className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                        !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : inCartLrg > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                        : 'bg-orange-500 text-white hover:bg-orange-600'}`}
+                    >
+                      <Plus size={12} /> Add L{inCartLrg > 0 ? ` (${inCartLrg})` : ''}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  {regDisc
+                    ? <><span className="text-xs text-gray-400 line-through">{fmt(regBase)}</span><span className="block text-green-600 font-bold text-lg leading-tight">{fmt(regPrice)}</span></>
+                    : <span className="text-orange-600 font-bold text-lg">{fmt(regPrice)}</span>}
+                </div>
+                <button
+                  onClick={() => handleAdd(undefined)}
+                  disabled={!item.available}
+                  className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : inCartReg > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                    : 'bg-orange-500 text-white hover:bg-orange-600'}`}
+                >
+                  <Plus size={14} />
+                  {inCartReg > 0 ? `${inCartReg} in cart` : 'Add'}
+                </button>
+              </>
+            )}
           </div>
           {!item.available && (
             <p className="text-xs text-red-400 mt-1">Unavailable</p>
@@ -125,7 +135,7 @@ export function MenuCard({ item }: Props) {
       {showModal && (
         <ToppingSelectionModal
           item={item}
-          size={size}
+          size={pendingSize}
           onConfirm={handleToppingConfirm}
           onClose={() => setShowModal(false)}
         />
