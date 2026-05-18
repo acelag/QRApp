@@ -110,7 +110,7 @@ export function OrdersPage() {
                   order={order}
                   onStatusChange={handleStatusChange}
                   showActions
-                  showPrint
+
                 />
               </div>
             ))}
