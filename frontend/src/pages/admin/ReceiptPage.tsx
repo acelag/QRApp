@@ -129,7 +129,7 @@ export function ReceiptPage() {
         <p className="center bold large">{settings?.name ?? 'RESTAURANT'}</p>
         <Line />
 
-        <p className="center bold">RECEIPT</p>
+        <p className="center bold">{order.orderType === 'takeaway' ? 'TAKEAWAY' : 'DINING BILL'}</p>
         <Line char=" " />
 
         <div className="row">

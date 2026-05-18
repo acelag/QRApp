@@ -119,7 +119,7 @@ export function SessionReceiptPage() {
         <p className="center bold large">{settings?.name ?? 'RESTAURANT'}</p>
         <Line />
 
-        <p className="center bold">TABLE BILL</p>
+        <p className="center bold">DINING BILL</p>
         <Line char=" " />
 
         <div className="row"><span>Date:</span><span>{dateStr}</span></div>
