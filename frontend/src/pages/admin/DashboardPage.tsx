@@ -37,7 +37,7 @@ export function DashboardPage() {
 
   const navItems = [
     { to: '/admin/orders',  label: 'Live Orders',      icon: ClipboardList,  desc: 'Manage incoming orders' },
-    { to: '/admin/bills',   label: 'Table Bills',      icon: Receipt,        desc: 'View bills & mark as paid' },
+    { to: '/admin/bills',   label: 'Bills',            icon: Receipt,        desc: 'Table bills & takeaway receipts' },
     { to: '/admin/reports', label: 'Reports',          icon: BarChart2,      desc: 'Sales & item performance' },
     { to: '/admin/menu',    label: 'Menu Items',       icon: UtensilsCrossed, desc: 'Add, edit, delete items' },
     { to: '/admin/tables',  label: 'Tables & QR',      icon: Table2,         desc: 'Manage tables and QR codes' },

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw, Printer } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw, Printer, ShoppingBag, Table2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
 import { restaurantService, computeCharges, type RestaurantSettings } from '../../services/restaurantService';
+import { orderService } from '../../services/orderService';
 import { useCurrency } from '../../context/CurrencyContext';
+import type { Order } from '../../types';
 
 function elapsed(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -18,8 +20,12 @@ function todayStr() {
   return new Date().toDateString();
 }
 
+type Tab = 'table' | 'takeaway';
+
 export function BillsPage() {
+  const [tab, setTab] = useState<Tab>('table');
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [takeawayOrders, setTakeawayOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
   const [billingSettings, setBillingSettings] = useState<RestaurantSettings | null>(null);
@@ -29,11 +35,24 @@ export function BillsPage() {
     restaurantService.getMyRestaurant().then(setBillingSettings).catch(() => {});
   }, []);
 
-  const load = () =>
-    sessionService.getSessions()
-      .then(setSessions)
-      .catch(() => toast.error('Failed to load sessions'))
-      .finally(() => setLoading(false));
+  const load = async () => {
+    try {
+      const [sess, orders] = await Promise.all([
+        sessionService.getSessions(),
+        orderService.getOrders(),
+      ]);
+      setSessions(sess);
+      setTakeawayOrders(
+        orders
+          .filter((o) => o.orderType === 'takeaway')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      );
+    } catch {
+      toast.error('Failed to load bills');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -56,9 +75,14 @@ export function BillsPage() {
     }
   }
 
-  const open   = sessions.filter((s) => s.status === 'open');
-  const paidToday = sessions.filter(
+  const openSessions  = sessions.filter((s) => s.status === 'open');
+  const paidToday     = sessions.filter(
     (s) => s.status === 'paid' && s.closedAt && new Date(s.closedAt).toDateString() === todayStr()
+  );
+
+  const activeTakeaway = takeawayOrders.filter((o) => o.status !== 'served');
+  const servedToday    = takeawayOrders.filter(
+    (o) => o.status === 'served' && new Date(o.createdAt).toDateString() === todayStr()
   );
 
   return (
@@ -66,9 +90,34 @@ export function BillsPage() {
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Table Bills</h1>
+          <h1 className="text-xl font-bold text-gray-900 flex-1">Bills</h1>
           <button onClick={load} className="text-gray-400 hover:text-gray-600 transition-colors">
             <RefreshCw size={18} />
+          </button>
+        </div>
+        {/* Tabs */}
+        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2">
+          <button
+            onClick={() => setTab('table')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              tab === 'table' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Table2 size={13} /> Table Bills
+            {openSessions.length > 0 && (
+              <span className="ml-1 text-xs opacity-75">({openSessions.length})</span>
+            )}
+          </button>
+          <button
+            onClick={() => setTab('takeaway')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              tab === 'takeaway' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <ShoppingBag size={13} /> Takeaway
+            {activeTakeaway.length > 0 && (
+              <span className="ml-1 text-xs opacity-75">({activeTakeaway.length})</span>
+            )}
           </button>
         </div>
       </header>
@@ -78,99 +127,227 @@ export function BillsPage() {
           <div className="flex justify-center pt-16">
             <Loader2 size={28} className="animate-spin text-orange-500" />
           </div>
-        ) : (
+        ) : tab === 'table' ? (
           <>
-            {/* ── Open sessions ─────────────────────────────────────────── */}
+            {/* ── Open table sessions ── */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
-                <h2 className="font-semibold text-gray-700 text-sm">
-                  Open Bills ({open.length})
-                </h2>
+                <h2 className="font-semibold text-gray-700 text-sm">Open Bills ({openSessions.length})</h2>
               </div>
 
-              {open.length === 0 ? (
+              {openSessions.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
                   <Receipt size={32} className="mx-auto mb-2 text-gray-300" />
                   No open table sessions right now
                 </div>
               ) : (
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
-                {open.map((session) => (
-                  <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Session header */}
-                    <div className="flex items-center justify-between px-5 py-3 bg-orange-50 border-b border-orange-100">
+                  {openSessions.map((session) => (
+                    <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="flex items-center justify-between px-5 py-3 bg-orange-50 border-b border-orange-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-lg">
+                            {session.tableNumber}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">Table {session.tableNumber}</p>
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                              <Clock size={11} /> Opened {elapsed(session.createdAt)} ago
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-orange-600">{fmt(session.totalAmount ?? 0)}</p>
+                          <p className="text-xs text-gray-400">
+                            {(session.orders ?? []).length} order{(session.orders ?? []).length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      {(session.billItems ?? []).length > 0 && (
+                        <div className="px-5 py-3 border-b border-gray-100">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Bill Summary</p>
+                          <ul className="space-y-1.5">
+                            {session.billItems!.map((item, i) => (
+                              <li key={i} className="text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-700 flex items-center gap-1.5">
+                                    <span className="font-medium text-gray-900">{item.quantity}×</span> {item.name}
+                                    {item.size && (
+                                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                                        {item.size === 'large' ? 'L' : 'R'}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="text-gray-700 tabular-nums">{fmt(item.total)}</span>
+                                </div>
+                                {(item.toppings ?? []).length > 0 && (
+                                  <ul className="ml-6 mt-0.5 space-y-0.5">
+                                    {item.toppings!.map((t: { id: string; name: string; price: number }, ti: number) => (
+                                      <li key={ti} className="text-xs text-gray-400">+ {t.name}{t.price > 0 ? ` (+${fmt(t.price)})` : ''}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                          {billingSettings && (() => {
+                            const subtotal = session.totalAmount ?? 0;
+                            const charges = computeCharges(subtotal, {
+                              serviceChargePct: billingSettings.serviceChargePct,
+                              taxPct: billingSettings.taxPct,
+                            });
+                            return (
+                              <div className="mt-3 pt-2 border-t border-gray-100 space-y-1 text-sm text-gray-600">
+                                <div className="flex justify-between"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+                                {charges.serviceCharge > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>Service Charge ({billingSettings.serviceChargePct}%)</span>
+                                    <span>+{fmt(charges.serviceCharge)}</span>
+                                  </div>
+                                )}
+                                {charges.tax > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>Tax ({billingSettings.taxPct}%)</span>
+                                    <span>+{fmt(charges.tax)}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between font-bold text-gray-900 border-t border-gray-100 pt-1">
+                                  <span>Grand Total</span><span>{fmt(charges.grandTotal)}</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      <div className="px-5 py-4">
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
+                            disabled={(session.billItems ?? []).length === 0}
+                            className="flex items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors disabled:opacity-40"
+                          >
+                            <Printer size={16} /> Print Bill
+                          </button>
+                          <button
+                            onClick={() => handleMarkPaid(session.id, session.tableNumber)}
+                            disabled={paying === session.id || (session.billItems ?? []).length === 0}
+                            className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-3 rounded-2xl transition-colors"
+                          >
+                            {paying === session.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                            {paying === session.id ? 'Processing…' : 'Mark as Paid'}
+                          </button>
+                        </div>
+                        {(session.billItems ?? []).length === 0 && (
+                          <p className="text-center text-xs text-gray-400 mt-2">No orders placed yet</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* ── Paid today ── */}
+            {paidToday.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-green-500" /> Paid Today ({paidToday.length})
+                </h2>
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
+                  {paidToday.map((session) => (
+                    <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-70">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-lg">
+                        <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-bold">
                           {session.tableNumber}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">Table {session.tableNumber}</p>
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
-                            <Clock size={11} /> Opened {elapsed(session.createdAt)} ago
+                          <p className="font-medium text-gray-700 text-sm">Table {session.tableNumber}</p>
+                          <p className="text-xs text-gray-400">
+                            {session.closedAt ? `Paid at ${new Date(session.closedAt).toLocaleTimeString()}` : 'Paid'}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xl font-bold text-orange-600">
-                          {fmt(session.totalAmount ?? 0)}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {(session.orders ?? []).length} order{(session.orders ?? []).length !== 1 ? 's' : ''}
-                        </p>
+                        <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
+                        <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
                       </div>
                     </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        ) : (
+          <>
+            {/* ── Active takeaway orders ── */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
+                <h2 className="font-semibold text-gray-700 text-sm">Active Orders ({activeTakeaway.length})</h2>
+              </div>
 
-                    {/* Aggregated bill items */}
-                    {(session.billItems ?? []).length > 0 && (
+              {activeTakeaway.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
+                  <ShoppingBag size={32} className="mx-auto mb-2 text-gray-300" />
+                  No active takeaway orders
+                </div>
+              ) : (
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
+                  {activeTakeaway.map((order) => (
+                    <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="flex items-center justify-between px-5 py-3 bg-purple-50 border-b border-purple-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center">
+                            <ShoppingBag size={18} />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                            </p>
+                            {order.customerName && (
+                              <p className="text-xs text-gray-500">{order.customerName}</p>
+                            )}
+                            <p className="text-xs text-gray-400 flex items-center gap-1">
+                              <Clock size={11} /> {elapsed(order.createdAt)} ago
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-purple-600">{fmt(order.totalAmount)}</p>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-700'
+                            : order.status === 'preparing' ? 'bg-blue-100 text-blue-700'
+                            : 'bg-green-100 text-green-700'
+                          }`}>{order.status}</span>
+                        </div>
+                      </div>
+
                       <div className="px-5 py-3 border-b border-gray-100">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Bill Summary</p>
                         <ul className="space-y-1.5">
-                          {session.billItems!.map((item, i) => (
-                            <li key={i} className="text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-gray-700 flex items-center gap-1.5">
-                                  <span className="font-medium text-gray-900">{item.quantity}×</span> {item.name}
-                                  {item.size && (
-                                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
-                                      item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
-                                    }`}>
-                                      {item.size === 'large' ? 'L' : 'R'}
-                                    </span>
-                                  )}
-                                </span>
-                                <span className="text-gray-700 tabular-nums">{fmt(item.total)}</span>
-                              </div>
-                              {(item.toppings ?? []).length > 0 && (
-                                <ul className="ml-6 mt-0.5 space-y-0.5">
-                                  {item.toppings!.map((t: { id: string; name: string; price: number }, ti: number) => (
-                                    <li key={ti} className="text-xs text-gray-400">+ {t.name}{t.price > 0 ? ` (+${fmt(t.price)})` : ''}</li>
-                                  ))}
-                                </ul>
-                              )}
+                          {order.items.map((item, i) => (
+                            <li key={i} className="text-sm flex justify-between">
+                              <span className="text-gray-700 flex items-center gap-1.5">
+                                <span className="font-medium text-gray-900">{item.quantity}×</span> {item.name}
+                                {item.size && (
+                                  <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                                    {item.size === 'large' ? 'L' : 'R'}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-gray-700 tabular-nums">{fmt(item.price * item.quantity)}</span>
                             </li>
                           ))}
                         </ul>
-
-                        {/* Charges breakdown */}
                         {billingSettings && (() => {
-                          const subtotal = session.totalAmount ?? 0;
-                          const charges = computeCharges(subtotal, {
-                            serviceChargePct: billingSettings.serviceChargePct,
-                            taxPct:           billingSettings.taxPct,
+                          const charges = computeCharges(order.totalAmount, {
+                            serviceChargePct: 0,
+                            taxPct: billingSettings.taxPct,
                           });
                           return (
-                            <div className="mt-3 pt-2 border-t border-gray-100 space-y-1 text-sm text-gray-600">
-                              <div className="flex justify-between">
-                                <span>Subtotal</span>
-                                <span>{fmt(subtotal)}</span>
-                              </div>
-                              {charges.serviceCharge > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Service Charge ({billingSettings.serviceChargePct}%)</span>
-                                  <span>+{fmt(charges.serviceCharge)}</span>
-                                </div>
-                              )}
+                            <div className="mt-2 pt-2 border-t border-gray-100 space-y-1 text-sm text-gray-600">
                               {charges.tax > 0 && (
                                 <div className="flex justify-between">
                                   <span>Tax ({billingSettings.taxPct}%)</span>
@@ -178,78 +355,56 @@ export function BillsPage() {
                                 </div>
                               )}
                               <div className="flex justify-between font-bold text-gray-900 border-t border-gray-100 pt-1">
-                                <span>Grand Total</span>
-                                <span>{fmt(charges.grandTotal)}</span>
+                                <span>Total</span><span>{fmt(charges.grandTotal)}</span>
                               </div>
                             </div>
                           );
                         })()}
                       </div>
-                    )}
 
-                    {/* Actions */}
-                    <div className="px-5 py-4 space-y-2">
-                      <div className="flex gap-3">
+                      <div className="px-5 py-3">
                         <button
-                          onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
-                          disabled={(session.billItems ?? []).length === 0}
-                          className="flex items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors disabled:opacity-40"
+                          onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
+                          className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-2xl hover:bg-gray-50 transition-colors"
                         >
-                          <Printer size={16} />
-                          Print Bill
-                        </button>
-                        <button
-                          onClick={() => handleMarkPaid(session.id, session.tableNumber)}
-                          disabled={paying === session.id || (session.billItems ?? []).length === 0}
-                          className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-3 rounded-2xl transition-colors"
-                        >
-                          {paying === session.id
-                            ? <Loader2 size={16} className="animate-spin" />
-                            : <CheckCircle2 size={16} />}
-                          {paying === session.id ? 'Processing…' : 'Mark as Paid'}
+                          <Printer size={16} /> Print Receipt
                         </button>
                       </div>
                     </div>
-                    {(session.billItems ?? []).length === 0 && (
-                      <p className="text-center text-xs text-gray-400 pb-3">No orders placed yet</p>
-                    )}
-                  </div>
-                ))}
+                  ))}
                 </div>
               )}
             </section>
 
-            {/* ── Paid today ────────────────────────────────────────────── */}
-            {paidToday.length > 0 && (
+            {/* ── Served today ── */}
+            {servedToday.length > 0 && (
               <section className="space-y-3">
                 <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-green-500" />
-                  Paid Today ({paidToday.length})
+                  <CheckCircle2 size={16} className="text-green-500" /> Served Today ({servedToday.length})
                 </h2>
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
-                {paidToday.map((session) => (
-                  <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-70">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-bold">
-                        {session.tableNumber}
+                  {servedToday.map((order) => (
+                    <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-70">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
+                          <ShoppingBag size={16} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-700 text-sm">
+                            {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                          </p>
+                          {order.customerName && <p className="text-xs text-gray-400">{order.customerName}</p>}
+                          <p className="text-xs text-gray-400">
+                            {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-700 text-sm">Table {session.tableNumber}</p>
-                        <p className="text-xs text-gray-400">
-                          {session.closedAt
-                            ? `Paid at ${new Date(session.closedAt).toLocaleTimeString()}`
-                            : 'Paid'}
-                        </p>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-700">{fmt(order.totalAmount)}</p>
+                        <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Served</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
-                      <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
-                        Paid
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
                 </div>
               </section>
             )}
