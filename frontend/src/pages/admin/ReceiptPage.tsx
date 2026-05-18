@@ -138,11 +138,7 @@ export function ReceiptPage() {
         <div className="row">
           <span>Time:</span><span>{timeStr}</span>
         </div>
-        <div className="row">
-          <span>Type:</span>
-          <span>{order.orderType === 'takeaway' ? 'Takeaway' : 'Dine-in'}</span>
-        </div>
-        {order.orderType === 'dine-in' && order.tableNumber != null && (
+{order.orderType === 'dine-in' && order.tableNumber != null && (
           <div className="row">
             <span>Table:</span><span>{order.tableNumber}</span>
           </div>

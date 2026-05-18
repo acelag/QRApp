@@ -125,8 +125,7 @@ export function SessionReceiptPage() {
         <div className="row"><span>Date:</span><span>{dateStr}</span></div>
         <div className="row"><span>Time:</span><span>{timeStr}</span></div>
         <div className="row"><span>Table:</span><span>{session.tableNumber}</span></div>
-        <div className="row"><span>Type:</span><span>Dine-in</span></div>
-        {orders.some((o) => o.orderNumber) && (
+{orders.some((o) => o.orderNumber) && (
           <div className="row small">
             <span>Order Nos:</span>
             <span>{orders.filter((o) => o.orderNumber).map((o) => o.orderNumber).join(', ')}</span>
