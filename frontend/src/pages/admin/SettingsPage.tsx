@@ -319,7 +319,8 @@ export function SettingsPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+              className="w-full text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+              style={{ backgroundColor: themeColor }}
             >
               {loading && <Loader2 size={15} className="animate-spin" />}
               {loading ? 'Saving…' : 'Save Account Changes'}
