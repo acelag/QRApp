@@ -135,7 +135,7 @@ export function TakeawayOrderPage() {
         )}
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-4 flex gap-4 items-start">
+      <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col lg:flex-row gap-4 items-start">
         {/* ── Menu items ── */}
         <div className="flex-1 min-w-0">
           {loading ? (
@@ -219,7 +219,7 @@ export function TakeawayOrderPage() {
         </div>
 
         {/* ── Order summary sidebar ── */}
-        <div className="w-72 shrink-0 sticky top-32">
+        <div className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-32">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
               <ShoppingBag size={16} className="text-purple-500" />
