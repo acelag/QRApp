@@ -187,7 +187,7 @@ export function TakeawayOrderPage() {
                                 : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300'
                             }`}
                           >
-                            {s === 'regular' ? 'Reg' : 'Lrg'}
+                            {s === 'regular' ? 'R' : 'L'}
                           </button>
                         ))}
                       </div>

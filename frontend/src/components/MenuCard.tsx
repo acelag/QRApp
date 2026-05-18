@@ -84,7 +84,7 @@ export function MenuCard({ item }: Props) {
                       : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300'
                   }`}
                 >
-                  {s === 'regular' ? 'Regular' : 'Large'}
+                  {s === 'regular' ? 'R' : 'L'}
                 </button>
               ))}
             </div>
