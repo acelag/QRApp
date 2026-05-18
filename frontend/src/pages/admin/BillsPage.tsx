@@ -28,6 +28,7 @@ export function BillsPage() {
   const [takeawayOrders, setTakeawayOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
+  const [payingOrder, setPayingOrder] = useState<string | null>(null);
   const [billingSettings, setBillingSettings] = useState<RestaurantSettings | null>(null);
   const { fmt } = useCurrency();
 
@@ -81,9 +82,23 @@ export function BillsPage() {
   );
 
   const activeTakeaway = takeawayOrders.filter((o) => o.status !== 'served');
-  const servedToday    = takeawayOrders.filter(
+  const paidTodayTakeaway = takeawayOrders.filter(
     (o) => o.status === 'served' && new Date(o.createdAt).toDateString() === todayStr()
   );
+
+  async function handleMarkOrderPaid(orderId: string) {
+    if (!confirm('Mark this takeaway order as PAID?')) return;
+    setPayingOrder(orderId);
+    try {
+      const updated = await orderService.updateStatus(orderId, 'served');
+      setTakeawayOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
+      toast.success('Takeaway order marked as paid!');
+    } catch {
+      toast.error('Failed to update order');
+    } finally {
+      setPayingOrder(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -362,12 +377,20 @@ export function BillsPage() {
                         })()}
                       </div>
 
-                      <div className="px-5 py-3">
+                      <div className="px-5 py-3 flex gap-3">
                         <button
                           onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
-                          className="flex items-center justify-center gap-2 w-full border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-2xl hover:bg-gray-50 transition-colors"
+                          className="flex items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-2xl hover:bg-gray-50 transition-colors"
                         >
-                          <Printer size={16} /> Print Receipt
+                          <Printer size={16} /> Print
+                        </button>
+                        <button
+                          onClick={() => handleMarkOrderPaid(order.id)}
+                          disabled={payingOrder === order.id}
+                          className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors"
+                        >
+                          {payingOrder === order.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                          {payingOrder === order.id ? 'Processing…' : 'Mark as Paid'}
                         </button>
                       </div>
                     </div>
@@ -376,14 +399,14 @@ export function BillsPage() {
               )}
             </section>
 
-            {/* ── Served today ── */}
-            {servedToday.length > 0 && (
+            {/* ── Paid today ── */}
+            {paidTodayTakeaway.length > 0 && (
               <section className="space-y-3">
                 <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-green-500" /> Served Today ({servedToday.length})
+                  <CheckCircle2 size={16} className="text-green-500" /> Paid Today ({paidTodayTakeaway.length})
                 </h2>
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
-                  {servedToday.map((order) => (
+                  {paidTodayTakeaway.map((order) => (
                     <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-70">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
@@ -401,7 +424,7 @@ export function BillsPage() {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-gray-700">{fmt(order.totalAmount)}</p>
-                        <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Served</span>
+                        <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
                       </div>
                     </div>
                   ))}
