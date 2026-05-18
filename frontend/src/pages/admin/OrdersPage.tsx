@@ -56,7 +56,7 @@ export function OrdersPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600">
             <ArrowLeft size={20} />
           </Link>
@@ -72,7 +72,7 @@ export function OrdersPage() {
             <RefreshCw size={18} />
           </button>
         </div>
-        <div className="max-w-3xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
           {STATUS_TABS.map((t) => {
             const count = t.value === 'all' ? null
               : t.value === 'takeaway' ? orders.filter((o) => o.orderType === 'takeaway').length
@@ -95,7 +95,7 @@ export function OrdersPage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-4 space-y-3">
+      <main className="max-w-7xl mx-auto px-4 py-4">
         {loading ? (
           <div className="flex justify-center pt-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
@@ -103,15 +103,18 @@ export function OrdersPage() {
         ) : filtered.length === 0 ? (
           <p className="text-center text-gray-400 pt-12">No orders</p>
         ) : (
-          filtered.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onStatusChange={handleStatusChange}
-              showActions
-              showPrint
-            />
-          ))
+          <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4">
+            {filtered.map((order) => (
+              <div key={order.id} className="break-inside-avoid mb-4">
+                <OrderCard
+                  order={order}
+                  onStatusChange={handleStatusChange}
+                  showActions
+                  showPrint
+                />
+              </div>
+            ))}
+          </div>
         )}
       </main>
     </div>
