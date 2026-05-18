@@ -25,7 +25,7 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col h-full">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -70,7 +70,7 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
         </div>
       </div>
 
-      <ul className="space-y-2 mb-3 flex-1">
+      <ul className="space-y-2 mb-3">
         {order.items.map((item, idx) => {
           const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
           const lineTotal = (item.price + toppingsTotal) * item.quantity;

@@ -68,9 +68,9 @@ export function KitchenPage() {
             <p className="mt-2">No active orders</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 lg:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 lg:gap-4 items-start">
             {orders.map((order) => (
-              <div key={order.id} className="bg-gray-800 rounded-2xl overflow-hidden h-full">
+              <div key={order.id} className="bg-gray-800 rounded-2xl overflow-hidden">
                 <OrderCard order={order} onStatusChange={handleStatusChange} showActions />
               </div>
             ))}
