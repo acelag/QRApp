@@ -157,9 +157,6 @@ export function ReceiptPage() {
             <span>Order No:</span><span>{order.orderNumber}</span>
           </div>
         )}
-        <div className="row">
-          <span>Ref:</span><span>{order.id.slice(0, 8).toUpperCase()}</span>
-        </div>
 
         <Line />
 
