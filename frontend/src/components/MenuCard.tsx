@@ -90,7 +90,7 @@ export function MenuCard({ item }: Props) {
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-3">
+          <div className="mt-3 space-y-2">
             <div>
               {isDiscounted ? (
                 <>
@@ -104,7 +104,7 @@ export function MenuCard({ item }: Props) {
             <button
               onClick={handleAdd}
               disabled={!item.available}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 !item.available
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : inCartCount > 0
