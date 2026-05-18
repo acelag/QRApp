@@ -64,7 +64,7 @@ export function BillsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Table Bills</h1>
           <button onClick={load} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -73,7 +73,7 @@ export function BillsPage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-4 space-y-6">
+      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-6">
         {loading ? (
           <div className="flex justify-center pt-16">
             <Loader2 size={28} className="animate-spin text-orange-500" />
@@ -95,8 +95,9 @@ export function BillsPage() {
                   No open table sessions right now
                 </div>
               ) : (
-                open.map((session) => (
-                  <div key={session.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
+                {open.map((session) => (
+                  <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     {/* Session header */}
                     <div className="flex items-center justify-between px-5 py-3 bg-orange-50 border-b border-orange-100">
                       <div className="flex items-center gap-3">
@@ -213,7 +214,8 @@ export function BillsPage() {
                       <p className="text-center text-xs text-gray-400 pb-3">No orders placed yet</p>
                     )}
                   </div>
-                ))
+                ))}
+                </div>
               )}
             </section>
 
@@ -224,8 +226,9 @@ export function BillsPage() {
                   <CheckCircle2 size={16} className="text-green-500" />
                   Paid Today ({paidToday.length})
                 </h2>
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
                 {paidToday.map((session) => (
-                  <div key={session.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-70">
+                  <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-70">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-bold">
                         {session.tableNumber}
@@ -247,6 +250,7 @@ export function BillsPage() {
                     </div>
                   </div>
                 ))}
+                </div>
               </section>
             )}
           </>
