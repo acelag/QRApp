@@ -11,9 +11,10 @@ interface Props {
   showActions?: boolean;
   showPrint?: boolean;
   isNext?: boolean;
+  priority?: number;
 }
 
-export function OrderCard({ order, onStatusChange, showActions = false, showPrint = false, isNext = false }: Props) {
+export function OrderCard({ order, onStatusChange, showActions = false, showPrint = false, isNext = false, priority }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
   const { fmt } = useCurrency();
@@ -25,18 +26,29 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
     window.open(url, '_blank', 'width=400,height=600');
   }
 
+  const priorityColor = priority === 1
+    ? 'bg-red-500 text-white'
+    : priority === 2
+    ? 'bg-orange-400 text-white'
+    : 'bg-gray-200 text-gray-600';
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-      {order.orderNumber && (
-        <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2">
+        {priority != null && (
+          <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${priorityColor}`}>
+            {priority}
+          </span>
+        )}
+        {order.orderNumber && (
           <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wide">
             {order.orderNumber}
           </span>
-          {isNext && (
-            <span className="text-xs font-semibold text-orange-500">Next up</span>
-          )}
-        </div>
-      )}
+        )}
+        {isNext && (
+          <span className="text-xs font-semibold text-orange-500">Next up</span>
+        )}
+      </div>
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500">

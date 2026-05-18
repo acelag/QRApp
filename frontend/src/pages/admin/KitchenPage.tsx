@@ -71,7 +71,7 @@ export function KitchenPage() {
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
             {orders.map((order, idx) => (
               <div key={order.id} className="bg-gray-800 rounded-2xl overflow-hidden mb-3 lg:mb-4 break-inside-avoid">
-                <OrderCard order={order} onStatusChange={handleStatusChange} showActions isNext={idx === 0} />
+                <OrderCard order={order} onStatusChange={handleStatusChange} showActions isNext={idx === 0} priority={idx + 1} />
               </div>
             ))}
           </div>
