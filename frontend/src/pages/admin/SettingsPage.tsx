@@ -43,7 +43,7 @@ export function SettingsPage() {
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingSuccess, setBillingSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
-  const [themeColor, setThemeColor] = useState('#f97316');
+  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('qra-theme') ?? '#f97316');
   const [themeSaving, setThemeSaving] = useState(false);
   const [orderPrefix, setOrderPrefix] = useState('ORD');
   const [prefixSaving, setPrefixSaving] = useState(false);
