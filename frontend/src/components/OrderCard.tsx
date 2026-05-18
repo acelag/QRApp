@@ -106,13 +106,13 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
         })}
       </ul>
 
-      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-3 border-t border-gray-100">
         <span className="font-semibold text-gray-900">Total: {fmt(order.totalAmount)}</span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-end shrink-0">
           {showPrint && (
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-full font-medium hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-full font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
             >
               <Printer size={13} />
               Print Bill
@@ -121,7 +121,7 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
           {showActions && onStatusChange && nextStatus && (
             <button
               onClick={() => onStatusChange(order.id, nextStatus)}
-              className="px-4 py-1.5 bg-orange-500 text-white text-sm rounded-full font-medium hover:bg-orange-600 transition-colors capitalize"
+              className="px-4 py-1.5 bg-orange-500 text-white text-sm rounded-full font-medium hover:bg-orange-600 transition-colors capitalize whitespace-nowrap"
             >
               Mark as {nextStatus}
             </button>
