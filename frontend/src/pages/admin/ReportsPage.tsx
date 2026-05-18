@@ -90,14 +90,14 @@ export function ReportsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <BarChart2 size={20} className="text-orange-500" />
           <h1 className="text-xl font-bold text-gray-900 flex-1">Reports</h1>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-4 space-y-5">
+      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-5">
 
         {/* Date range picker */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
