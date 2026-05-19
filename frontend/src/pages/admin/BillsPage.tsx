@@ -9,6 +9,7 @@ import { orderService } from '../../services/orderService';
 import { useCurrency } from '../../context/CurrencyContext';
 import type { Order } from '../../types';
 import { SplitBillModal } from '../../components/SplitBillModal';
+import { PaymentMethodModal, paymentMethodIcon, paymentMethodLabel, type PaymentMethod } from '../../components/PaymentMethodModal';
 
 function elapsed(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -32,6 +33,8 @@ export function BillsPage() {
   const [payingOrder, setPayingOrder] = useState<string | null>(null);
   const [billingSettings, setBillingSettings] = useState<RestaurantSettings | null>(null);
   const [splitSession, setSplitSession] = useState<Session | null>(null);
+  // Payment method modal state
+  const [paymentTarget, setPaymentTarget] = useState<{ type: 'session'; session: Session } | { type: 'order'; order: Order } | null>(null);
   const { fmt } = useCurrency();
 
   useEffect(() => {
@@ -63,18 +66,35 @@ export function BillsPage() {
     return () => clearInterval(id);
   }, []);
 
-  async function handleMarkPaid(sessionId: string, tableNumber: number) {
-    if (!confirm(`Mark Table ${tableNumber} bill as PAID and close this session?`)) return;
-    setPaying(sessionId);
-    try {
-      const updated = await sessionService.markAsPaid(sessionId);
-      setSessions((prev) => prev.map((s) => (s.id === sessionId ? updated : s)));
-      toast.success(`Table ${tableNumber} bill marked as paid!`);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg ?? 'Failed to close session');
-    } finally {
-      setPaying(null);
+  async function confirmPayment(method: PaymentMethod) {
+    if (!paymentTarget) return;
+    if (paymentTarget.type === 'session') {
+      const { session } = paymentTarget;
+      setPaying(session.id);
+      setPaymentTarget(null);
+      try {
+        const updated = await sessionService.markAsPaid(session.id, method);
+        setSessions((prev) => prev.map((s) => (s.id === session.id ? updated : s)));
+        toast.success(`Table ${session.tableNumber} — paid by ${method}`);
+      } catch (err: unknown) {
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+        toast.error(msg ?? 'Failed to close session');
+      } finally {
+        setPaying(null);
+      }
+    } else {
+      const { order } = paymentTarget;
+      setPayingOrder(order.id);
+      setPaymentTarget(null);
+      try {
+        const updated = await orderService.updateStatus(order.id, 'served', method);
+        setTakeawayOrders((prev) => prev.map((o) => (o.id === order.id ? updated : o)));
+        toast.success(`Order marked as paid by ${method}`);
+      } catch {
+        toast.error('Failed to update order');
+      } finally {
+        setPayingOrder(null);
+      }
     }
   }
 
@@ -88,19 +108,6 @@ export function BillsPage() {
     (o) => o.status === 'served' && new Date(o.createdAt).toDateString() === todayStr()
   );
 
-  async function handleMarkOrderPaid(orderId: string) {
-    if (!confirm('Mark this takeaway order as PAID?')) return;
-    setPayingOrder(orderId);
-    try {
-      const updated = await orderService.updateStatus(orderId, 'served');
-      setTakeawayOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
-      toast.success('Takeaway order marked as paid!');
-    } catch {
-      toast.error('Failed to update order');
-    } finally {
-      setPayingOrder(null);
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -256,7 +263,7 @@ export function BillsPage() {
                             <Users size={15} /> Split
                           </button>
                           <button
-                            onClick={() => handleMarkPaid(session.id, session.tableNumber)}
+                            onClick={() => setPaymentTarget({ type: 'session', session })}
                             disabled={paying === session.id || (session.billItems ?? []).length === 0}
                             className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
                           >
@@ -297,7 +304,14 @@ export function BillsPage() {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
-                          <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                          <div className="flex items-center gap-1 justify-end mt-0.5">
+                            {session.paymentMethod && (
+                              <span className="text-xs text-gray-500">
+                                {paymentMethodIcon(session.paymentMethod)} {paymentMethodLabel(session.paymentMethod)}
+                              </span>
+                            )}
+                            <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                          </div>
                         </div>
                         <button
                           onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
@@ -403,7 +417,7 @@ export function BillsPage() {
                           <Printer size={16} /> Print
                         </button>
                         <button
-                          onClick={() => handleMarkOrderPaid(order.id)}
+                          onClick={() => setPaymentTarget({ type: 'order', order })}
                           disabled={payingOrder === order.id}
                           className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors"
                         >
@@ -443,7 +457,14 @@ export function BillsPage() {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="font-bold text-gray-700">{fmt(order.totalAmount)}</p>
-                          <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                          <div className="flex items-center gap-1 justify-end mt-0.5">
+                            {order.paymentMethod && (
+                              <span className="text-xs text-gray-500">
+                                {paymentMethodIcon(order.paymentMethod)} {paymentMethodLabel(order.paymentMethod)}
+                              </span>
+                            )}
+                            <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                          </div>
                         </div>
                         <button
                           onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
@@ -467,6 +488,20 @@ export function BillsPage() {
           session={splitSession}
           settings={billingSettings}
           onClose={() => setSplitSession(null)}
+        />
+      )}
+
+      {paymentTarget && (
+        <PaymentMethodModal
+          title="How was this paid?"
+          subtitle={
+            paymentTarget.type === 'session'
+              ? `Table ${paymentTarget.session.tableNumber} — ${fmt(paymentTarget.session.totalAmount ?? 0)}`
+              : `${paymentTarget.order.orderNumber ?? 'Takeaway'} — ${fmt(paymentTarget.order.totalAmount)}`
+          }
+          onConfirm={confirmPayment}
+          onClose={() => setPaymentTarget(null)}
+          loading={paying !== null || payingOrder !== null}
         />
       )}
     </div>

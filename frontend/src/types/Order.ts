@@ -43,6 +43,7 @@ export interface Order {
   totalAmount: number;
   discountAmount?: number;
   promoCode?: string | null;
+  paymentMethod?: string | null;
   createdAt: string;
   updatedAt: string;
 }

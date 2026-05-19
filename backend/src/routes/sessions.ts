@@ -11,6 +11,7 @@ const rowToSession = (row: Record<string, unknown>) => ({
   id: row.id, restaurantId: row.restaurant_id, tableId: row.table_id,
   tableNumber: row.table_number, status: row.status as 'open' | 'paid',
   createdAt: row.created_at, closedAt: row.closed_at ?? null,
+  paymentMethod: (row.payment_method as string | null) ?? null,
 });
 
 const ORDER_ITEMS_SQL = `
@@ -107,9 +108,10 @@ router.get('/:id', async (req, res) => {
 
 router.patch('/:id/pay', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   const now = new Date().toISOString();
+  const { paymentMethod } = req.body as { paymentMethod?: string };
   const result = await pool.query(
-    `UPDATE table_sessions SET status='paid', closed_at=$1 WHERE id=$2 AND restaurant_id=$3 AND status='open'`,
-    [now, req.params.id, req.user!.restaurantId]);
+    `UPDATE table_sessions SET status='paid', closed_at=$1, payment_method=$2 WHERE id=$3 AND restaurant_id=$4 AND status='open'`,
+    [now, paymentMethod ?? null, req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(400).json({ error: 'Session not found or already closed' }); return; }
   const updated = await pool.query('SELECT * FROM table_sessions WHERE id = $1', [req.params.id]);
   res.json(await buildSessionDetail(updated.rows[0] as Record<string, unknown>));

@@ -21,6 +21,6 @@ export const orderService = {
 
   getOrders: () => axios.get<Order[]>(`${BASE}/orders`).then((r) => r.data),
   getOrder:  (id: string) => axios.get<Order>(`${BASE}/orders/${id}`).then((r) => r.data),
-  updateStatus: (id: string, status: OrderStatus) =>
-    axios.patch<Order>(`${BASE}/orders/${id}/status`, { status }).then((r) => r.data),
+  updateStatus: (id: string, status: OrderStatus, paymentMethod?: string) =>
+    axios.patch<Order>(`${BASE}/orders/${id}/status`, { status, paymentMethod }).then((r) => r.data),
 };

@@ -45,6 +45,7 @@ async function buildOrder(orderId: string) {
     status: o.status as OrderStatus, totalAmount: Number(o.total_amount),
     discountAmount: Number(o.discount_amount ?? 0),
     promoCode: (o.promo_code as string | null) ?? null,
+    paymentMethod: (o.payment_method as string | null) ?? null,
     createdAt: o.created_at, updatedAt: o.updated_at,
     items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
@@ -176,13 +177,17 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
 });
 
 router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
-  const { status } = req.body as { status: OrderStatus };
+  const { status, paymentMethod } = req.body as { status: OrderStatus; paymentMethod?: string };
   if (!['pending', 'preparing', 'ready', 'served'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
   const now = new Date().toISOString();
   const rid = req.user!.restaurantId;
   const result = rid
-    ? await pool.query('UPDATE orders SET status=$1, updated_at=$2 WHERE id=$3 AND restaurant_id=$4', [status, now, req.params.id, rid])
-    : await pool.query('UPDATE orders SET status=$1, updated_at=$2 WHERE id=$3', [status, now, req.params.id]);
+    ? await pool.query(
+        'UPDATE orders SET status=$1, updated_at=$2, payment_method=COALESCE($3, payment_method) WHERE id=$4 AND restaurant_id=$5',
+        [status, now, paymentMethod ?? null, req.params.id, rid])
+    : await pool.query(
+        'UPDATE orders SET status=$1, updated_at=$2, payment_method=COALESCE($3, payment_method) WHERE id=$4',
+        [status, now, paymentMethod ?? null, req.params.id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(await buildOrder(String(req.params.id)));
 });

@@ -26,6 +26,7 @@ export interface Session {
   status: 'open' | 'paid';
   createdAt: string;
   closedAt: string | null;
+  paymentMethod?: string | null;
   orders?: SessionOrder[];
   billItems?: BillItem[];
   totalAmount?: number;
@@ -47,6 +48,6 @@ export const sessionService = {
     axios.get<Session[]>(BASE, { params: status ? { status } : undefined }).then((r) => r.data),
 
   /** Mark a session as paid — admin only. */
-  markAsPaid: (sessionId: string) =>
-    axios.patch<Session>(`${BASE}/${sessionId}/pay`).then((r) => r.data),
+  markAsPaid: (sessionId: string, paymentMethod?: string) =>
+    axios.patch<Session>(`${BASE}/${sessionId}/pay`, { paymentMethod }).then((r) => r.data),
 };
