@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed } from 'lucide-react';
+import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import type { CartItem } from '../../types/Order';
@@ -9,6 +9,7 @@ import { menuService } from '../../services/menuService';
 import { restaurantService } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
 import { roomService } from '../../services/roomService';
+import { promoCodeService, type ValidateResult } from '../../services/promoCodeService';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -71,6 +72,9 @@ export function RoomMenuPage() {
   const [placing, setPlacing]       = useState(false);
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
   const [editingNotesKey, setEditingNotesKey] = useState<string | null>(null);
+  const [promoInput, setPromoInput]   = useState('');
+  const [promoResult, setPromoResult] = useState<ValidateResult | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
 
   const { fmt, loadCurrency } = useCurrency();
   const { loadTheme } = useTheme();
@@ -102,15 +106,37 @@ export function RoomMenuPage() {
       .finally(() => setLoading(false));
   }, [roomId]);
 
-  const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
+  const filtered  = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
-  const total = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
+  const subtotal  = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
+  const discount  = promoResult?.valid ? (promoResult.discountAmount ?? 0) : 0;
+  const total     = Math.max(0, subtotal - discount);
 
   function handleAdd(item: MenuItem) {
     const hasLarge = (item.largePrice ?? 0) > 0;
     const hasToppings = (item.toppings ?? []).some((t) => t.available);
     if (hasLarge || hasToppings) setToppingModal({ item });
     else dispatch({ type: 'ADD', item });
+  }
+
+  async function applyPromo() {
+    if (!promoInput.trim() || !roomInfo?.restaurantId) return;
+    setPromoLoading(true);
+    try {
+      const result = await promoCodeService.validate(promoInput.trim(), roomInfo.restaurantId, subtotal);
+      setPromoResult(result);
+      if (result.valid) toast.success(`Code applied! ${fmt(result.discountAmount ?? 0)} off`);
+      else toast.error(result.message ?? 'Invalid promo code');
+    } catch {
+      toast.error('Failed to validate promo code');
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  function removePromo() {
+    setPromoResult(null);
+    setPromoInput('');
   }
 
   async function placeOrder() {
@@ -120,9 +146,12 @@ export function RoomMenuPage() {
       const order = await orderService.placeRoomOrder(
         roomId!, roomInfo.number, cart,
         guestName.trim() || undefined,
-        roomInfo.restaurantId
+        roomInfo.restaurantId,
+        promoResult?.valid ? promoResult.code : undefined,
       );
       dispatch({ type: 'CLEAR' });
+      setPromoResult(null);
+      setPromoInput('');
       setCartOpen(false);
       navigate(`/order-success/${order.id}`);
     } catch {
@@ -284,6 +313,50 @@ export function RoomMenuPage() {
                     );
                   })}
                 </ul>
+
+                {/* Promo code */}
+                <div className="px-4 py-3 border-t border-gray-100">
+                  {promoResult?.valid ? (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={15} className="text-green-500 shrink-0" />
+                        <span className="text-sm font-semibold text-green-700">{promoResult.code}</span>
+                        <span className="text-xs text-green-600">−{fmt(promoResult.discountAmount ?? 0)}</span>
+                      </div>
+                      <button onClick={removePromo} className="text-gray-400 hover:text-gray-600">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Tag size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={promoInput}
+                          onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => e.key === 'Enter' && applyPromo()}
+                          placeholder="Promo code"
+                          className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-300"
+                        />
+                      </div>
+                      <button
+                        onClick={applyPromo}
+                        disabled={promoLoading || !promoInput.trim()}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-40"
+                      >
+                        {promoLoading ? '…' : 'Apply'}
+                      </button>
+                    </div>
+                  )}
+                  {discount > 0 && (
+                    <div className="mt-2 space-y-0.5 text-xs text-gray-500">
+                      <div className="flex justify-between"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+                      <div className="flex justify-between text-green-600 font-medium"><span>Discount</span><span>−{fmt(discount)}</span></div>
+                      <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-100 pt-1"><span>Total</span><span>{fmt(total)}</span></div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <button

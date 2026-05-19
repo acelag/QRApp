@@ -43,6 +43,8 @@ async function buildOrder(orderId: string) {
     roomNumber: o.room_number !== null && o.room_number !== undefined ? Number(o.room_number) : null,
     orderType: (o.order_type as string) ?? 'dine-in', customerName: (o.customer_name as string) ?? null,
     status: o.status as OrderStatus, totalAmount: Number(o.total_amount),
+    discountAmount: Number(o.discount_amount ?? 0),
+    promoCode: (o.promo_code as string | null) ?? null,
     createdAt: o.created_at, updatedAt: o.updated_at,
     items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
@@ -83,10 +85,41 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     }
   }
 
-  const totalAmount = items.reduce((s, i) => {
+  const subtotal = items.reduce((s, i) => {
     const toppingsTotal = (i.toppings ?? []).reduce((t, tp) => t + tp.price, 0);
     return s + (i.price + toppingsTotal) * i.quantity;
   }, 0);
+
+  // Validate and apply promo code if provided
+  const { promoCode } = req.body as { promoCode?: string };
+  let discountAmount = 0;
+  let validatedPromoCode: string | null = null;
+
+  if (promoCode?.trim()) {
+    const upperCode = promoCode.trim().toUpperCase();
+    const promoRes = await pool.query(
+      'SELECT * FROM promo_codes WHERE code = $1 AND restaurant_id = $2',
+      [upperCode, resolvedRestaurantId],
+    );
+    if (promoRes.rows.length) {
+      const p = promoRes.rows[0] as Record<string, unknown>;
+      const isValid =
+        p.active &&
+        !(p.expires_at && new Date(p.expires_at as string) < new Date()) &&
+        !(p.max_uses != null && Number(p.uses) >= Number(p.max_uses)) &&
+        subtotal >= Number(p.min_order);
+
+      if (isValid) {
+        discountAmount = p.type === 'percentage'
+          ? Math.min(subtotal * (Number(p.value) / 100), subtotal)
+          : Math.min(Number(p.value), subtotal);
+        discountAmount = Math.round(discountAmount * 100) / 100;
+        validatedPromoCode = upperCode;
+      }
+    }
+  }
+
+  const totalAmount = Math.max(0, subtotal - discountAmount);
 
   const now = new Date().toISOString();
   const orderId = uuid();
@@ -103,10 +136,17 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     const prefix = (seqRow.order_number_prefix as string | null) ?? 'ORD';
     const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
     await client.query(
-      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,status,total_amount,order_number,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,$11,$12,$12)`,
-      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, totalAmount, orderNumber, now],
+      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,status,total_amount,discount_amount,promo_code,order_number,created_at,updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,$11,$12,$13,$14,$14)`,
+      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, totalAmount, discountAmount, validatedPromoCode, orderNumber, now],
     );
+    // Increment promo code usage
+    if (validatedPromoCode) {
+      await client.query(
+        'UPDATE promo_codes SET uses = uses + 1 WHERE code = $1 AND restaurant_id = $2',
+        [validatedPromoCode, resolvedRestaurantId],
+      );
+    }
     for (const item of items) {
       const orderItemId = uuid();
       await client.query(

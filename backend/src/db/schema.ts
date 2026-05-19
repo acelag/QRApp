@@ -137,6 +137,23 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id            VARCHAR(36)   NOT NULL PRIMARY KEY,
+      restaurant_id VARCHAR(36)   NOT NULL,
+      code          VARCHAR(50)   NOT NULL,
+      type          VARCHAR(20)   NOT NULL DEFAULT 'percentage',
+      value         DECIMAL(10,2) NOT NULL,
+      min_order     DECIMAL(10,2) NOT NULL DEFAULT 0,
+      max_uses      INTEGER       NULL,
+      uses          INTEGER       NOT NULL DEFAULT 0,
+      active        BOOLEAN       NOT NULL DEFAULT TRUE,
+      expires_at    VARCHAR(50)   NULL,
+      created_at    VARCHAR(50)   NOT NULL,
+      UNIQUE(restaurant_id, code)
+    );
+  `);
+
   // Safe column additions for older databases
   const addCol = async (table: string, col: string, def: string) => {
     await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${def};`);
@@ -156,6 +173,8 @@ export async function createSchema(): Promise<void> {
   await addCol('orders',      'room_id',                'VARCHAR(36) NULL');
   await addCol('orders',      'room_number',            'INTEGER NULL');
   await addCol('restaurants', 'wait_time_min',          'INTEGER NULL');
+  await addCol('orders',      'promo_code',              'VARCHAR(50) NULL');
+  await addCol('orders',      'discount_amount',         'DECIMAL(10,2) NOT NULL DEFAULT 0');
 
   console.log('✓ Schema ready');
 }

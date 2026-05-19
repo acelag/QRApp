@@ -131,9 +131,23 @@ export function OrderSuccessPage() {
           })}
         </ul>
 
-        <div className="border-t border-gray-100 pt-3 flex justify-between font-semibold mb-5">
-          <span>Total</span>
-          <span>{fmt(order.totalAmount)}</span>
+        <div className="border-t border-gray-100 pt-3 space-y-1 mb-5">
+          {(order.discountAmount ?? 0) > 0 && (
+            <>
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Subtotal</span>
+                <span>{fmt(order.totalAmount + (order.discountAmount ?? 0))}</span>
+              </div>
+              <div className="flex justify-between text-sm text-green-600 font-medium">
+                <span>Discount {order.promoCode ? `(${order.promoCode})` : ''}</span>
+                <span>−{fmt(order.discountAmount ?? 0)}</span>
+              </div>
+            </>
+          )}
+          <div className="flex justify-between font-semibold">
+            <span>Total</span>
+            <span>{fmt(order.totalAmount)}</span>
+          </div>
         </div>
 
         {/* Order Again */}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble } from 'lucide-react';
+import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble, Tag } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
@@ -45,6 +45,7 @@ export function DashboardPage() {
     { to: '/admin/rooms',   label: 'Rooms & QR',       icon: BedDouble,      desc: 'Manage rooms and QR codes' },
     { to: '/kitchen',       label: 'Kitchen Display',  icon: ChefHat,        desc: 'Live kitchen order view' },
     { to: '/admin/ready-display', label: 'Ready Display', icon: MonitorPlay,  desc: 'Show orders ready for pickup' },
+    { to: '/admin/promo-codes', label: 'Promo Codes',  icon: Tag,            desc: 'Discount & promo codes' },
   ];
 
   return (

@@ -41,6 +41,8 @@ export interface Order {
   items: OrderItem[];
   status: OrderStatus;
   totalAmount: number;
+  discountAmount?: number;
+  promoCode?: string | null;
   createdAt: string;
   updatedAt: string;
 }
