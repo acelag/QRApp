@@ -26,33 +26,6 @@ router.get('/:id/currency', async (req, res) => {
   res.json({ currency: (result.rows[0] as Record<string, unknown>).currency ?? 'USD' });
 });
 
-// ── Languages (public read, admin write) ─────────────────────────────────────
-router.get('/:id/languages', async (req, res) => {
-  const result = await pool.query(
-    'SELECT language_code AS code, language_name AS name FROM restaurant_languages WHERE restaurant_id = $1 ORDER BY language_name',
-    [req.params.id],
-  );
-  res.json(result.rows);
-});
-
-router.post('/:id/languages', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
-  const { code, name } = req.body as { code: string; name: string };
-  if (!code?.trim() || !name?.trim()) { res.status(400).json({ error: 'code and name required' }); return; }
-  await pool.query(
-    'INSERT INTO restaurant_languages (restaurant_id, language_code, language_name) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
-    [req.params.id, code.trim().toLowerCase(), name.trim()],
-  );
-  const result = await pool.query(
-    'SELECT language_code AS code, language_name AS name FROM restaurant_languages WHERE restaurant_id = $1 ORDER BY language_name',
-    [req.params.id],
-  );
-  res.json(result.rows);
-});
-
-router.delete('/:id/languages/:code', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
-  await pool.query('DELETE FROM restaurant_languages WHERE restaurant_id = $1 AND language_code = $2', [req.params.id, req.params.code]);
-  res.status(204).send();
-});
 
 router.get('/:id/info', async (req, res) => {
   const result = await pool.query(

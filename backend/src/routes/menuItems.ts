@@ -54,15 +54,9 @@ const ITEMS_WITH_TOPPINGS_SQL = `
         DISTINCT jsonb_build_object('id', t.id, 'name', t.name, 'price', t.price::float, 'available', t.available)
       ) FILTER (WHERE t.id IS NOT NULL),
       '[]'::json
-    ) AS toppings,
-    COALESCE(
-      jsonb_object_agg(tr.language_code, jsonb_build_object('name', tr.name, 'description', tr.description))
-      FILTER (WHERE tr.id IS NOT NULL),
-      '{}'::jsonb
-    ) AS translations
+    ) AS toppings
   FROM menu_items mi
   LEFT JOIN menu_item_toppings t ON t.menu_item_id = mi.id
-  LEFT JOIN menu_item_translations tr ON tr.menu_item_id = mi.id
 `;
 
 const toItem = (row: Record<string, unknown>) => ({
@@ -79,24 +73,8 @@ const toItem = (row: Record<string, unknown>) => ({
   trackStock:       row.track_stock === true,
   stock:            row.stock != null ? Number(row.stock) : null,
   toppings:         (row.toppings as { id: string; name: string; price: number; available: boolean }[] | null) ?? [],
-  translations:     (row.translations as Record<string, { name: string; description: string }> | null) ?? {},
 });
 
-async function saveTranslations(itemId: string, translations: Record<string, { name: string; description?: string }> | undefined) {
-  if (!translations) return;
-  for (const [code, t] of Object.entries(translations)) {
-    if (!t.name?.trim()) {
-      await pool.query('DELETE FROM menu_item_translations WHERE menu_item_id = $1 AND language_code = $2', [itemId, code]);
-    } else {
-      await pool.query(
-        `INSERT INTO menu_item_translations (id, menu_item_id, language_code, name, description)
-         VALUES ($1,$2,$3,$4,$5)
-         ON CONFLICT (menu_item_id, language_code) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description`,
-        [uuid(), itemId, code, t.name.trim(), t.description?.trim() ?? ''],
-      );
-    }
-  }
-}
 
 // ── Export ────────────────────────────────────────────────────────────────────
 router.get('/export', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
@@ -206,8 +184,8 @@ router.get('/', optionalAuthenticate, async (req, res) => {
 });
 
 router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
-  const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock, translations } =
-    req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; translations?: Record<string, { name: string; description?: string }> };
+  const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock } =
+    req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null };
   if (!name || !category) { res.status(400).json({ error: 'name and category are required' }); return; }
   const safeDiscount = Math.min(100, Math.max(0, Number(discountPct) || 0));
   const safeLargePrice = largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null;
@@ -218,7 +196,6 @@ router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, re
     `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available, track_stock, stock) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
     [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock],
   );
-  await saveTranslations(id, translations);
   const created = await pool.query(`${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`, [id]);
   res.status(201).json(toItem(created.rows[0] as Record<string, unknown>));
 });
@@ -227,8 +204,8 @@ router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, 
   const existing = await pool.query('SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if (!existing.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = existing.rows[0] as Record<string, unknown>;
-  const { name, description, price, discountPct, largePrice, largeDiscountPct, category, image, available, trackStock, stock, translations } =
-    req.body as { name?: string; description?: string; price?: number; discountPct?: number; largePrice?: number | null; largeDiscountPct?: number; category?: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; translations?: Record<string, { name: string; description?: string }> };
+  const { name, description, price, discountPct, largePrice, largeDiscountPct, category, image, available, trackStock, stock } =
+    req.body as { name?: string; description?: string; price?: number; discountPct?: number; largePrice?: number | null; largeDiscountPct?: number; category?: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null };
   const safeDiscount = discountPct !== undefined ? Math.min(100, Math.max(0, Number(discountPct) || 0)) : Number(row.discount_pct ?? 0);
   const safeLargePrice = largePrice !== undefined
     ? (largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null)
@@ -244,7 +221,6 @@ router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, 
      category ?? row.category_id, image !== undefined ? (image || null) : row.image,
      available !== undefined ? available : row.available, safeTrackStock, safeStock, req.params.id],
   );
-  await saveTranslations(String(req.params.id), translations);
   const updated = await pool.query(
     `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`,
     [req.params.id],

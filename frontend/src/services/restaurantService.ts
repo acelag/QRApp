@@ -84,10 +84,4 @@ export const restaurantService = {
   updateRoomServiceHours: (id: string, roomServiceOpen: string | null, roomServiceClose: string | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/room-service-hours`, { roomServiceOpen, roomServiceClose }).then((r) => r.data),
 
-  getLanguages: (id: string) =>
-    axios.get<{ code: string; name: string }[]>(`${BASE}/restaurants/${id}/languages`).then((r) => r.data),
-  addLanguage: (id: string, code: string, name: string) =>
-    axios.post<{ code: string; name: string }[]>(`${BASE}/restaurants/${id}/languages`, { code, name }).then((r) => r.data),
-  removeLanguage: (id: string, code: string) =>
-    axios.delete(`${BASE}/restaurants/${id}/languages/${code}`),
 };
