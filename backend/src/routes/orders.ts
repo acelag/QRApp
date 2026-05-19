@@ -48,6 +48,8 @@ async function buildOrder(orderId: string) {
     promoCode: (o.promo_code as string | null) ?? null,
     paymentMethod: (o.payment_method as string | null) ?? null,
     customerPhone: (o.customer_phone as string | null) ?? null,
+    assignedWaiterId: (o.assigned_waiter_id as string | null) ?? null,
+    assignedWaiterName: (o.assigned_waiter_name as string | null) ?? null,
     createdAt: o.created_at, updatedAt: o.updated_at,
     items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
@@ -220,6 +222,32 @@ router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async
         [status, now, paymentMethod ?? null, req.params.id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   sendPushToOrder(String(req.params.id), status).catch(() => {});
+  res.json(await buildOrder(String(req.params.id)));
+});
+
+router.patch('/:id/waiter', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { waiterId } = req.body as { waiterId: string | null };
+  const rid = req.user!.restaurantId;
+  const now = new Date().toISOString();
+
+  let waiterName: string | null = null;
+  if (waiterId) {
+    const waiterRes = await pool.query(
+      'SELECT name FROM waiters WHERE id = $1 AND restaurant_id = $2',
+      [waiterId, rid],
+    );
+    if (!waiterRes.rows.length) { res.status(404).json({ error: 'Waiter not found' }); return; }
+    waiterName = (waiterRes.rows[0] as Record<string, unknown>).name as string;
+  }
+
+  const result = rid
+    ? await pool.query(
+        'UPDATE orders SET assigned_waiter_id=$1, assigned_waiter_name=$2, updated_at=$3 WHERE id=$4 AND restaurant_id=$5',
+        [waiterId ?? null, waiterName, now, req.params.id, rid])
+    : await pool.query(
+        'UPDATE orders SET assigned_waiter_id=$1, assigned_waiter_name=$2, updated_at=$3 WHERE id=$4',
+        [waiterId ?? null, waiterName, now, req.params.id]);
+  if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(await buildOrder(String(req.params.id)));
 });
 

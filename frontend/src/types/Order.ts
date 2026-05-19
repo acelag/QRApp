@@ -45,6 +45,8 @@ export interface Order {
   promoCode?: string | null;
   paymentMethod?: string | null;
   customerPhone?: string | null;
+  assignedWaiterId?: string | null;
+  assignedWaiterName?: string | null;
   createdAt: string;
   updatedAt: string;
 }

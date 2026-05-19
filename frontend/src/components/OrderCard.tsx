@@ -1,6 +1,7 @@
 import type { Order, OrderStatus } from '../types';
+import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
@@ -8,6 +9,8 @@ const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
 interface Props {
   order: Order;
   onStatusChange?: (id: string, status: OrderStatus) => void;
+  onAssignWaiter?: (id: string, waiterId: string | null) => void;
+  waiters?: Waiter[];
   showActions?: boolean;
   showPrint?: boolean;
   isNext?: boolean;
@@ -15,7 +18,7 @@ interface Props {
   hidePrices?: boolean;
 }
 
-export function OrderCard({ order, onStatusChange, showActions = false, showPrint = false, isNext = false, priority, hidePrices = false }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, showActions = false, showPrint = false, isNext = false, priority, hidePrices = false }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
   const { fmt } = useCurrency();
@@ -70,7 +73,13 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {order.assignedWaiterName && (
+            <span className="flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">
+              <UserCheck size={11} />
+              {order.assignedWaiterName}
+            </span>
+          )}
           {order.orderNumber && (
             <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full tracking-wide">
               {order.orderNumber}
@@ -140,6 +149,22 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
           );
         })}
       </ul>
+
+      {/* Waiter assignment */}
+      {onAssignWaiter && waiters && waiters.length > 0 && (
+        <div className="px-4 pb-3">
+          <select
+            value={order.assignedWaiterId ?? ''}
+            onChange={(e) => onAssignWaiter(order.id, e.target.value || null)}
+            className="w-full text-xs border border-gray-200 rounded-xl px-3 py-1.5 text-gray-600 bg-white outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer"
+          >
+            <option value="">Assign waiter…</option>
+            {waiters.map((w) => (
+              <option key={w.id} value={w.id}>{w.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Footer */}
       <div className={`px-4 py-3 border-t border-gray-100 flex items-center gap-2 ${hidePrices ? 'justify-end' : 'justify-between'}`}>

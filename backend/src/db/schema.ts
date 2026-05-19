@@ -194,5 +194,17 @@ export async function createSchema(): Promise<void> {
   await addCol('menu_items',      'track_stock',           'BOOLEAN NOT NULL DEFAULT FALSE');
   await addCol('menu_items',      'stock',                 'INTEGER NULL');
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS waiters (
+      id            VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id VARCHAR(36)  NOT NULL,
+      name          VARCHAR(255) NOT NULL,
+      active        BOOLEAN      NOT NULL DEFAULT TRUE,
+      created_at    VARCHAR(50)  NOT NULL
+    );
+  `);
+  await addCol('orders', 'assigned_waiter_id',   'VARCHAR(36) NULL');
+  await addCol('orders', 'assigned_waiter_name', 'VARCHAR(255) NULL');
+
   console.log('✓ Schema ready');
 }

@@ -26,4 +26,7 @@ export const orderService = {
 
   settleRoomCharge: (id: string, paymentMethod: string) =>
     axios.patch<Order>(`${BASE}/orders/${id}/payment-method`, { paymentMethod }).then((r) => r.data),
+
+  assignWaiter: (id: string, waiterId: string | null) =>
+    axios.patch<Order>(`${BASE}/orders/${id}/waiter`, { waiterId }).then((r) => r.data),
 };

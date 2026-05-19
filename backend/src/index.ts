@@ -24,6 +24,7 @@ import reportsRouter from './routes/reports';
 import roomsRouter from './routes/rooms';
 import promoCodesRouter from './routes/promoCodes';
 import customerPushRouter from './routes/customerPush';
+import waitersRouter from './routes/waiters';
 import './lib/vapid'; // initialise VAPID keys at startup
 
 const app  = express();
@@ -91,6 +92,7 @@ app.use('/api/reports',     reportsRouter);
 app.use('/api/rooms',        roomsRouter);
 app.use('/api/promo-codes',  promoCodesRouter);
 app.use('/api/customer-push', customerPushRouter);
+app.use('/api/waiters',      waitersRouter);
 app.use('/api/upload',      authenticate, requireRole('admin'), uploadRouter);
 app.use('/api/users',       usersRouter);
 

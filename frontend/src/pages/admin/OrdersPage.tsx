@@ -6,6 +6,7 @@ import { SoundAlertToggle } from '../../components/SoundAlertToggle';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
+import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
 import toast from 'react-hot-toast';
 
@@ -20,6 +21,7 @@ const STATUS_TABS: { label: string; value: OrderStatus | 'all' | 'takeaway' }[] 
 
 export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [tab, setTab] = useState<OrderStatus | 'all' | 'takeaway'>('all');
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +38,7 @@ export function OrdersPage() {
 
   useEffect(() => {
     fetch();
+    waiterService.getWaiters().then(setWaiters).catch(() => {});
     const id = setInterval(fetch, 5000);
     return () => clearInterval(id);
   }, []);
@@ -47,6 +50,17 @@ export function OrdersPage() {
       toast.success(`Order marked as ${status}`);
     } catch {
       toast.error('Failed to update status');
+    }
+  }
+
+  async function handleAssignWaiter(id: string, waiterId: string | null) {
+    try {
+      const updated = await orderService.assignWaiter(id, waiterId);
+      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+      const w = waiters.find((x) => x.id === waiterId);
+      toast.success(w ? `Assigned to ${w.name}` : 'Waiter unassigned');
+    } catch {
+      toast.error('Failed to assign waiter');
     }
   }
 
@@ -114,6 +128,8 @@ export function OrdersPage() {
                 <OrderCard
                   order={order}
                   onStatusChange={handleStatusChange}
+                  onAssignWaiter={handleAssignWaiter}
+                  waiters={waiters}
                   showActions
 
                 />
