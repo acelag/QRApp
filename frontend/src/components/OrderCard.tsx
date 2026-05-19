@@ -51,8 +51,9 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
     lines.push(`Total: ${fmt(order.totalAmount)}`);
     lines.push('', 'Thank you! 🙏');
     const text = encodeURIComponent(lines.join('\n'));
-    const phone = order.customerPhone!.replace(/\D/g, '');
-    const e164 = phone.startsWith('0') ? `94${phone.slice(1)}` : phone;
+    const raw = order.customerPhone!.trim();
+    const digits = raw.replace(/\D/g, '');
+    const e164 = raw.startsWith('+') ? digits : digits.startsWith('0') ? `94${digits.slice(1)}` : digits;
     return `https://wa.me/${e164}?text=${text}`;
   }
 

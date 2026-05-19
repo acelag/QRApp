@@ -11,7 +11,7 @@ import { useCart } from '../../context/CartContext';
 import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
-import { UtensilsCrossed, ClipboardList } from 'lucide-react';
+import { UtensilsCrossed, ClipboardList, RefreshCw } from 'lucide-react';
 export function MenuPage() {
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
   const { setTable, setSession, setRestaurant, tableNumber, tableId } = useCart();
@@ -21,10 +21,13 @@ export function MenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null } | null>(null);
 
-  useEffect(() => {
+  function loadMenu() {
     if (!tableIdParam) return;
+    setError(false);
+    setLoading(true);
     tableService.getTable(tableIdParam).then((table) => {
       setTable(table.id, table.number);
       setRestaurant(table.restaurantId);
@@ -42,8 +45,13 @@ export function MenuPage() {
         localStorage.setItem(`qra_session_${table.id}`, session.id);
         setLoading(false);
       });
+    }).catch(() => {
+      setLoading(false);
+      setError(true);
     });
-  }, [tableIdParam]);
+  }
+
+  useEffect(() => { loadMenu(); }, [tableIdParam]);
 
   const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
 
@@ -51,6 +59,22 @@ export function MenuPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <UtensilsCrossed size={40} className="text-gray-300" />
+        <p className="text-gray-500 font-medium">Could not load the menu</p>
+        <p className="text-sm text-gray-400">Check your connection and try again</p>
+        <button
+          onClick={loadMenu}
+          className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors"
+        >
+          <RefreshCw size={15} /> Try Again
+        </button>
       </div>
     );
   }

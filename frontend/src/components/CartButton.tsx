@@ -1,10 +1,12 @@
 import { ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export function CartButton() {
   const { itemCount, total } = useCart();
   const navigate = useNavigate();
+  const { fmt } = useCurrency();
 
   if (itemCount === 0) return null;
 
@@ -21,7 +23,7 @@ export function CartButton() {
           <ShoppingCart size={18} />
           View Cart
         </span>
-        <span className="font-bold">${total.toFixed(2)}</span>
+        <span className="font-bold">{fmt(total)}</span>
       </button>
     </div>
   );
