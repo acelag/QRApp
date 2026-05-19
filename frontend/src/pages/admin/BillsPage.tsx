@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw, Printer, ShoppingBag, Table2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw, Printer, ShoppingBag, Table2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
@@ -8,6 +8,7 @@ import { restaurantService, computeCharges, type RestaurantSettings } from '../.
 import { orderService } from '../../services/orderService';
 import { useCurrency } from '../../context/CurrencyContext';
 import type { Order } from '../../types';
+import { SplitBillModal } from '../../components/SplitBillModal';
 
 function elapsed(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -30,6 +31,7 @@ export function BillsPage() {
   const [paying, setPaying] = useState<string | null>(null);
   const [payingOrder, setPayingOrder] = useState<string | null>(null);
   const [billingSettings, setBillingSettings] = useState<RestaurantSettings | null>(null);
+  const [splitSession, setSplitSession] = useState<Session | null>(null);
   const { fmt } = useCurrency();
 
   useEffect(() => {
@@ -237,26 +239,33 @@ export function BillsPage() {
                         </div>
                       )}
 
-                      <div className="px-5 py-4">
-                        <div className="flex gap-3">
+                      <div className="px-5 py-4 space-y-2">
+                        <div className="flex gap-2">
                           <button
                             onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
                             disabled={(session.billItems ?? []).length === 0}
-                            className="flex items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors disabled:opacity-40"
+                            className="flex items-center justify-center gap-1.5 border border-gray-200 text-gray-600 font-semibold py-2.5 px-3 rounded-2xl hover:bg-gray-50 transition-colors disabled:opacity-40 text-sm"
                           >
-                            <Printer size={16} /> Print Bill
+                            <Printer size={15} /> Print
+                          </button>
+                          <button
+                            onClick={() => setSplitSession(session)}
+                            disabled={(session.billItems ?? []).length === 0}
+                            className="flex items-center justify-center gap-1.5 border border-orange-200 text-orange-600 bg-orange-50 font-semibold py-2.5 px-3 rounded-2xl hover:bg-orange-100 transition-colors disabled:opacity-40 text-sm"
+                          >
+                            <Users size={15} /> Split
                           </button>
                           <button
                             onClick={() => handleMarkPaid(session.id, session.tableNumber)}
                             disabled={paying === session.id || (session.billItems ?? []).length === 0}
-                            className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-3 rounded-2xl transition-colors"
+                            className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
                           >
-                            {paying === session.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                            {paying === session.id ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
                             {paying === session.id ? 'Processing…' : 'Mark as Paid'}
                           </button>
                         </div>
                         {(session.billItems ?? []).length === 0 && (
-                          <p className="text-center text-xs text-gray-400 mt-2">No orders placed yet</p>
+                          <p className="text-center text-xs text-gray-400">No orders placed yet</p>
                         )}
                       </div>
                     </div>
@@ -452,6 +461,14 @@ export function BillsPage() {
           </>
         )}
       </main>
+
+      {splitSession && (
+        <SplitBillModal
+          session={splitSession}
+          settings={billingSettings}
+          onClose={() => setSplitSession(null)}
+        />
+      )}
     </div>
   );
 }
