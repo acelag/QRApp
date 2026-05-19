@@ -14,6 +14,7 @@ export interface RestaurantSettings {
   logo?: string | null;
   themeColor?: string | null;
   orderNumberPrefix?: string;
+  waitTimeMin?: number | null;
 }
 
 export interface BillingCharges {
@@ -59,9 +60,9 @@ export const restaurantService = {
   getRestaurantCurrency: (id: string): Promise<string> =>
     axios.get<{ currency: string }>(`${BASE}/restaurants/${id}/currency`).then((r) => r.data.currency),
 
-  /** Public — no auth required. Returns name, logo and themeColor for a restaurant. */
-  getRestaurantInfo: (id: string): Promise<{ name: string; logo: string | null; themeColor: string | null }> =>
-    axios.get<{ name: string; logo: string | null; themeColor: string | null }>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
+  /** Public — no auth required. Returns name, logo, themeColor and waitTimeMin for a restaurant. */
+  getRestaurantInfo: (id: string): Promise<{ name: string; logo: string | null; themeColor: string | null; waitTimeMin: number | null }> =>
+    axios.get<{ name: string; logo: string | null; themeColor: string | null; waitTimeMin: number | null }>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
 
   updateCharges: (id: string, charges: BillingCharges) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/charges`, charges).then((r) => r.data),
@@ -74,4 +75,7 @@ export const restaurantService = {
 
   updateOrderPrefix: (id: string, orderNumberPrefix: string) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/order-prefix`, { orderNumberPrefix }).then((r) => r.data),
+
+  updateWaitTime: (id: string, waitTimeMin: number | null) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/wait-time`, { waitTimeMin }).then((r) => r.data),
 };

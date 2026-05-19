@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { CheckCircle, RotateCcw } from 'lucide-react';
+import { CheckCircle, RotateCcw, Clock } from 'lucide-react';
 import type { Order } from '../../types';
 import type { CartItem } from '../../types/Order';
 import { orderService } from '../../services/orderService';
+import { restaurantService } from '../../services/restaurantService';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useCart } from '../../context/CartContext';
@@ -13,13 +14,22 @@ export function OrderSuccessPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
+  const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
   const { fmt } = useCurrency();
   const { bulkAdd } = useCart();
 
   useEffect(() => {
     if (!orderId) return;
     const poll = () => {
-      orderService.getOrder(orderId).then(setOrder).catch(() => {});
+      orderService.getOrder(orderId).then((o) => {
+        setOrder(o);
+        // Fetch wait time once we have the restaurantId
+        if (o.restaurantId) {
+          restaurantService.getRestaurantInfo(o.restaurantId)
+            .then((info) => setWaitTimeMin(info.waitTimeMin))
+            .catch(() => {});
+        }
+      }).catch(() => {});
     };
     poll();
     const id = setInterval(poll, 5000);
@@ -73,6 +83,17 @@ export function OrderSuccessPage() {
               : `Table ${order.tableNumber}`}
           </p>
         </div>
+
+        {/* Wait time banner */}
+        {waitTimeMin && order.status === 'pending' && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 mb-4">
+            <Clock size={16} className="text-amber-500 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-700">Est. wait: ~{waitTimeMin} min</p>
+              <p className="text-xs text-amber-500">We'll get started on your order shortly</p>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm text-gray-500">Status</span>

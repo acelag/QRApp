@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Users,
-  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash,
+  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
@@ -48,6 +48,8 @@ export function SettingsPage() {
   const [orderPrefix, setOrderPrefix] = useState('ORD');
   const [prefixSaving, setPrefixSaving] = useState(false);
   const [prefixSuccess, setPrefixSuccess] = useState(false);
+  const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
+  const [waitTimeSaving, setWaitTimeSaving] = useState(false);
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export function SettingsPage() {
       setCurrency(r.currency ?? 'USD');
       setThemeColor(r.themeColor ?? '#f97316');
       setOrderPrefix(r.orderNumberPrefix ?? 'ORD');
+      setWaitTimeMin(r.waitTimeMin ?? null);
     });
   }, []);
 
@@ -110,6 +113,18 @@ export function SettingsPage() {
       setTimeout(() => setPrefixSuccess(false), 3000);
     } finally {
       setPrefixSaving(false);
+    }
+  }
+
+  async function saveWaitTime(val: number | null) {
+    if (!restaurant) return;
+    setWaitTimeSaving(true);
+    try {
+      const updated = await restaurantService.updateWaitTime(restaurant.id, val);
+      setRestaurant(updated);
+      setWaitTimeMin(updated.waitTimeMin ?? null);
+    } finally {
+      setWaitTimeSaving(false);
     }
   }
 
@@ -465,6 +480,65 @@ export function SettingsPage() {
                 {prefixSaving && <Loader2 size={15} className="animate-spin" />}
                 {prefixSaving ? 'Saving…' : 'Save Order Prefix'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Estimated Wait Time ───────────────────────────────────────── */}
+        {restaurant && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                <Clock size={15} className="text-amber-500" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-800">Estimated Wait Time</h2>
+                <p className="text-xs text-gray-400">Shown to customers on the order success page</p>
+              </div>
+              {waitTimeSaving && <Loader2 size={14} className="animate-spin text-gray-400 ml-auto" />}
+            </div>
+
+            <div className="p-5 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {[null, 10, 15, 20, 25, 30, 45, 60].map((val) => (
+                  <button
+                    key={val ?? 'off'}
+                    onClick={() => saveWaitTime(val)}
+                    disabled={waitTimeSaving}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
+                      waitTimeMin === val
+                        ? 'bg-amber-500 text-white border-amber-500'
+                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-amber-300 hover:bg-amber-50'
+                    }`}
+                  >
+                    {val == null ? 'Off' : `${val} min`}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Custom:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={waitTimeMin ?? ''}
+                  onChange={(e) => setWaitTimeMin(e.target.value ? Number(e.target.value) : null)}
+                  onBlur={() => saveWaitTime(waitTimeMin)}
+                  placeholder="e.g. 35"
+                  className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-amber-300 bg-gray-50 focus:bg-white"
+                />
+                <span className="text-xs text-gray-400">min</span>
+              </div>
+
+              <div className={`rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2 ${
+                waitTimeMin ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-gray-50 text-gray-400'
+              }`}>
+                <Clock size={14} />
+                {waitTimeMin
+                  ? `Customers will see "Est. wait: ~${waitTimeMin} min" after ordering`
+                  : 'No wait time shown to customers'}
+              </div>
             </div>
           </div>
         )}

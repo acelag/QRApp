@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogOut, UtensilsCrossed, ClipboardList } from 'lucide-react';
+import { ArrowLeft, LogOut, UtensilsCrossed, ClipboardList, Clock } from 'lucide-react';
 import { NotificationBell } from '../../components/NotificationBell';
 import type { Order, OrderStatus } from '../../types';
 import type { MenuItem, Category } from '../../types';
 import { orderService } from '../../services/orderService';
 import { menuService } from '../../services/menuService';
+import { restaurantService } from '../../services/restaurantService';
 import { OrderCard } from '../../components/OrderCard';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -18,6 +19,9 @@ export function KitchenPage() {
 
   const [tab, setTab]       = useState<KitchenTab>('orders');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [waitTimeMin, setWaitTimeMin]   = useState<number | null>(null);
+  const [waitOpen, setWaitOpen]         = useState(false);
+  const [waitSaving, setWaitSaving]     = useState(false);
 
   // Items tab state
   const [categories, setCategories]   = useState<Category[]>([]);
@@ -46,6 +50,29 @@ export function KitchenPage() {
     const id = setInterval(fetchOrders, 4000);
     return () => clearInterval(id);
   }, [fetchOrders]);
+
+  // Load initial wait time
+  useEffect(() => {
+    if (!user?.restaurantId) return;
+    restaurantService.getRestaurantInfo(user.restaurantId)
+      .then((info) => setWaitTimeMin(info.waitTimeMin))
+      .catch(() => {});
+  }, [user?.restaurantId]);
+
+  async function handleSetWaitTime(val: number | null) {
+    if (!user?.restaurantId || waitSaving) return;
+    setWaitSaving(true);
+    try {
+      const updated = await restaurantService.updateWaitTime(user.restaurantId, val);
+      setWaitTimeMin(updated.waitTimeMin ?? null);
+      setWaitOpen(false);
+      toast.success(val ? `Wait time set to ${val} min` : 'Wait time cleared');
+    } catch {
+      toast.error('Failed to update wait time');
+    } finally {
+      setWaitSaving(false);
+    }
+  }
 
   // ── Load items once when Items tab is first opened ────────────────────────
   useEffect(() => {
@@ -109,7 +136,45 @@ export function KitchenPage() {
           <ArrowLeft size={20} />
         </Link>
         <h1 className="text-xl font-bold flex-1">Kitchen Display</h1>
-        <span className="hidden sm:inline text-sm text-gray-400 mr-2">{user?.name}</span>
+        <span className="hidden sm:inline text-sm text-gray-400">{user?.name}</span>
+
+        {/* Wait time widget */}
+        <div className="relative">
+          <button
+            onClick={() => setWaitOpen((o) => !o)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              waitTimeMin
+                ? 'bg-amber-500 text-white hover:bg-amber-400'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            <Clock size={13} />
+            {waitTimeMin ? `~${waitTimeMin} min` : 'Wait?'}
+          </button>
+
+          {waitOpen && (
+            <div className="absolute right-0 top-9 bg-gray-800 border border-gray-700 rounded-2xl p-3 shadow-2xl z-50 min-w-[200px]">
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Estimated Wait</p>
+              <div className="grid grid-cols-3 gap-1.5 mb-2">
+                {[null, 10, 15, 20, 25, 30, 45, 60].map((val) => (
+                  <button
+                    key={val ?? 'off'}
+                    onClick={() => handleSetWaitTime(val)}
+                    disabled={waitSaving}
+                    className={`py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 ${
+                      waitTimeMin === val
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-amber-500 hover:text-white'
+                    }`}
+                  >
+                    {val == null ? 'Off' : `${val}m`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <NotificationBell theme="dark" />
         <button onClick={handleLogout} className="text-gray-400 hover:text-red-400 transition-colors">
           <LogOut size={18} />

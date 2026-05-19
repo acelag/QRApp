@@ -155,6 +155,7 @@ export async function createSchema(): Promise<void> {
   await addCol('orders',      'order_number',           'VARCHAR(30) NULL');
   await addCol('orders',      'room_id',                'VARCHAR(36) NULL');
   await addCol('orders',      'room_number',            'INTEGER NULL');
+  await addCol('restaurants', 'wait_time_min',          'INTEGER NULL');
 
   console.log('✓ Schema ready');
 }

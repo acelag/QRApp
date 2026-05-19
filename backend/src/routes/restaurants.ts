@@ -14,6 +14,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   logo: (row.logo as string | null) ?? null,
   themeColor: (row.theme_color as string | null) ?? '#f97316',
   orderNumberPrefix: (row.order_number_prefix as string | null) ?? 'ORD',
+  waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
 });
 
 // ── Public endpoints — no auth required ──────────────────────────────────────
@@ -24,10 +25,15 @@ router.get('/:id/currency', async (req, res) => {
 });
 
 router.get('/:id/info', async (req, res) => {
-  const result = await pool.query('SELECT name, logo, theme_color FROM restaurants WHERE id = $1', [req.params.id]);
+  const result = await pool.query('SELECT name, logo, theme_color, wait_time_min FROM restaurants WHERE id = $1', [req.params.id]);
   if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = result.rows[0] as Record<string, unknown>;
-  res.json({ name: row.name, logo: row.logo ?? null, themeColor: (row.theme_color as string | null) ?? '#f97316' });
+  res.json({
+    name: row.name,
+    logo: row.logo ?? null,
+    themeColor: (row.theme_color as string | null) ?? '#f97316',
+    waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
+  });
 });
 
 // ── Authenticated routes ──────────────────────────────────────────────────────
@@ -128,6 +134,16 @@ router.patch('/:id/order-prefix', authenticate, async (req: AuthRequest, res) =>
   const prefix = (orderNumberPrefix ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
   if (!prefix) { res.status(400).json({ error: 'Prefix must be 1–10 alphanumeric characters' }); return; }
   await pool.query('UPDATE restaurants SET order_number_prefix = $1 WHERE id = $2', [prefix, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/wait-time', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { waitTimeMin } = req.body as { waitTimeMin: number | null };
+  const safe = waitTimeMin == null ? null : Math.max(1, Math.min(180, Math.round(Number(waitTimeMin))));
+  await pool.query('UPDATE restaurants SET wait_time_min = $1 WHERE id = $2', [safe, id]);
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
