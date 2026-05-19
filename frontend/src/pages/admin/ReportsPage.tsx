@@ -1,9 +1,160 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame } from 'lucide-react';
+import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
+
+// ── CSV helpers ──────────────────────────────────────────────────────────────
+function csvCell(v: string | number): string {
+  return `"${String(v).replace(/"/g, '""')}"`;
+}
+function csvRow(cells: (string | number)[]): string {
+  return cells.map(csvCell).join(',');
+}
+function downloadCsv(filename: string, rows: (string | number)[][]) {
+  const text = rows.map(csvRow).join('\r\n');
+  const blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function buildCsv(report: Report, tab: Tab, from: string, to: string, fmt: (n: number) => string) {
+  const prefix = `report-${from}-${to}`;
+  const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const HOUR_LABELS = Array.from({ length: 24 }, (_, h) =>
+    h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`
+  );
+  switch (tab) {
+    case 'sales':
+      downloadCsv(`${prefix}-sales.csv`, [
+        ['Date', 'Orders', 'Dine-in', 'Takeaway', 'Revenue'],
+        ...report.daily.map((r) => [r.date, r.orderCount, r.dineInCount, r.takeawayCount, r.revenue]),
+        ['TOTAL', report.summary.totalOrders, report.summary.dineInOrders, report.summary.takeawayOrders, report.summary.totalRevenue],
+      ]);
+      break;
+    case 'categories': {
+      const totalRev = report.categories.reduce((s, r) => s + r.revenue, 0);
+      downloadCsv(`${prefix}-categories.csv`, [
+        ['Category', 'Items Sold', 'Revenue', '% of Total'],
+        ...report.categories.map((r) => [r.name, r.quantity, r.revenue, ((r.revenue / (totalRev || 1)) * 100).toFixed(1) + '%']),
+        ['TOTAL', report.categories.reduce((s, r) => s + r.quantity, 0), totalRev, '100%'],
+      ]);
+      break;
+    }
+    case 'items':
+      downloadCsv(`${prefix}-items.csv`, [
+        ['Item', 'Size', 'Qty', 'Base Revenue', 'Extras Revenue', 'Total Revenue'],
+        ...report.items.map((r) => [r.name, r.size ?? '', r.quantity, r.baseRevenue, r.toppingRevenue, r.totalRevenue]),
+        ['TOTAL', '', report.items.reduce((s, r) => s + r.quantity, 0), report.items.reduce((s, r) => s + r.baseRevenue, 0), report.items.reduce((s, r) => s + r.toppingRevenue, 0), report.summary.totalRevenue],
+      ]);
+      break;
+    case 'extras':
+      downloadCsv(`${prefix}-extras.csv`, [
+        ['Extra / Topping', 'Times Ordered', 'Revenue'],
+        ...report.toppings.map((r) => [r.name, r.timesOrdered, r.revenue]),
+      ]);
+      break;
+    case 'heatmap':
+      downloadCsv(`${prefix}-heatmap.csv`, [
+        ['Day', 'Hour', 'Orders', 'Revenue'],
+        ...report.heatmap.map((r) => [DAY_LABELS[r.dayOfWeek], HOUR_LABELS[r.hour], r.orderCount, r.revenue]),
+      ]);
+      break;
+  }
+  void fmt; // used in switch above indirectly; keep lint happy
+  toast.success('CSV downloaded');
+}
+
+// ── PDF / Print helper ───────────────────────────────────────────────────────
+const PDF_STYLES = `
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 20px; }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  h2 { font-size: 13px; margin: 16px 0 6px; color: #ea580c; border-bottom: 1px solid #fed7aa; padding-bottom: 3px; }
+  p  { font-size: 11px; color: #666; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  th { background: #fff7ed; color: #9a3412; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px; text-align: left; border-bottom: 1px solid #fed7aa; }
+  td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; }
+  tr:last-child td { border-bottom: none; }
+  .right { text-align: right; }
+  .total td { font-weight: bold; background: #fff7ed; border-top: 2px solid #fed7aa; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
+  .card .val { font-size: 18px; font-weight: bold; color: #ea580c; }
+  .card .lbl { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  @page { size: A4; margin: 15mm; }
+  @media print { body { padding: 0; } }
+`;
+
+function buildPdf(report: Report, from: string, to: string, fmt: (n: number) => string) {
+  const s = report.summary;
+  const totalCatRev = report.categories.reduce((sum, r) => sum + r.revenue, 0);
+
+  const summaryHtml = `
+    <div class="summary">
+      <div class="card"><div class="val">${fmt(s.totalRevenue)}</div><div class="lbl">Total Revenue</div></div>
+      <div class="card"><div class="val">${s.totalOrders}</div><div class="lbl">Total Orders</div></div>
+      <div class="card"><div class="val">${s.dineInOrders}</div><div class="lbl">Dine-in</div></div>
+      <div class="card"><div class="val">${s.takeawayOrders}</div><div class="lbl">Takeaway</div></div>
+    </div>`;
+
+  const dailyHtml = report.daily.length ? `
+    <h2>Sales by Day</h2>
+    <table>
+      <thead><tr><th>Date</th><th class="right">Orders</th><th class="right">Dine-in</th><th class="right">Takeaway</th><th class="right">Revenue</th></tr></thead>
+      <tbody>
+        ${report.daily.map((r) => `<tr><td>${r.date}</td><td class="right">${r.orderCount}</td><td class="right">${r.dineInCount}</td><td class="right">${r.takeawayCount}</td><td class="right">${fmt(r.revenue)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr class="total"><td>Total</td><td class="right">${s.totalOrders}</td><td class="right">${s.dineInOrders}</td><td class="right">${s.takeawayOrders}</td><td class="right">${fmt(s.totalRevenue)}</td></tr></tfoot>
+    </table>` : '';
+
+  const catHtml = report.categories.length ? `
+    <h2>Sales by Category</h2>
+    <table>
+      <thead><tr><th>Category</th><th class="right">Items Sold</th><th class="right">Revenue</th><th class="right">Share</th></tr></thead>
+      <tbody>
+        ${report.categories.map((r) => `<tr><td>${r.name}</td><td class="right">${r.quantity}</td><td class="right">${fmt(r.revenue)}</td><td class="right">${((r.revenue / (totalCatRev || 1)) * 100).toFixed(1)}%</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr class="total"><td>Total</td><td class="right">${report.categories.reduce((s, r) => s + r.quantity, 0)}</td><td class="right">${fmt(totalCatRev)}</td><td class="right">100%</td></tr></tfoot>
+    </table>` : '';
+
+  const itemsHtml = report.items.length ? `
+    <h2>Item Performance</h2>
+    <table>
+      <thead><tr><th>Item</th><th>Size</th><th class="right">Qty</th><th class="right">Base</th><th class="right">Extras</th><th class="right">Total</th></tr></thead>
+      <tbody>
+        ${report.items.map((r) => `<tr><td>${r.name}</td><td>${r.size ?? '—'}</td><td class="right">${r.quantity}</td><td class="right">${fmt(r.baseRevenue)}</td><td class="right">${r.toppingRevenue > 0 ? '+' + fmt(r.toppingRevenue) : '—'}</td><td class="right">${fmt(r.totalRevenue)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr class="total"><td>Total</td><td></td><td class="right">${report.items.reduce((s, r) => s + r.quantity, 0)}</td><td class="right">${fmt(report.items.reduce((s, r) => s + r.baseRevenue, 0))}</td><td class="right">${fmt(report.items.reduce((s, r) => s + r.toppingRevenue, 0))}</td><td class="right">${fmt(s.totalRevenue)}</td></tr></tfoot>
+    </table>` : '';
+
+  const extrasHtml = report.toppings.length ? `
+    <h2>Extras / Toppings</h2>
+    <table>
+      <thead><tr><th>Extra</th><th class="right">Times Ordered</th><th class="right">Revenue</th></tr></thead>
+      <tbody>${report.toppings.map((r) => `<tr><td>${r.name}</td><td class="right">${r.timesOrdered}</td><td class="right">${fmt(r.revenue)}</td></tr>`).join('')}</tbody>
+    </table>` : '';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sales Report ${from} – ${to}</title><style>${PDF_STYLES}</style></head>
+    <body>
+      <h1>Sales Report</h1>
+      <p>${from === to ? from : `${from} – ${to}`} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</p>
+      ${summaryHtml}${dailyHtml}${catHtml}${itemsHtml}${extrasHtml}
+    </body></html>`;
+
+  const win = window.open('', '_blank', 'width=800,height=700');
+  if (!win) { toast.error('Pop-up blocked — allow pop-ups and try again'); return; }
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+  setTimeout(() => { try { win.focus(); win.print(); } catch { /* already triggered */ } }, 500);
+  toast.success('Print / Save as PDF dialog opened');
+}
 
 type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap';
 
@@ -204,7 +355,8 @@ export function ReportsPage() {
               </div>
             </div>
 
-            {/* Tabs */}
+            {/* Tabs + export buttons */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-2xl w-fit">
               {([
                 { key: 'sales',      label: 'Sales by Day' },
@@ -223,6 +375,22 @@ export function ReportsPage() {
                   {t.label}
                 </button>
               ))}
+            </div>
+            {/* Export buttons */}
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => buildCsv(report, tab, from, to, fmt)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                <Download size={14} /> CSV
+              </button>
+              <button
+                onClick={() => buildPdf(report, from, to, fmt)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors"
+              >
+                <Printer size={14} /> PDF
+              </button>
+            </div>
             </div>
 
             {/* Heatmap tab */}
