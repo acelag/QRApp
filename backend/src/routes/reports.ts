@@ -162,4 +162,65 @@ router.get('/', async (req: AuthRequest, res) => {
   });
 });
 
+router.get('/staff', async (req: AuthRequest, res) => {
+  const { from, to } = req.query as { from?: string; to?: string };
+  if (!from || !to) { res.status(400).json({ error: 'from and to date params required (YYYY-MM-DD)' }); return; }
+
+  const rid     = req.user!.restaurantId;
+  const fromIso = `${from}T00:00:00.000Z`;
+  const toIso   = `${to}T23:59:59.999Z`;
+
+  const [waiterRes, dailyRes] = await Promise.all([
+    pool.query<{
+      waiter_name: string; waiter_id: string | null;
+      order_count: number; served_count: number;
+      total_revenue: number; avg_order_value: number;
+    }>(
+      `SELECT
+         COALESCE(assigned_waiter_name, 'Unassigned') AS waiter_name,
+         assigned_waiter_id                           AS waiter_id,
+         COUNT(*)::int                                AS order_count,
+         COUNT(*) FILTER (WHERE status = 'served')::int AS served_count,
+         COALESCE(SUM(total_amount), 0)::float        AS total_revenue,
+         COALESCE(AVG(total_amount), 0)::float        AS avg_order_value
+       FROM orders
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
+       GROUP BY assigned_waiter_name, assigned_waiter_id
+       ORDER BY total_revenue DESC`,
+      [rid, fromIso, toIso],
+    ),
+
+    pool.query<{ date: string; waiter_name: string; order_count: number; revenue: number }>(
+      `SELECT
+         SUBSTRING(created_at, 1, 10)                           AS date,
+         COALESCE(assigned_waiter_name, 'Unassigned')           AS waiter_name,
+         COUNT(*)::int                                           AS order_count,
+         COALESCE(SUM(total_amount), 0)::float                  AS revenue
+       FROM orders
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
+         AND assigned_waiter_name IS NOT NULL
+       GROUP BY SUBSTRING(created_at, 1, 10), assigned_waiter_name
+       ORDER BY date DESC, revenue DESC`,
+      [rid, fromIso, toIso],
+    ),
+  ]);
+
+  res.json({
+    waiters: waiterRes.rows.map((r) => ({
+      waiterId:      r.waiter_id,
+      waiterName:    r.waiter_name,
+      orderCount:    r.order_count,
+      servedCount:   r.served_count,
+      totalRevenue:  r.total_revenue,
+      avgOrderValue: r.avg_order_value,
+    })),
+    daily: dailyRes.rows.map((r) => ({
+      date:       r.date,
+      waiterName: r.waiter_name,
+      orderCount: r.order_count,
+      revenue:    r.revenue,
+    })),
+  });
+});
+
 export default router;
