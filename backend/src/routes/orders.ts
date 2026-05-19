@@ -39,6 +39,8 @@ async function buildOrder(orderId: string) {
     restaurantId: o.restaurant_id ?? null, sessionId: o.session_id ?? null,
     tableId: o.table_id ?? null,
     tableNumber: o.table_number !== null && o.table_number !== undefined ? Number(o.table_number) : null,
+    roomId: (o.room_id as string | null) ?? null,
+    roomNumber: o.room_number !== null && o.room_number !== undefined ? Number(o.room_number) : null,
     orderType: (o.order_type as string) ?? 'dine-in', customerName: (o.customer_name as string) ?? null,
     status: o.status as OrderStatus, totalAmount: Number(o.total_amount),
     createdAt: o.created_at, updatedAt: o.updated_at,
@@ -66,10 +68,11 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
-  const { tableId, tableNumber, items, sessionId, restaurantId, orderType = 'dine-in', customerName } =
-    req.body as { tableId?: string; tableNumber?: number; items: CartItem[]; sessionId?: string; restaurantId?: string; orderType?: 'dine-in' | 'takeaway'; customerName?: string; };
+  const { tableId, tableNumber, roomId, roomNumber, items, sessionId, restaurantId, orderType = 'dine-in', customerName } =
+    req.body as { tableId?: string; tableNumber?: number; roomId?: string; roomNumber?: number; items: CartItem[]; sessionId?: string; restaurantId?: string; orderType?: 'dine-in' | 'takeaway' | 'room-service'; customerName?: string; };
   if (!items?.length) { res.status(400).json({ error: 'items are required' }); return; }
   if (orderType === 'dine-in' && !tableId) { res.status(400).json({ error: 'tableId is required for dine-in orders' }); return; }
+  if (orderType === 'room-service' && !roomId) { res.status(400).json({ error: 'roomId is required for room-service orders' }); return; }
   const resolvedRestaurantId = req.user?.restaurantId ?? restaurantId;
   if (!resolvedRestaurantId) { res.status(400).json({ error: 'restaurantId is required' }); return; }
 
@@ -100,9 +103,9 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     const prefix = (seqRow.order_number_prefix as string | null) ?? 'ORD';
     const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
     await client.query(
-      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,order_type,customer_name,status,total_amount,order_number,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,$10)`,
-      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, orderType, customerName ?? null, totalAmount, orderNumber, now],
+      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,status,total_amount,order_number,created_at,updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,$11,$12,$12)`,
+      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, totalAmount, orderNumber, now],
     );
     for (const item of items) {
       const orderItemId = uuid();
@@ -127,7 +130,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
 
   const built = await buildOrder(orderId);
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
-  const label = orderType === 'takeaway' ? (customerName?.trim() ?? 'Takeaway') : tableNumber ?? 0;
+  const label = orderType === 'takeaway' ? (customerName?.trim() ?? 'Takeaway') : orderType === 'room-service' ? (customerName?.trim() ?? `Room ${roomNumber}`) : tableNumber ?? 0;
   sendPushToAll(resolvedRestaurantId, newOrderPayload(label as number, itemCount, totalAmount, orderId)).catch(() => {});
   res.status(201).json(built);
 });

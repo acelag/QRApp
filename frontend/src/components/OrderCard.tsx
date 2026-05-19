@@ -1,6 +1,6 @@
 import type { Order, OrderStatus } from '../types';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
@@ -37,7 +37,9 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Card header */}
       <div className={`px-4 py-3 flex items-center justify-between border-b border-gray-100 ${
-        order.orderType === 'takeaway' ? 'bg-purple-50' : 'bg-orange-50'
+        order.orderType === 'takeaway' ? 'bg-purple-50'
+        : order.orderType === 'room-service' ? 'bg-blue-50'
+        : 'bg-orange-50'
       }`}>
         <div className="flex items-center gap-2 min-w-0">
           {priority != null && (
@@ -49,6 +51,14 @@ export function OrderCard({ order, onStatusChange, showActions = false, showPrin
             <div className="flex items-center gap-1.5 min-w-0">
               <ShoppingBag size={14} className="text-purple-500 shrink-0" />
               <span className="font-bold text-purple-700 text-sm">Takeaway</span>
+              {order.customerName && (
+                <span className="text-gray-500 text-sm truncate">· {order.customerName}</span>
+              )}
+            </div>
+          ) : order.orderType === 'room-service' ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <BedDouble size={14} className="text-blue-500 shrink-0" />
+              <span className="font-bold text-blue-700 text-sm">Room {order.roomNumber}</span>
               {order.customerName && (
                 <span className="text-gray-500 text-sm truncate">· {order.customerName}</span>
               )}

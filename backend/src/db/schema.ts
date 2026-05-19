@@ -127,6 +127,16 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      id            VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id VARCHAR(36)  NOT NULL,
+      number        INTEGER      NOT NULL,
+      name          VARCHAR(255) NULL,
+      created_at    VARCHAR(50)  NOT NULL
+    );
+  `);
+
   // Safe column additions for older databases
   const addCol = async (table: string, col: string, def: string) => {
     await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${def};`);
@@ -143,6 +153,8 @@ export async function createSchema(): Promise<void> {
   await addCol('menu_items',  'large_discount_pct',     'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('order_items', 'size',                   "VARCHAR(10) NULL");
   await addCol('orders',      'order_number',           'VARCHAR(30) NULL');
+  await addCol('orders',      'room_id',                'VARCHAR(36) NULL');
+  await addCol('orders',      'room_number',            'INTEGER NULL');
 
   console.log('✓ Schema ready');
 }

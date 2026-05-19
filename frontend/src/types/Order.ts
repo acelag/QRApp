@@ -1,5 +1,5 @@
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served';
-export type OrderType   = 'dine-in' | 'takeaway';
+export type OrderType   = 'dine-in' | 'takeaway' | 'room-service';
 
 export interface SelectedTopping {
   id: string;
@@ -34,6 +34,8 @@ export interface Order {
   sessionId?: string | null;
   tableId?: string | null;
   tableNumber?: number | null;
+  roomId?: string | null;
+  roomNumber?: number | null;
   orderType: OrderType;
   customerName?: string | null;
   items: OrderItem[];

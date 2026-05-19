@@ -23,6 +23,9 @@ export const menuService = {
 
   deleteItem: (id: string) => axios.delete(`${BASE}/menu-items/${id}`),
 
+  setAvailability: (id: string, available: boolean) =>
+    axios.patch<{ id: string; name: string; available: boolean }>(`${BASE}/menu-items/${id}/availability`, { available }).then((r) => r.data),
+
   createCategory: (name: string) =>
     axios.post<Category>(`${BASE}/categories`, { name }).then((r) => r.data),
 

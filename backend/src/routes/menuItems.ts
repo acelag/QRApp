@@ -87,6 +87,19 @@ router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, 
   res.json(toItem(updated.rows[0] as Record<string, unknown>));
 });
 
+// ── Availability toggle (admin + kitchen) ─────────────────────────────────────
+router.patch('/:id/availability', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
+  const { available } = req.body as { available: boolean };
+  if (typeof available !== 'boolean') { res.status(400).json({ error: 'available (boolean) is required' }); return; }
+  const result = await pool.query(
+    'UPDATE menu_items SET available = $1 WHERE id = $2 AND restaurant_id = $3 RETURNING id, name, available',
+    [available, req.params.id, req.user!.restaurantId],
+  );
+  if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  const row = result.rows[0] as { id: string; name: string; available: boolean };
+  res.json({ id: row.id, name: row.name, available: row.available });
+});
+
 router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   const result = await pool.query('DELETE FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }

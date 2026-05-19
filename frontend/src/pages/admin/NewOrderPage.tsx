@@ -1,21 +1,22 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
-import type { Table } from '../../types';
+import type { Table, Room } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import type { CartItem } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { orderService } from '../../services/orderService';
 import { tableService } from '../../services/tableService';
+import { roomService } from '../../services/roomService';
 import { sessionService } from '../../services/sessionService';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import toast from 'react-hot-toast';
 
-type OrderMode = 'takeaway' | 'dine-in';
+type OrderMode = 'takeaway' | 'dine-in' | 'room-service';
 type Size = 'regular' | 'large';
 
 const toppingKey = (toppings?: SelectedTopping[]) => (toppings ?? []).map((t) => t.id).sort().join(',');
@@ -58,12 +59,14 @@ export function NewOrderPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
 
   const [cart, dispatch] = useReducer(cartReducer, []);
   const [customerName, setCustomerName] = useState('');
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [placing, setPlacing] = useState(false);
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
 
@@ -72,11 +75,13 @@ export function NewOrderPage() {
       menuService.getCategories(),
       menuService.getItems(),
       tableService.getTables(),
+      roomService.getRooms(),
     ])
-      .then(([cats, menuItems, tbls]) => {
+      .then(([cats, menuItems, tbls, rms]) => {
         setCategories(cats);
         setItems(menuItems.filter((i) => i.available));
         setTables(tbls.sort((a, b) => a.number - b.number));
+        setRooms(rms.sort((a, b) => a.number - b.number));
       })
       .catch(() => toast.error('Failed to load menu'))
       .finally(() => setLoading(false));
@@ -87,6 +92,7 @@ export function NewOrderPage() {
     setMode(m);
     dispatch({ type: 'CLEAR' });
     setSelectedTable(null);
+    setSelectedRoom(null);
     setCustomerName('');
   }
 
@@ -107,6 +113,7 @@ export function NewOrderPage() {
   async function handlePlace() {
     if (cart.length === 0) { toast.error('Add at least one item'); return; }
     if (mode === 'dine-in' && !selectedTable) { toast.error('Select a table'); return; }
+    if (mode === 'room-service' && !selectedRoom) { toast.error('Select a room'); return; }
 
     setPlacing(true);
     try {
@@ -114,13 +121,18 @@ export function NewOrderPage() {
         const order = await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined);
         toast.success('Takeaway order placed!');
         navigate(`/receipt/${order.id}`);
-      } else {
+      } else if (mode === 'dine-in') {
         const table = selectedTable!;
         const restaurantId = user?.restaurantId ?? '';
-        // Get or create a session for this table
         const session = await sessionService.getOrCreate(table.id, table.number, restaurantId);
         const order = await orderService.placeOrder(table.id, table.number, cart, session.id);
         toast.success(`Dine-in order placed for Table ${table.number}!`);
+        navigate(`/receipt/${order.id}`);
+      } else {
+        const room = selectedRoom!;
+        const restaurantId = user?.restaurantId ?? '';
+        const order = await orderService.placeRoomOrder(room.id, room.number, cart, customerName.trim() || undefined, restaurantId);
+        toast.success(`Room service order placed for Room ${room.number}!`);
         navigate(`/receipt/${order.id}`);
       }
     } catch {
@@ -156,6 +168,14 @@ export function NewOrderPage() {
             }`}
           >
             <UtensilsCrossed size={13} /> Dine-in
+          </button>
+          <button
+            onClick={() => switchMode('room-service')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              mode === 'room-service' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <BedDouble size={13} /> Room Service
           </button>
         </div>
 
@@ -281,16 +301,52 @@ export function NewOrderPage() {
             </div>
           )}
 
-          {/* Customer name — takeaway only */}
-          {mode === 'takeaway' && (
+          {/* Room selector — room-service only */}
+          {mode === 'room-service' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Select Room</p>
+              {rooms.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">No rooms found</p>
+              ) : (
+                <div className="grid grid-cols-4 gap-2">
+                  {rooms.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => setSelectedRoom(selectedRoom?.id === r.id ? null : r)}
+                      title={r.name ?? undefined}
+                      className={`h-12 rounded-xl font-bold text-sm transition-colors ${
+                        selectedRoom?.id === r.id
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                      }`}
+                    >
+                      {r.number}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedRoom && (
+                <p className="text-xs text-blue-600 font-medium mt-2 text-center">
+                  Room {selectedRoom.number}{selectedRoom.name ? ` — ${selectedRoom.name}` : ''}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Customer / guest name — takeaway or room-service */}
+          {(mode === 'takeaway' || mode === 'room-service') && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Customer Name</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                {mode === 'room-service' ? 'Guest Name' : 'Customer Name'}
+              </label>
               <input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="e.g. John (optional)"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-purple-300"
+                className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
+                  mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : 'focus:ring-1 focus:ring-purple-300'
+                }`}
               />
             </div>
           )}
@@ -365,10 +421,16 @@ export function NewOrderPage() {
               </div>
               <button
                 onClick={handlePlace}
-                disabled={cart.length === 0 || placing || (mode === 'dine-in' && !selectedTable)}
+                disabled={
+                  cart.length === 0 || placing ||
+                  (mode === 'dine-in' && !selectedTable) ||
+                  (mode === 'room-service' && !selectedRoom)
+                }
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   mode === 'takeaway'
                     ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : mode === 'room-service'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-orange-500 text-white hover:bg-orange-600'
                 }`}
               >
@@ -376,6 +438,8 @@ export function NewOrderPage() {
                   ? <><Loader2 size={16} className="animate-spin" /> Placing…</>
                   : mode === 'takeaway'
                   ? <><Check size={16} /> Place Takeaway Order</>
+                  : mode === 'room-service'
+                  ? <><Check size={16} /> Place Room Service Order{selectedRoom ? ` · Room ${selectedRoom.number}` : ''}</>
                   : <><Check size={16} /> Place Dine-in Order{selectedTable ? ` · Table ${selectedTable.number}` : ''}</>
                 }
               </button>

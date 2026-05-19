@@ -18,6 +18,7 @@ import { CartPage } from './pages/customer/CartPage';
 import { OrderSuccessPage } from './pages/customer/OrderSuccessPage';
 import { OrderHistoryPage } from './pages/customer/OrderHistoryPage';
 import { TakeawayMenuPage } from './pages/customer/TakeawayMenuPage';
+import { RoomMenuPage } from './pages/customer/RoomMenuPage';
 import { DashboardPage } from './pages/admin/DashboardPage';
 import { OrdersPage } from './pages/admin/OrdersPage';
 import { MenuItemsPage } from './pages/admin/MenuItemsPage';
@@ -33,6 +34,7 @@ import { TakeawayOrderPage } from './pages/admin/TakeawayOrderPage';
 import { NewOrderPage } from './pages/admin/NewOrderPage';
 import { ReadyDisplayPage } from './pages/admin/ReadyDisplayPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
+import { RoomsPage } from './pages/admin/RoomsPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -65,6 +67,7 @@ export default function App() {
             <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
             <Route path="/order-history/:tableId" element={<OrderHistoryPage />} />
             <Route path="/takeaway/:restaurantId" element={<TakeawayMenuPage />} />
+            <Route path="/room/:roomId" element={<RoomMenuPage />} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardPage /></ProtectedRoute>} />
@@ -81,6 +84,7 @@ export default function App() {
             <Route path="/admin/new-order" element={<ProtectedRoute role="admin"><NewOrderPage /></ProtectedRoute>} />
             <Route path="/admin/ready-display" element={<ProtectedRoute role="any"><ReadyDisplayPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute role="admin"><ReportsPage /></ProtectedRoute>} />
+            <Route path="/admin/rooms" element={<ProtectedRoute role="admin"><RoomsPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by both kitchen and admin */}
             <Route path="/kitchen" element={<ProtectedRoute role="any"><KitchenPage /></ProtectedRoute>} />
