@@ -44,6 +44,7 @@ export interface Order {
   discountAmount?: number;
   promoCode?: string | null;
   paymentMethod?: string | null;
+  customerPhone?: string | null;
   createdAt: string;
   updatedAt: string;
 }

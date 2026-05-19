@@ -173,10 +173,22 @@ export async function createSchema(): Promise<void> {
   await addCol('orders',      'room_id',                'VARCHAR(36) NULL');
   await addCol('orders',      'room_number',            'INTEGER NULL');
   await addCol('restaurants', 'wait_time_min',          'INTEGER NULL');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS customer_push_subscriptions (
+      id         VARCHAR(36)  NOT NULL PRIMARY KEY,
+      order_id   VARCHAR(36)  NOT NULL,
+      endpoint   TEXT         NOT NULL,
+      p256dh     VARCHAR(500) NOT NULL,
+      auth       VARCHAR(100) NOT NULL,
+      created_at VARCHAR(50)  NOT NULL
+    );
+  `);
+
   await addCol('orders',          'promo_code',       'VARCHAR(50) NULL');
   await addCol('orders',          'discount_amount',  'DECIMAL(10,2) NOT NULL DEFAULT 0');
   await addCol('orders',          'payment_method',   'VARCHAR(30) NULL');
   await addCol('table_sessions',  'payment_method',   'VARCHAR(30) NULL');
+  await addCol('orders',          'customer_phone',   'VARCHAR(30) NULL');
 
   console.log('✓ Schema ready');
 }

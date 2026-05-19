@@ -9,14 +9,14 @@ export const orderService = {
       .post<Order>(`${BASE}/orders`, { tableId, tableNumber, items, sessionId, restaurantId, orderType: 'dine-in', promoCode })
       .then((r) => r.data),
 
-  placeTakeawayOrder: (items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string) =>
+  placeTakeawayOrder: (items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string, customerPhone?: string) =>
     axios
-      .post<Order>(`${BASE}/orders`, { items, orderType: 'takeaway', customerName, restaurantId, promoCode })
+      .post<Order>(`${BASE}/orders`, { items, orderType: 'takeaway', customerName, restaurantId, promoCode, customerPhone })
       .then((r) => r.data),
 
-  placeRoomOrder: (roomId: string, roomNumber: number, items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string) =>
+  placeRoomOrder: (roomId: string, roomNumber: number, items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string, customerPhone?: string) =>
     axios
-      .post<Order>(`${BASE}/orders`, { roomId, roomNumber, items, orderType: 'room-service', customerName, restaurantId, promoCode })
+      .post<Order>(`${BASE}/orders`, { roomId, roomNumber, items, orderType: 'room-service', customerName, restaurantId, promoCode, customerPhone })
       .then((r) => r.data),
 
   getOrders: () => axios.get<Order[]>(`${BASE}/orders`).then((r) => r.data),

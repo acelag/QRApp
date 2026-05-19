@@ -66,6 +66,7 @@ export function TakeawayMenuPage() {
 
   const [cart, dispatch]              = useReducer(cartReducer, []);
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [cartOpen, setCartOpen]       = useState(false);
   const [placing, setPlacing]         = useState(false);
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem; size?: Size } | null>(null);
@@ -142,6 +143,7 @@ export function TakeawayMenuPage() {
       const order = await orderService.placeTakeawayOrder(
         cart, customerName.trim() || undefined, restaurantId,
         promoResult?.valid ? promoResult.code : undefined,
+        customerPhone.trim() || undefined,
       );
       dispatch({ type: 'CLEAR' });
       setPromoResult(null);
@@ -257,8 +259,15 @@ export function TakeawayMenuPage() {
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Your name (optional — helps identify your order)"
+                    placeholder="Your name (optional)"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-purple-300 mb-1"
+                  />
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="📱 Phone for WhatsApp/SMS confirmation (optional)"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-purple-300"
                   />
                 </div>
 

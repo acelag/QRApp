@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { pool } from '../db/database';
 import { authenticate, optionalAuthenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { sendPushToAll, newOrderPayload, sendPushToOrder } from '../lib/pushNotifier';
+import { sendOrderConfirmation } from '../lib/smsNotifier';
 
 const router = Router();
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served';
@@ -46,6 +47,7 @@ async function buildOrder(orderId: string) {
     discountAmount: Number(o.discount_amount ?? 0),
     promoCode: (o.promo_code as string | null) ?? null,
     paymentMethod: (o.payment_method as string | null) ?? null,
+    customerPhone: (o.customer_phone as string | null) ?? null,
     createdAt: o.created_at, updatedAt: o.updated_at,
     items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
@@ -71,8 +73,8 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
-  const { tableId, tableNumber, roomId, roomNumber, items, sessionId, restaurantId, orderType = 'dine-in', customerName } =
-    req.body as { tableId?: string; tableNumber?: number; roomId?: string; roomNumber?: number; items: CartItem[]; sessionId?: string; restaurantId?: string; orderType?: 'dine-in' | 'takeaway' | 'room-service'; customerName?: string; };
+  const { tableId, tableNumber, roomId, roomNumber, items, sessionId, restaurantId, orderType = 'dine-in', customerName, customerPhone } =
+    req.body as { tableId?: string; tableNumber?: number; roomId?: string; roomNumber?: number; items: CartItem[]; sessionId?: string; restaurantId?: string; orderType?: 'dine-in' | 'takeaway' | 'room-service'; customerName?: string; customerPhone?: string; };
   if (!items?.length) { res.status(400).json({ error: 'items are required' }); return; }
   if (orderType === 'dine-in' && !tableId) { res.status(400).json({ error: 'tableId is required for dine-in orders' }); return; }
   if (orderType === 'room-service' && !roomId) { res.status(400).json({ error: 'roomId is required for room-service orders' }); return; }
@@ -137,9 +139,9 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     const prefix = (seqRow.order_number_prefix as string | null) ?? 'ORD';
     const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
     await client.query(
-      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,status,total_amount,discount_amount,promo_code,order_number,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,$11,$12,$13,$14,$14)`,
-      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, totalAmount, discountAmount, validatedPromoCode, orderNumber, now],
+      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,customer_phone,status,total_amount,discount_amount,promo_code,order_number,created_at,updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,$15)`,
+      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, customerPhone?.trim() || null, totalAmount, discountAmount, validatedPromoCode, orderNumber, now],
     );
     // Increment promo code usage
     if (validatedPromoCode) {
@@ -173,6 +175,26 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
   const label = orderType === 'takeaway' ? (customerName?.trim() ?? 'Takeaway') : orderType === 'room-service' ? (customerName?.trim() ?? `Room ${roomNumber}`) : tableNumber ?? 0;
   sendPushToAll(resolvedRestaurantId, newOrderPayload(label as number, itemCount, totalAmount, orderId)).catch(() => {});
+
+  // WhatsApp / SMS confirmation
+  if (customerPhone?.trim() && built) {
+    const restRes = await pool.query('SELECT name, currency FROM restaurants WHERE id = $1', [resolvedRestaurantId]).catch(() => null);
+    const restRow = restRes?.rows[0] as Record<string, unknown> | undefined;
+    sendOrderConfirmation(customerPhone.trim(), {
+      orderNumber: built.orderNumber ?? orderId.slice(0, 8).toUpperCase(),
+      restaurantName: (restRow?.name as string | undefined) ?? 'Restaurant',
+      items: items.map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        price: i.price,
+        toppingsTotal: (i.toppings ?? []).reduce((s, t) => s + t.price, 0),
+      })),
+      totalAmount,
+      orderId,
+      currency: (restRow?.currency as string | undefined) ?? '',
+    }).catch(() => {});
+  }
+
   res.status(201).json(built);
 });
 

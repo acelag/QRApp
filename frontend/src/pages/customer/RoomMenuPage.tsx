@@ -68,6 +68,7 @@ export function RoomMenuPage() {
 
   const [cart, dispatch]            = useReducer(cartReducer, []);
   const [guestName, setGuestName]   = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
   const [cartOpen, setCartOpen]     = useState(false);
   const [placing, setPlacing]       = useState(false);
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
@@ -148,6 +149,7 @@ export function RoomMenuPage() {
         guestName.trim() || undefined,
         roomInfo.restaurantId,
         promoResult?.valid ? promoResult.code : undefined,
+        guestPhone.trim() || undefined,
       );
       dispatch({ type: 'CLEAR' });
       setPromoResult(null);
@@ -260,6 +262,13 @@ export function RoomMenuPage() {
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="Your name (optional)"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-300 mb-1"
+                  />
+                  <input
+                    type="tel"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder="📱 Phone for WhatsApp/SMS confirmation (optional)"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-300"
                   />
                 </div>
                 <ul className="overflow-y-auto flex-1 divide-y divide-gray-50 px-4">
