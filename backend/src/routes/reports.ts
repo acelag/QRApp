@@ -13,7 +13,7 @@ router.get('/', async (req: AuthRequest, res) => {
   const fromIso = `${from}T00:00:00.000Z`;
   const toIso   = `${to}T23:59:59.999Z`;
 
-  const [summaryRes, dailyRes, itemsRes, toppingsRes] = await Promise.all([
+  const [summaryRes, dailyRes, itemsRes, categoriesRes, toppingsRes] = await Promise.all([
     // Summary totals
     pool.query<{ total_orders: number; total_revenue: number; dine_in_orders: number; takeaway_orders: number }>(
       `SELECT
@@ -65,6 +65,29 @@ router.get('/', async (req: AuthRequest, res) => {
       [rid, fromIso, toIso],
     ),
 
+    // Category-level sales
+    pool.query<{ category_name: string; total_qty: number; revenue: number }>(
+      `SELECT
+         COALESCE(c.name, 'Uncategorised') AS category_name,
+         SUM(oi.quantity)::int             AS total_qty,
+         COALESCE(
+           SUM((oi.price + COALESCE(t.topping_sum, 0)) * oi.quantity), 0
+         )::float                          AS revenue
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+       LEFT JOIN categories c  ON c.id  = mi.category_id
+       LEFT JOIN (
+         SELECT order_item_id, SUM(price)::float AS topping_sum
+         FROM order_item_toppings
+         GROUP BY order_item_id
+       ) t ON t.order_item_id = oi.id
+       WHERE o.restaurant_id = $1 AND o.created_at >= $2 AND o.created_at <= $3
+       GROUP BY c.name
+       ORDER BY revenue DESC`,
+      [rid, fromIso, toIso],
+    ),
+
     // Top extras / toppings
     pool.query<{ name: string; times_ordered: number; revenue: number }>(
       `SELECT
@@ -110,6 +133,11 @@ router.get('/', async (req: AuthRequest, res) => {
       name:         r.name,
       timesOrdered: r.times_ordered,
       revenue:      r.revenue,
+    })),
+    categories: categoriesRes.rows.map((r) => ({
+      name:     r.category_name,
+      quantity: r.total_qty,
+      revenue:  r.revenue,
     })),
   });
 });

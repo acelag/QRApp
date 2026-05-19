@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar } from 'lucide-react';
+import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 
-type Tab = 'sales' | 'items' | 'extras';
+type Tab = 'sales' | 'items' | 'extras' | 'categories';
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -205,10 +205,11 @@ export function ReportsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl w-fit">
+            <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-2xl w-fit">
               {([
-                { key: 'sales',  label: 'Sales by Day' },
-                { key: 'items',  label: 'Items' },
+                { key: 'sales',      label: 'Sales by Day' },
+                { key: 'categories', label: 'Categories' },
+                { key: 'items',      label: 'Items' },
                 ...(report.toppings.length > 0 ? [{ key: 'extras', label: 'Extras' }] : []),
               ] as { key: Tab; label: string }[]).map((t) => (
                 <button
@@ -222,6 +223,88 @@ export function ReportsPage() {
                 </button>
               ))}
             </div>
+
+            {/* Categories tab */}
+            {tab === 'categories' && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {report.categories.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400">
+                    <LayoutGrid size={32} className="mx-auto mb-2 text-gray-200" />
+                    <p>No category data for this period.</p>
+                  </div>
+                ) : (() => {
+                  const totalRev = report.categories.reduce((s, r) => s + r.revenue, 0);
+                  const totalQty = report.categories.reduce((s, r) => s + r.quantity, 0);
+                  const COLORS = [
+                    'bg-orange-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500',
+                    'bg-pink-500', 'bg-amber-500', 'bg-teal-500', 'bg-red-500',
+                  ];
+                  return (
+                    <>
+                      {/* Mini pie / legend summary */}
+                      <div className="px-5 pt-5 pb-4 border-b border-gray-100">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Revenue share</p>
+                        {/* Stacked bar */}
+                        <div className="flex h-4 rounded-full overflow-hidden gap-px mb-3">
+                          {report.categories.map((cat, i) => (
+                            <div
+                              key={cat.name}
+                              title={`${cat.name}: ${((cat.revenue / totalRev) * 100).toFixed(1)}%`}
+                              className={`${COLORS[i % COLORS.length]} transition-all`}
+                              style={{ width: `${(cat.revenue / totalRev) * 100}%` }}
+                            />
+                          ))}
+                        </div>
+                        {/* Legend chips */}
+                        <div className="flex flex-wrap gap-2">
+                          {report.categories.map((cat, i) => (
+                            <div key={cat.name} className="flex items-center gap-1.5 text-xs text-gray-600">
+                              <span className={`w-2.5 h-2.5 rounded-full ${COLORS[i % COLORS.length]} shrink-0`} />
+                              {cat.name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Per-category rows */}
+                      <div className="divide-y divide-gray-50">
+                        {report.categories.map((cat, i) => {
+                          const pct = totalRev > 0 ? (cat.revenue / totalRev) * 100 : 0;
+                          return (
+                            <div key={cat.name} className="px-5 py-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-3 h-3 rounded-full ${COLORS[i % COLORS.length]} shrink-0`} />
+                                  <span className="font-semibold text-gray-900 text-sm">{cat.name}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="font-bold text-gray-900 text-sm">{fmt(cat.revenue)}</span>
+                                  <span className="text-xs text-gray-400 ml-2">{pct.toFixed(1)}%</span>
+                                </div>
+                              </div>
+                              {/* Progress bar */}
+                              <div className="w-full bg-gray-100 rounded-full h-2 mb-1.5">
+                                <div
+                                  className={`${COLORS[i % COLORS.length]} h-2 rounded-full transition-all`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-gray-400">{cat.quantity} item{cat.quantity !== 1 ? 's' : ''} sold</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Footer totals */}
+                      <div className="px-5 py-3 bg-orange-50 border-t border-orange-100 flex justify-between text-sm font-bold text-orange-800">
+                        <span>Total ({report.categories.length} categories)</span>
+                        <span>{totalQty} items · {fmt(totalRev)}</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Sales by day table */}
             {tab === 'sales' && (

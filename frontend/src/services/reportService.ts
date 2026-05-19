@@ -33,11 +33,18 @@ export interface ToppingRow {
   revenue: number;
 }
 
+export interface CategoryRow {
+  name: string;
+  quantity: number;
+  revenue: number;
+}
+
 export interface Report {
   summary: ReportSummary;
   daily: DailyRow[];
   items: ItemRow[];
   toppings: ToppingRow[];
+  categories: CategoryRow[];
 }
 
 export const reportService = {
