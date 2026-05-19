@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X } from 'lucide-react';
+import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, Clock } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import type { CartItem } from '../../types/Order';
@@ -70,6 +70,8 @@ export function RoomMenuPage() {
   const [guestName, setGuestName]   = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [cartOpen, setCartOpen]     = useState(false);
+  const [rsOpen, setRsOpen]   = useState<string | null>(null);
+  const [rsClose, setRsClose] = useState<string | null>(null);
   const [placing, setPlacing]       = useState(false);
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
   const [editingNotesKey, setEditingNotesKey] = useState<string | null>(null);
@@ -93,6 +95,8 @@ export function RoomMenuPage() {
           menuService.getItems(room.restaurantId),
         ]);
         setRestaurantName(info?.name ?? '');
+        setRsOpen(info?.roomServiceOpen ?? null);
+        setRsClose(info?.roomServiceClose ?? null);
         setCategories(cats);
         setItems(menuItems.filter((i) => i.available));
         // Pre-load reorder items if navigated from Order Again
@@ -112,6 +116,17 @@ export function RoomMenuPage() {
   const subtotal  = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
   const discount  = promoResult?.valid ? (promoResult.discountAmount ?? 0) : 0;
   const total     = Math.max(0, subtotal - discount);
+
+  const isRoomServiceOpen = (() => {
+    if (!rsOpen || !rsClose) return true;
+    const now = new Date();
+    const cur = now.getHours() * 60 + now.getMinutes();
+    const [oh, om] = rsOpen.split(':').map(Number);
+    const [ch, cm] = rsClose.split(':').map(Number);
+    const openMin  = oh * 60 + om;
+    const closeMin = ch * 60 + cm;
+    return openMin <= closeMin ? (cur >= openMin && cur < closeMin) : (cur >= openMin || cur < closeMin);
+  })();
 
   function handleAdd(item: MenuItem) {
     const hasLarge = (item.largePrice ?? 0) > 0;
@@ -193,6 +208,22 @@ export function RoomMenuPage() {
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
       </header>
+
+      {/* Room service closed banner */}
+      {!isRoomServiceOpen && (
+        <div className="max-w-lg mx-auto px-4 pt-4">
+          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-4 flex items-start gap-3">
+            <Clock size={18} className="text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-700 text-sm">Room service is currently closed</p>
+              {rsOpen && rsClose && (
+                <p className="text-xs text-red-500 mt-0.5">Available {rsOpen} – {rsClose}</p>
+              )}
+              <p className="text-xs text-red-400 mt-1">You can still browse the menu, but orders cannot be placed right now.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Menu grid */}
       <main className="max-w-lg mx-auto px-4 pt-4">
@@ -370,12 +401,12 @@ export function RoomMenuPage() {
             )}
             <button
               onClick={() => cartOpen ? placeOrder() : setCartOpen(true)}
-              disabled={placing}
+              disabled={placing || (cartOpen && !isRoomServiceOpen)}
               className="w-full bg-blue-600 text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-lg hover:bg-blue-700 transition-colors disabled:opacity-60"
             >
               <span className="bg-white/20 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">{itemCount}</span>
               <span className="font-semibold">
-                {placing ? 'Placing Order…' : cartOpen ? `Place Order • ${fmt(total)}` : `View Order • ${fmt(total)}`}
+                {placing ? 'Placing Order…' : cartOpen && !isRoomServiceOpen ? 'Room service closed' : cartOpen ? `Place Order • ${fmt(total)}` : `View Order • ${fmt(total)}`}
               </span>
               {cartOpen
                 ? <ChevronDown size={20} onClick={(e) => { e.stopPropagation(); setCartOpen(false); }} />

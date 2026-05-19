@@ -50,6 +50,11 @@ export function SettingsPage() {
   const [prefixSuccess, setPrefixSuccess] = useState(false);
   const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
   const [waitTimeSaving, setWaitTimeSaving] = useState(false);
+  const [rsOpen, setRsOpen]   = useState('');
+  const [rsClose, setRsClose] = useState('');
+  const [rsEnabled, setRsEnabled] = useState(false);
+  const [rsSaving, setRsSaving] = useState(false);
+  const [rsSuccess, setRsSuccess] = useState(false);
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -62,6 +67,11 @@ export function SettingsPage() {
       setThemeColor(r.themeColor ?? '#f97316');
       setOrderPrefix(r.orderNumberPrefix ?? 'ORD');
       setWaitTimeMin(r.waitTimeMin ?? null);
+      if (r.roomServiceOpen && r.roomServiceClose) {
+        setRsEnabled(true);
+        setRsOpen(r.roomServiceOpen);
+        setRsClose(r.roomServiceClose);
+      }
     });
   }, []);
 
@@ -125,6 +135,22 @@ export function SettingsPage() {
       setWaitTimeMin(updated.waitTimeMin ?? null);
     } finally {
       setWaitTimeSaving(false);
+    }
+  }
+
+  async function saveRoomServiceHours() {
+    if (!restaurant) return;
+    setRsSaving(true);
+    setRsSuccess(false);
+    try {
+      const open  = rsEnabled && rsOpen  ? rsOpen  : null;
+      const close = rsEnabled && rsClose ? rsClose : null;
+      const updated = await restaurantService.updateRoomServiceHours(restaurant.id, open, close);
+      setRestaurant(updated);
+      setRsSuccess(true);
+      setTimeout(() => setRsSuccess(false), 3000);
+    } finally {
+      setRsSaving(false);
     }
   }
 
@@ -539,6 +565,81 @@ export function SettingsPage() {
                   ? `Customers will see "Est. wait: ~${waitTimeMin} min" after ordering`
                   : 'No wait time shown to customers'}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Room Service Hours ───────────────────────────────────────── */}
+        {restaurant && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                <Clock size={15} className="text-blue-500" />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-800">Room Service Hours</h2>
+                <p className="text-xs text-gray-400">Customers cannot order outside these hours</p>
+              </div>
+              {rsSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
+            </div>
+
+            <div className="p-5 space-y-4">
+              {rsSuccess && (
+                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Room service hours saved!
+                </div>
+              )}
+
+              {/* Enable toggle */}
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div
+                  onClick={() => setRsEnabled((p) => !p)}
+                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${rsEnabled ? 'bg-blue-500' : 'bg-gray-200'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${rsEnabled ? 'translate-x-5' : ''}`} />
+                </div>
+                <span className="text-sm font-medium text-gray-700">
+                  {rsEnabled ? 'Restricted hours enabled' : 'Always open (no restriction)'}
+                </span>
+              </label>
+
+              {rsEnabled && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Opens at">
+                    <input
+                      type="time"
+                      value={rsOpen}
+                      onChange={(e) => setRsOpen(e.target.value)}
+                      className={input}
+                    />
+                  </Field>
+                  <Field label="Closes at">
+                    <input
+                      type="time"
+                      value={rsClose}
+                      onChange={(e) => setRsClose(e.target.value)}
+                      className={input}
+                    />
+                  </Field>
+                </div>
+              )}
+
+              {rsEnabled && rsOpen && rsClose && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700 flex items-center gap-2">
+                  <Clock size={14} />
+                  Room service available {rsOpen} – {rsClose}
+                  {rsOpen > rsClose ? ' (wraps midnight)' : ''}
+                </div>
+              )}
+
+              <button
+                onClick={saveRoomServiceHours}
+                disabled={rsSaving || (rsEnabled && (!rsOpen || !rsClose))}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+              >
+                {rsSaving && <Loader2 size={15} className="animate-spin" />}
+                {rsSaving ? 'Saving…' : 'Save Room Service Hours'}
+              </button>
             </div>
           </div>
         )}

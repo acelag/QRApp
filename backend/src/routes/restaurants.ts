@@ -15,6 +15,8 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   themeColor: (row.theme_color as string | null) ?? '#f97316',
   orderNumberPrefix: (row.order_number_prefix as string | null) ?? 'ORD',
   waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
+  roomServiceOpen:  (row.room_service_open  as string | null) ?? null,
+  roomServiceClose: (row.room_service_close as string | null) ?? null,
 });
 
 // ── Public endpoints — no auth required ──────────────────────────────────────
@@ -25,7 +27,10 @@ router.get('/:id/currency', async (req, res) => {
 });
 
 router.get('/:id/info', async (req, res) => {
-  const result = await pool.query('SELECT name, logo, theme_color, wait_time_min FROM restaurants WHERE id = $1', [req.params.id]);
+  const result = await pool.query(
+    'SELECT name, logo, theme_color, wait_time_min, room_service_open, room_service_close FROM restaurants WHERE id = $1',
+    [req.params.id],
+  );
   if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = result.rows[0] as Record<string, unknown>;
   res.json({
@@ -33,6 +38,8 @@ router.get('/:id/info', async (req, res) => {
     logo: row.logo ?? null,
     themeColor: (row.theme_color as string | null) ?? '#f97316',
     waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
+    roomServiceOpen:  (row.room_service_open  as string | null) ?? null,
+    roomServiceClose: (row.room_service_close as string | null) ?? null,
   });
 });
 
@@ -144,6 +151,18 @@ router.patch('/:id/wait-time', authenticate, requireRole('admin', 'kitchen'), as
   const { waitTimeMin } = req.body as { waitTimeMin: number | null };
   const safe = waitTimeMin == null ? null : Math.max(1, Math.min(180, Math.round(Number(waitTimeMin))));
   await pool.query('UPDATE restaurants SET wait_time_min = $1 WHERE id = $2', [safe, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/room-service-hours', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { roomServiceOpen, roomServiceClose } = req.body as { roomServiceOpen?: string | null; roomServiceClose?: string | null };
+  const timeRe = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const open  = typeof roomServiceOpen  === 'string' && timeRe.test(roomServiceOpen)  ? roomServiceOpen  : null;
+  const close = typeof roomServiceClose === 'string' && timeRe.test(roomServiceClose) ? roomServiceClose : null;
+  await pool.query('UPDATE restaurants SET room_service_open = $1, room_service_close = $2 WHERE id = $3', [open, close, id]);
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
