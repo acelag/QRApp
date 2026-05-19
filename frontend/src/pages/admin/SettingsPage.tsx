@@ -2,10 +2,11 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Users,
-  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock,
+  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock, Globe, Plus, Trash2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
+import { SUPPORTED_LANGUAGES } from '../../lib/languages';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { applyTheme } from '../../context/ThemeContext';
@@ -55,6 +56,8 @@ export function SettingsPage() {
   const [rsEnabled, setRsEnabled] = useState(false);
   const [rsSaving, setRsSaving] = useState(false);
   const [rsSuccess, setRsSuccess] = useState(false);
+  const [langs, setLangs]         = useState<{ code: string; name: string }[]>([]);
+  const [addingLang, setAddingLang] = useState(false);
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -72,6 +75,7 @@ export function SettingsPage() {
         setRsOpen(r.roomServiceOpen);
         setRsClose(r.roomServiceClose);
       }
+      restaurantService.getLanguages(r.id).then(setLangs).catch(() => {});
     });
   }, []);
 
@@ -640,6 +644,72 @@ export function SettingsPage() {
                 {rsSaving && <Loader2 size={15} className="animate-spin" />}
                 {rsSaving ? 'Saving…' : 'Save Room Service Hours'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Menu Languages ───────────────────────────────────────────── */}
+        {restaurant && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <Globe size={15} className="text-blue-500" />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-800">Menu Languages</h2>
+                <p className="text-xs text-gray-400">Customers can switch between these on the menu page</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-3">
+              {langs.length === 0 && <p className="text-sm text-gray-400">No extra languages configured. English is always available.</p>}
+              <div className="flex flex-wrap gap-2">
+                {langs.map((l) => (
+                  <span key={l.code} className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                    {l.name} ({l.code.toUpperCase()})
+                    <button
+                      onClick={async () => {
+                        await restaurantService.removeLanguage(restaurant.id, l.code).catch(() => {});
+                        setLangs((p) => p.filter((x) => x.code !== l.code));
+                      }}
+                      className="text-blue-400 hover:text-red-500 transition-colors ml-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              {addingLang ? (
+                <div className="flex items-center gap-2">
+                  <select
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300 bg-gray-50"
+                    defaultValue=""
+                    onChange={async (e) => {
+                      const code = e.target.value;
+                      if (!code) return;
+                      const found = SUPPORTED_LANGUAGES.find((l) => l.code === code);
+                      if (!found) return;
+                      const updated = await restaurantService.addLanguage(restaurant.id, found.code, found.name).catch(() => null);
+                      if (updated) setLangs(updated);
+                      setAddingLang(false);
+                    }}
+                  >
+                    <option value="">Select language…</option>
+                    {SUPPORTED_LANGUAGES.filter((l) => !langs.find((x) => x.code === l.code)).map((l) => (
+                      <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
+                    ))}
+                  </select>
+                  <button onClick={() => setAddingLang(false)} className="text-gray-400 hover:text-gray-600 p-1">
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddingLang(true)}
+                  className="flex items-center gap-1.5 text-sm text-blue-600 font-medium hover:text-blue-700"
+                >
+                  <Plus size={14} /> Add Language
+                </button>
+              )}
             </div>
           </div>
         )}

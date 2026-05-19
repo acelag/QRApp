@@ -5,7 +5,9 @@ import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { uploadImage } from '../../services/uploadService';
+import { restaurantService } from '../../services/restaurantService';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -25,6 +27,9 @@ const EMPTY: Omit<MenuItem, 'id'> = {
 
 export function MenuItemsPage() {
   const { fmt } = useCurrency();
+  const { user } = useAuth();
+  const [languages, setLanguages] = useState<{ code: string; name: string }[]>([]);
+  const [translations, setTranslations] = useState<Record<string, { name: string; description: string }>>({});
   const [items, setItems] = useState<MenuItem[]>([]);
   const [expandedToppings, setExpandedToppings] = useState<string | null>(null);
   const [newTopping, setNewTopping] = useState<Record<string, { name: string; price: string }>>({});
@@ -50,11 +55,17 @@ export function MenuItemsPage() {
       setCategories(c);
     });
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    if (user?.restaurantId) {
+      restaurantService.getLanguages(user.restaurantId).then(setLanguages).catch(() => {});
+    }
+  }, []);
 
   function openNew() {
     setEditing(null);
     setForm({ ...EMPTY, category: categories[0]?.id ?? '' });
+    setTranslations({});
     setPreview('');
     setShowForm(true);
   }
@@ -62,6 +73,7 @@ export function MenuItemsPage() {
   function openEdit(item: MenuItem) {
     setEditing(item);
     setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null });
+    setTranslations(item.translations ? Object.fromEntries(Object.entries(item.translations).map(([k, v]) => [k, { name: v.name, description: v.description }])) : {});
     setPreview(item.image ?? '');
     setShowForm(true);
   }
@@ -138,12 +150,13 @@ export function MenuItemsPage() {
     if (!form.name || !form.category) return toast.error('Name and category are required');
     if (uploading) return toast.error('Please wait for the image to finish uploading');
     try {
+      const payload = { ...form, translations };
       if (editing) {
-        const updated = await menuService.updateItem(editing.id, form);
+        const updated = await menuService.updateItem(editing.id, payload);
         setItems((p) => p.map((i) => (i.id === editing.id ? updated : i)));
         toast.success('Item updated');
       } else {
-        const created = await menuService.createItem(form);
+        const created = await menuService.createItem(payload);
         setItems((p) => [...p, created]);
         toast.success('Item created');
       }
@@ -750,6 +763,32 @@ export function MenuItemsPage() {
                 </div>
               )}
             </div>
+
+            {/* Translations */}
+            {languages.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Translations</p>
+                {languages.map((lang) => (
+                  <div key={lang.code} className="border border-gray-100 rounded-xl p-3 space-y-2 bg-gray-50">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{lang.name} ({lang.code})</p>
+                    <input
+                      type="text"
+                      placeholder={`Name in ${lang.name}`}
+                      value={translations[lang.code]?.name ?? ''}
+                      onChange={(e) => setTranslations((t) => ({ ...t, [lang.code]: { name: e.target.value, description: t[lang.code]?.description ?? '' } }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder={`Description in ${lang.name} (optional)`}
+                      value={translations[lang.code]?.description ?? ''}
+                      onChange={(e) => setTranslations((t) => ({ ...t, [lang.code]: { name: t[lang.code]?.name ?? '', description: e.target.value } }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-white"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Available toggle */}
             <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">

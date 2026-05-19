@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InstallPrompt } from './components/InstallPrompt';
 
@@ -54,6 +55,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <LanguageProvider>
         <CurrencyProvider>
         <ThemeProvider>
         <CartProvider>
@@ -104,6 +106,7 @@ export default function App() {
         </CartProvider>
         </ThemeProvider>
         </CurrencyProvider>
+        </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
   );

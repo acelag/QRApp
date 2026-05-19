@@ -19,6 +19,7 @@ export interface MenuItem {
   trackStock?: boolean;
   stock?: number | null;
   toppings?: Topping[];
+  translations?: Record<string, { name: string; description: string }>;
 }
 
 /** Returns the effective price after discount for the given size. */

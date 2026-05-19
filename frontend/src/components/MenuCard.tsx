@@ -5,6 +5,7 @@ import type { SelectedTopping } from '../types/Order';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
 import { ToppingSelectionModal } from './ToppingSelectionModal';
 
 interface Props {
@@ -14,6 +15,10 @@ interface Props {
 export function MenuCard({ item }: Props) {
   const { addItem, items } = useCart();
   const { fmt } = useCurrency();
+  const { lang } = useLanguage();
+  const tr = item.translations?.[lang];
+  const displayName = tr?.name || item.name;
+  const displayDesc = tr?.description || item.description;
   const hasLarge = item.largePrice != null && item.largePrice > 0;
   const hasToppings = (item.toppings ?? []).some((t) => t.available);
   const [showModal, setShowModal] = useState(false);
@@ -60,9 +65,9 @@ export function MenuCard({ item }: Props) {
           )}
         </div>
         <div className="p-3 flex flex-col flex-1">
-          <h3 className="font-semibold text-gray-900 leading-tight">{item.name}</h3>
-          {item.description && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">{item.description}</p>
+          <h3 className="font-semibold text-gray-900 leading-tight">{displayName}</h3>
+          {displayDesc && (
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">{displayDesc}</p>
           )}
 
           <div className="mt-3 space-y-2">

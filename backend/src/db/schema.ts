@@ -207,6 +207,26 @@ export async function createSchema(): Promise<void> {
   await addCol('orders', 'assigned_waiter_name', 'VARCHAR(255) NULL');
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS restaurant_languages (
+      restaurant_id VARCHAR(36) NOT NULL,
+      language_code VARCHAR(10) NOT NULL,
+      language_name VARCHAR(50) NOT NULL,
+      PRIMARY KEY (restaurant_id, language_code)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS menu_item_translations (
+      id            VARCHAR(36)   NOT NULL PRIMARY KEY,
+      menu_item_id  VARCHAR(36)   NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+      language_code VARCHAR(10)   NOT NULL,
+      name          VARCHAR(255)  NOT NULL,
+      description   VARCHAR(1000) NOT NULL DEFAULT '',
+      UNIQUE(menu_item_id, language_code)
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS reservations (
       id             VARCHAR(36)   NOT NULL PRIMARY KEY,
       restaurant_id  VARCHAR(36)   NOT NULL,

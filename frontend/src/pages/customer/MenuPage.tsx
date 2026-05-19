@@ -12,6 +12,7 @@ import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { UtensilsCrossed, ClipboardList } from 'lucide-react';
+import { MenuLangSelector } from '../../components/MenuLangSelector';
 
 export function MenuPage() {
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
@@ -23,6 +24,7 @@ export function MenuPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null } | null>(null);
+  const [languages, setLanguages] = useState<{ code: string; name: string }[]>([]);
 
   useEffect(() => {
     if (!tableIdParam) return;
@@ -32,6 +34,7 @@ export function MenuPage() {
       loadCurrency(table.restaurantId);
       loadTheme(table.restaurantId);
       restaurantService.getRestaurantInfo(table.restaurantId).then(setRestaurantInfo).catch(() => {});
+      restaurantService.getLanguages(table.restaurantId).then(setLanguages).catch(() => {});
       return Promise.all([
         menuService.getCategories(table.restaurantId),
         menuService.getItems(table.restaurantId),
@@ -77,7 +80,10 @@ export function MenuPage() {
               </Link>
             )}
           </div>
-          <p className="text-sm text-gray-500">Table {tableNumber}</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-sm text-gray-500">Table {tableNumber}</p>
+            <MenuLangSelector available={languages} />
+          </div>
         </div>
         <div className="max-w-lg mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
