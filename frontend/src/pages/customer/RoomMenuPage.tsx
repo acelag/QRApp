@@ -69,6 +69,7 @@ export function RoomMenuPage() {
   const [cart, dispatch]            = useReducer(cartReducer, []);
   const [guestName, setGuestName]   = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  const [chargeToRoom, setChargeToRoom] = useState(false);
   const [cartOpen, setCartOpen]     = useState(false);
   const [rsOpen, setRsOpen]   = useState<string | null>(null);
   const [rsClose, setRsClose] = useState<string | null>(null);
@@ -165,6 +166,7 @@ export function RoomMenuPage() {
         roomInfo.restaurantId,
         promoResult?.valid ? promoResult.code : undefined,
         guestPhone.trim() || undefined,
+        chargeToRoom ? 'room-charge' : undefined,
       );
       dispatch({ type: 'CLEAR' });
       setPromoResult(null);
@@ -306,6 +308,19 @@ export function RoomMenuPage() {
                     placeholder="📱 Phone for WhatsApp/SMS confirmation (optional)"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-300"
                   />
+                  {/* Charge to Room toggle */}
+                  <label className={`flex items-center gap-3 mt-1 px-3 py-2.5 rounded-xl cursor-pointer border transition-colors ${chargeToRoom ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'}`}>
+                    <div
+                      onClick={() => setChargeToRoom((p) => !p)}
+                      className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${chargeToRoom ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${chargeToRoom ? 'translate-x-4' : ''}`} />
+                    </div>
+                    <div>
+                      <p className={`text-sm font-semibold ${chargeToRoom ? 'text-blue-700' : 'text-gray-600'}`}>Charge to Room</p>
+                      <p className="text-xs text-gray-400">Bill will be added to your room account</p>
+                    </div>
+                  </label>
                 </div>
                 <ul className="overflow-y-auto flex-1 divide-y divide-gray-50 px-4">
                   {cart.map((c) => {

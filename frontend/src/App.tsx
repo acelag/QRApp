@@ -36,6 +36,7 @@ import { ReadyDisplayPage } from './pages/admin/ReadyDisplayPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { RoomsPage } from './pages/admin/RoomsPage';
 import { PromoCodesPage } from './pages/admin/PromoCodesPage';
+import { RoomChargesPage } from './pages/admin/RoomChargesPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -87,6 +88,7 @@ export default function App() {
             <Route path="/admin/reports" element={<ProtectedRoute role="admin"><ReportsPage /></ProtectedRoute>} />
             <Route path="/admin/rooms" element={<ProtectedRoute role="admin"><RoomsPage /></ProtectedRoute>} />
             <Route path="/admin/promo-codes" element={<ProtectedRoute role="admin"><PromoCodesPage /></ProtectedRoute>} />
+            <Route path="/admin/room-charges" element={<ProtectedRoute role="admin"><RoomChargesPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by both kitchen and admin */}
             <Route path="/kitchen" element={<ProtectedRoute role="any"><KitchenPage /></ProtectedRoute>} />

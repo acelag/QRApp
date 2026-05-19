@@ -73,8 +73,8 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
-  const { tableId, tableNumber, roomId, roomNumber, items, sessionId, restaurantId, orderType = 'dine-in', customerName, customerPhone } =
-    req.body as { tableId?: string; tableNumber?: number; roomId?: string; roomNumber?: number; items: CartItem[]; sessionId?: string; restaurantId?: string; orderType?: 'dine-in' | 'takeaway' | 'room-service'; customerName?: string; customerPhone?: string; };
+  const { tableId, tableNumber, roomId, roomNumber, items, sessionId, restaurantId, orderType = 'dine-in', customerName, customerPhone, paymentMethod: initialPaymentMethod } =
+    req.body as { tableId?: string; tableNumber?: number; roomId?: string; roomNumber?: number; items: CartItem[]; sessionId?: string; restaurantId?: string; orderType?: 'dine-in' | 'takeaway' | 'room-service'; customerName?: string; customerPhone?: string; paymentMethod?: string; };
   if (!items?.length) { res.status(400).json({ error: 'items are required' }); return; }
   if (orderType === 'dine-in' && !tableId) { res.status(400).json({ error: 'tableId is required for dine-in orders' }); return; }
   if (orderType === 'room-service' && !roomId) { res.status(400).json({ error: 'roomId is required for room-service orders' }); return; }
@@ -139,9 +139,9 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     const prefix = (seqRow.order_number_prefix as string | null) ?? 'ORD';
     const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
     await client.query(
-      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,customer_phone,status,total_amount,discount_amount,promo_code,order_number,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,$15)`,
-      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, customerPhone?.trim() || null, totalAmount, discountAmount, validatedPromoCode, orderNumber, now],
+      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,customer_phone,status,total_amount,discount_amount,promo_code,order_number,payment_method,created_at,updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,$16,$16)`,
+      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, customerPhone?.trim() || null, totalAmount, discountAmount, validatedPromoCode, orderNumber, initialPaymentMethod?.trim() || null, now],
     );
     // Increment promo code usage
     if (validatedPromoCode) {
@@ -220,6 +220,18 @@ router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async
         [status, now, paymentMethod ?? null, req.params.id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   sendPushToOrder(String(req.params.id), status).catch(() => {});
+  res.json(await buildOrder(String(req.params.id)));
+});
+
+router.patch('/:id/payment-method', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { paymentMethod } = req.body as { paymentMethod: string };
+  if (!paymentMethod?.trim()) { res.status(400).json({ error: 'paymentMethod is required' }); return; }
+  const rid = req.user!.restaurantId;
+  const now = new Date().toISOString();
+  const result = rid
+    ? await pool.query('UPDATE orders SET payment_method=$1, updated_at=$2 WHERE id=$3 AND restaurant_id=$4', [paymentMethod.trim(), now, req.params.id, rid])
+    : await pool.query('UPDATE orders SET payment_method=$1, updated_at=$2 WHERE id=$3', [paymentMethod.trim(), now, req.params.id]);
+  if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(await buildOrder(String(req.params.id)));
 });
 
