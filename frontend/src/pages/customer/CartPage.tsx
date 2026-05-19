@@ -74,7 +74,7 @@ export function CartPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-orange-600 font-medium text-sm">{fmt(item.price)} base</p>
+                  <p className="text-orange-600 font-medium text-sm">{fmt(item.price)}</p>
                   {(item.toppings ?? []).length > 0 && (
                     <ul className="mt-1 space-y-0.5">
                       {item.toppings!.map((t, ti) => (

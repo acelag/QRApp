@@ -100,6 +100,8 @@ export function NewOrderPage() {
 
   // Clear cart and selection when switching mode
   function switchMode(m: OrderMode) {
+    if (m === mode) return;
+    if (cart.length > 0 && !window.confirm('Switching order type will clear your current cart. Continue?')) return;
     setMode(m);
     dispatch({ type: 'CLEAR' });
     setSelectedTable(null);

@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, Clock } from 'lucide-react';
+import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, Clock, RefreshCw } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import type { CartItem } from '../../types/Order';
@@ -63,6 +63,7 @@ export function RoomMenuPage() {
   const [items, setItems]           = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading]       = useState(true);
+  const [loadError, setLoadError]   = useState(false);
   const [roomInfo, setRoomInfo]     = useState<{ number: number; name?: string | null; restaurantId: string } | null>(null);
   const [restaurantName, setRestaurantName] = useState<string>('');
 
@@ -83,8 +84,10 @@ export function RoomMenuPage() {
   const { fmt, loadCurrency } = useCurrency();
   const { loadTheme } = useTheme();
 
-  useEffect(() => {
+  function loadMenu() {
     if (!roomId) return;
+    setLoadError(false);
+    setLoading(true);
     roomService.getRoom(roomId)
       .then(async (room) => {
         setRoomInfo({ number: room.number, name: room.name, restaurantId: room.restaurantId });
@@ -100,7 +103,6 @@ export function RoomMenuPage() {
         setRsClose(info?.roomServiceClose ?? null);
         setCategories(cats);
         setItems(menuItems.filter((i) => i.available));
-        // Pre-load reorder items if navigated from Order Again
         const reorderItems = (location.state as { reorderItems?: CartItem[] } | null)?.reorderItems;
         if (reorderItems?.length) {
           dispatch({ type: 'INIT', items: reorderItems });
@@ -108,9 +110,11 @@ export function RoomMenuPage() {
           toast.success(`${reorderItems.reduce((s, i) => s + i.quantity, 0)} item(s) added — ready to reorder!`);
         }
       })
-      .catch(() => toast.error('Failed to load menu'))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [roomId]);
+  }
+
+  useEffect(() => { loadMenu(); }, [roomId]);
 
   const filtered  = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
@@ -184,6 +188,22 @@ export function RoomMenuPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <BedDouble size={40} className="text-gray-300" />
+        <p className="text-gray-500 font-medium">Could not load the menu</p>
+        <p className="text-sm text-gray-400">Check your connection and try again</p>
+        <button
+          onClick={loadMenu}
+          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-700 transition-colors"
+        >
+          <RefreshCw size={15} /> Try Again
+        </button>
       </div>
     );
   }

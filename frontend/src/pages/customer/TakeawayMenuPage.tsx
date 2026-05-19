@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
@@ -62,6 +62,7 @@ export function TakeawayMenuPage() {
   const [items, setItems]             = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading]         = useState(true);
+  const [loadError, setLoadError]     = useState(false);
   const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null } | null>(null);
 
   const [cart, dispatch]              = useReducer(cartReducer, []);
@@ -77,8 +78,10 @@ export function TakeawayMenuPage() {
   const { fmt, loadCurrency } = useCurrency();
   const { loadTheme } = useTheme();
 
-  useEffect(() => {
+  function loadMenu() {
     if (!restaurantId) return;
+    setLoadError(false);
+    setLoading(true);
     restaurantService.getRestaurantInfo(restaurantId).then(setRestaurantInfo).catch(() => {});
     Promise.all([
       menuService.getCategories(restaurantId),
@@ -87,16 +90,17 @@ export function TakeawayMenuPage() {
       setCategories(cats);
       setItems(menuItems.filter((i) => i.available));
       if (restaurantId) { loadCurrency(restaurantId); loadTheme(restaurantId); }
-      // Pre-load reorder items if navigated from Order Again
       const reorderItems = (location.state as { reorderItems?: CartItem[] } | null)?.reorderItems;
       if (reorderItems?.length) {
         dispatch({ type: 'INIT', items: reorderItems });
         setCartOpen(true);
         toast.success(`${reorderItems.reduce((s, i) => s + i.quantity, 0)} item(s) added — ready to reorder!`);
       }
-    }).catch(() => toast.error('Failed to load menu'))
+    }).catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [restaurantId]);
+  }
+
+  useEffect(() => { loadMenu(); }, [restaurantId]);
 
   const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
 
@@ -161,6 +165,22 @@ export function TakeawayMenuPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <ShoppingBag size={40} className="text-gray-300" />
+        <p className="text-gray-500 font-medium">Could not load the menu</p>
+        <p className="text-sm text-gray-400">Check your connection and try again</p>
+        <button
+          onClick={loadMenu}
+          className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-purple-700 transition-colors"
+        >
+          <RefreshCw size={15} /> Try Again
+        </button>
       </div>
     );
   }
