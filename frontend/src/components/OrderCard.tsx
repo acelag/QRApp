@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
@@ -32,6 +32,28 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
       if (next.has(idx)) next.delete(idx); else next.add(idx);
       return next;
     });
+  }
+
+  function buildBillWhatsAppUrl(): string {
+    const lines: string[] = [
+      `🧾 Bill — #${order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}`,
+      '',
+      ...order.items.map((i) => {
+        const toppingsTotal = (i.toppings ?? []).reduce((s, t) => s + t.price, 0);
+        return `• ${i.quantity}× ${i.name} — ${fmt((i.price + toppingsTotal) * i.quantity)}`;
+      }),
+      '',
+    ];
+    if ((order.discountAmount ?? 0) > 0) {
+      lines.push(`Subtotal: ${fmt(order.totalAmount + (order.discountAmount ?? 0))}`);
+      lines.push(`Discount: -${fmt(order.discountAmount ?? 0)}`);
+    }
+    lines.push(`Total: ${fmt(order.totalAmount)}`);
+    lines.push('', 'Thank you! 🙏');
+    const text = encodeURIComponent(lines.join('\n'));
+    const phone = order.customerPhone!.replace(/\D/g, '');
+    const e164 = phone.startsWith('0') ? `94${phone.slice(1)}` : phone;
+    return `https://wa.me/${e164}?text=${text}`;
   }
 
   function handlePrint() {
@@ -212,6 +234,16 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
             >
               <Printer size={13} /> Print Bill
             </button>
+          )}
+          {showActions && order.status === 'served' && order.customerPhone && (
+            <a
+              href={buildBillWhatsAppUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white text-sm rounded-full font-medium hover:bg-green-600 transition-colors whitespace-nowrap"
+            >
+              <MessageCircle size={13} /> Send Bill
+            </a>
           )}
           {showActions && onStatusChange && nextStatus && (
             <button
