@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, ShoppingBag } from 'lucide-react';
 import { NotificationBell } from '../../components/NotificationBell';
+import { SoundAlertToggle } from '../../components/SoundAlertToggle';
+import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
 import { OrderCard } from '../../components/OrderCard';
@@ -20,6 +22,8 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [tab, setTab] = useState<OrderStatus | 'all' | 'takeaway'>('all');
   const [loading, setLoading] = useState(true);
+
+  useOrderSoundAlert(orders);
 
   const fetch = async () => {
     try {
@@ -67,6 +71,7 @@ export function OrdersPage() {
           >
             <ShoppingBag size={13} /> Takeaway
           </Link>
+          <SoundAlertToggle />
           <NotificationBell />
           <button onClick={fetch} className="text-gray-400 hover:text-gray-600">
             <RefreshCw size={18} />

@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, LogOut, UtensilsCrossed, ClipboardList, Clock } from 'lucide-react';
 import { NotificationBell } from '../../components/NotificationBell';
+import { SoundAlertToggle } from '../../components/SoundAlertToggle';
+import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
 import type { MenuItem, Category } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -19,6 +21,8 @@ export function KitchenPage() {
 
   const [tab, setTab]       = useState<KitchenTab>('orders');
   const [orders, setOrders] = useState<Order[]>([]);
+
+  useOrderSoundAlert(orders);
   const [waitTimeMin, setWaitTimeMin]   = useState<number | null>(null);
   const [waitOpen, setWaitOpen]         = useState(false);
   const [waitSaving, setWaitSaving]     = useState(false);
@@ -175,6 +179,7 @@ export function KitchenPage() {
           )}
         </div>
 
+        <SoundAlertToggle />
         <NotificationBell theme="dark" />
         <button onClick={handleLogout} className="text-gray-400 hover:text-red-400 transition-colors">
           <LogOut size={18} />
