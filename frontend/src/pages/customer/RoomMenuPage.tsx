@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
@@ -27,6 +27,7 @@ type CartAction =
   | { type: 'DEC';       key: string }
   | { type: 'REMOVE';    key: string }
   | { type: 'SET_NOTES'; key: string; notes: string }
+  | { type: 'INIT';      items: CartItem[] }
   | { type: 'CLEAR' };
 
 function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
@@ -46,6 +47,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
       return state.filter((c) => cartKey(c.menuItemId, c.size, c.toppings) !== action.key);
     case 'SET_NOTES':
       return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === action.key ? { ...c, notes: action.notes || undefined } : c);
+    case 'INIT': return action.items;
     case 'CLEAR': return [];
     default: return state;
   }
@@ -54,6 +56,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
 export function RoomMenuPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems]           = useState<MenuItem[]>([]);
@@ -87,6 +90,13 @@ export function RoomMenuPage() {
         setRestaurantName(info?.name ?? '');
         setCategories(cats);
         setItems(menuItems.filter((i) => i.available));
+        // Pre-load reorder items if navigated from Order Again
+        const reorderItems = (location.state as { reorderItems?: CartItem[] } | null)?.reorderItems;
+        if (reorderItems?.length) {
+          dispatch({ type: 'INIT', items: reorderItems });
+          setCartOpen(true);
+          toast.success(`${reorderItems.reduce((s, i) => s + i.quantity, 0)} item(s) added — ready to reorder!`);
+        }
       })
       .catch(() => toast.error('Failed to load menu'))
       .finally(() => setLoading(false));

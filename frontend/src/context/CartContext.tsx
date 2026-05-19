@@ -24,6 +24,7 @@ type CartAction =
   | { type: 'REMOVE_ITEM'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[] } }
   | { type: 'UPDATE_QTY'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; quantity: number } }
   | { type: 'UPDATE_NOTES'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; notes: string } }
+  | { type: 'BULK_ADD'; payload: { items: CartItem[] } }
   | { type: 'SET_TABLE'; payload: { tableId: string; tableNumber: number } }
   | { type: 'SET_SESSION'; payload: { sessionId: string } }
   | { type: 'SET_RESTAURANT'; payload: { restaurantId: string } }
@@ -34,6 +35,7 @@ interface CartContextValue extends CartState {
   removeItem: (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) => void;
   updateQty: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], quantity?: number) => void;
   updateNotes: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], notes?: string) => void;
+  bulkAdd: (items: CartItem[]) => void;
   setTable: (tableId: string, tableNumber: number) => void;
   setSession: (sessionId: string) => void;
   setRestaurant: (restaurantId: string) => void;
@@ -92,6 +94,19 @@ function reducer(state: CartState, action: CartAction): CartState {
         ),
       };
     }
+    case 'BULK_ADD': {
+      const merged = [...state.items];
+      for (const newItem of action.payload.items) {
+        const key = itemKey(newItem.menuItemId, newItem.size, newItem.toppings);
+        const idx = merged.findIndex((i) => itemKey(i.menuItemId, i.size, i.toppings) === key);
+        if (idx >= 0) {
+          merged[idx] = { ...merged[idx], quantity: merged[idx].quantity + newItem.quantity };
+        } else {
+          merged.push({ ...newItem });
+        }
+      }
+      return { ...state, items: merged };
+    }
     case 'SET_TABLE':
       return { ...state, tableId: action.payload.tableId, tableNumber: action.payload.tableNumber };
     case 'SET_SESSION':
@@ -128,6 +143,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'UPDATE_QTY', payload: { menuItemId, size, toppings, quantity: quantity ?? 0 } }),
         updateNotes: (menuItemId, size, toppings, notes) =>
           dispatch({ type: 'UPDATE_NOTES', payload: { menuItemId, size, toppings, notes: notes ?? '' } }),
+        bulkAdd: (items) =>
+          dispatch({ type: 'BULK_ADD', payload: { items } }),
         setTable: (tableId, tableNumber) =>
           dispatch({ type: 'SET_TABLE', payload: { tableId, tableNumber } }),
         setSession: (sessionId) =>

@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { CheckCircle, RotateCcw } from 'lucide-react';
 import type { Order } from '../../types';
+import type { CartItem } from '../../types/Order';
 import { orderService } from '../../services/orderService';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useCart } from '../../context/CartContext';
+import toast from 'react-hot-toast';
 
 export function OrderSuccessPage() {
   const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const { fmt } = useCurrency();
+  const { bulkAdd } = useCart();
 
   useEffect(() => {
     if (!orderId) return;
@@ -20,6 +25,31 @@ export function OrderSuccessPage() {
     const id = setInterval(poll, 5000);
     return () => clearInterval(id);
   }, [orderId]);
+
+  function handleReorder() {
+    if (!order) return;
+    const items: CartItem[] = order.items.map((i) => ({
+      menuItemId: i.menuItemId,
+      name: i.name,
+      price: i.price,
+      quantity: i.quantity,
+      notes: i.notes,
+      size: i.size,
+      toppings: i.toppings,
+    }));
+
+    if (order.orderType === 'dine-in' && order.tableId) {
+      bulkAdd(items);
+      toast.success('Items added to your cart!');
+      navigate(`/menu/${order.tableId}`);
+    } else if (order.orderType === 'takeaway' && order.restaurantId) {
+      navigate(`/takeaway/${order.restaurantId}`, { state: { reorderItems: items } });
+    } else if (order.orderType === 'room-service' && order.roomId) {
+      navigate(`/room/${order.roomId}`, { state: { reorderItems: items } });
+    } else {
+      toast.error('Cannot reorder — original order details unavailable');
+    }
+  }
 
   if (!order) {
     return (
@@ -35,7 +65,13 @@ export function OrderSuccessPage() {
         <div className="flex flex-col items-center mb-6">
           <CheckCircle className="text-green-500 mb-3" size={56} />
           <h1 className="text-2xl font-bold text-gray-900">Order Placed!</h1>
-          <p className="text-gray-500 text-sm mt-1">Table {order.tableNumber}</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {order.orderType === 'room-service'
+              ? `Room ${order.roomNumber}`
+              : order.orderType === 'takeaway'
+              ? order.customerName ?? 'Takeaway'
+              : `Table ${order.tableNumber}`}
+          </p>
         </div>
 
         <div className="flex items-center justify-between mb-4">
@@ -74,12 +110,20 @@ export function OrderSuccessPage() {
           })}
         </ul>
 
-        <div className="border-t border-gray-100 pt-3 flex justify-between font-semibold">
+        <div className="border-t border-gray-100 pt-3 flex justify-between font-semibold mb-5">
           <span>Total</span>
           <span>{fmt(order.totalAmount)}</span>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-4">
+        {/* Order Again */}
+        <button
+          onClick={handleReorder}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm bg-orange-500 text-white hover:bg-orange-600 transition-colors mb-3"
+        >
+          <RotateCcw size={16} /> Order Again
+        </button>
+
+        <p className="text-center text-xs text-gray-400">
           This page refreshes automatically every 5 seconds
         </p>
 
