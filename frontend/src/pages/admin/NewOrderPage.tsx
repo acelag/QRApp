@@ -69,6 +69,7 @@ export function NewOrderPage() {
 
   const [cart, dispatch] = useReducer(cartReducer, []);
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [placing, setPlacing] = useState(false);
@@ -104,6 +105,7 @@ export function NewOrderPage() {
     setSelectedTable(null);
     setSelectedRoom(null);
     setCustomerName('');
+    setCustomerPhone('');
     setAppliedPromo(null);
     setPromoInput('');
     setPromoError('');
@@ -161,8 +163,9 @@ export function NewOrderPage() {
     setPlacing(true);
     try {
       const code = appliedPromo?.code;
+      const phone = customerPhone.trim() || undefined;
       if (mode === 'takeaway') {
-        await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined, user?.restaurantId ?? undefined, code);
+        await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined, user?.restaurantId ?? undefined, code, phone);
         toast.success('Takeaway order placed!');
         navigate('/admin/orders');
       } else if (mode === 'dine-in') {
@@ -175,7 +178,7 @@ export function NewOrderPage() {
       } else {
         const room = selectedRoom!;
         const restaurantId = user?.restaurantId ?? '';
-        await orderService.placeRoomOrder(room.id, room.number, cart, customerName.trim() || undefined, restaurantId, code);
+        await orderService.placeRoomOrder(room.id, room.number, cart, customerName.trim() || undefined, restaurantId, code, phone);
         toast.success(`Room service order placed for Room ${room.number}!`);
         navigate('/admin/orders');
       }
@@ -377,21 +380,37 @@ export function NewOrderPage() {
             </div>
           )}
 
-          {/* Customer / guest name — takeaway or room-service */}
+          {/* Customer / guest name & phone — takeaway or room-service */}
           {(mode === 'takeaway' || mode === 'room-service') && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
-                {mode === 'room-service' ? 'Guest Name' : 'Customer Name'}
-              </label>
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="e.g. John (optional)"
-                className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
-                  mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : 'focus:ring-1 focus:ring-purple-300'
-                }`}
-              />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  {mode === 'room-service' ? 'Guest Name' : 'Customer Name'}
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="e.g. John (optional)"
+                  className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
+                    mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : 'focus:ring-1 focus:ring-purple-300'
+                  }`}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  WhatsApp / Phone
+                </label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="e.g. 0771234567 (optional)"
+                  className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
+                    mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : 'focus:ring-1 focus:ring-purple-300'
+                  }`}
+                />
+              </div>
             </div>
           )}
 
