@@ -162,22 +162,22 @@ export function NewOrderPage() {
     try {
       const code = appliedPromo?.code;
       if (mode === 'takeaway') {
-        const order = await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined, user?.restaurantId ?? undefined, code);
+        await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined, user?.restaurantId ?? undefined, code);
         toast.success('Takeaway order placed!');
-        navigate(`/receipt/${order.id}`);
+        navigate('/admin/orders');
       } else if (mode === 'dine-in') {
         const table = selectedTable!;
         const restaurantId = user?.restaurantId ?? '';
         const session = await sessionService.getOrCreate(table.id, table.number, restaurantId);
-        const order = await orderService.placeOrder(table.id, table.number, cart, session.id, restaurantId, code);
+        await orderService.placeOrder(table.id, table.number, cart, session.id, restaurantId, code);
         toast.success(`Dine-in order placed for Table ${table.number}!`);
-        navigate(`/receipt/${order.id}`);
+        navigate('/admin/orders');
       } else {
         const room = selectedRoom!;
         const restaurantId = user?.restaurantId ?? '';
-        const order = await orderService.placeRoomOrder(room.id, room.number, cart, customerName.trim() || undefined, restaurantId, code);
+        await orderService.placeRoomOrder(room.id, room.number, cart, customerName.trim() || undefined, restaurantId, code);
         toast.success(`Room service order placed for Room ${room.number}!`);
-        navigate(`/receipt/${order.id}`);
+        navigate('/admin/orders');
       }
     } catch {
       toast.error('Failed to place order');
