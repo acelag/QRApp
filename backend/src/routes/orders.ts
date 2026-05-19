@@ -162,6 +162,14 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
           [uuid(), orderItemId, topping.id, topping.name, topping.price],
         );
       }
+      // Decrement stock for tracked items; auto-disable when it reaches 0
+      await client.query(
+        `UPDATE menu_items
+         SET stock     = GREATEST(0, stock - $1),
+             available = CASE WHEN stock - $1 <= 0 THEN false ELSE available END
+         WHERE id = $2 AND track_stock = true AND stock IS NOT NULL`,
+        [item.quantity, item.menuItemId],
+      );
     }
     await client.query('COMMIT');
   } catch (err) {

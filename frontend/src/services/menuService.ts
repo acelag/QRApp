@@ -26,6 +26,9 @@ export const menuService = {
   setAvailability: (id: string, available: boolean) =>
     axios.patch<{ id: string; name: string; available: boolean }>(`${BASE}/menu-items/${id}/availability`, { available }).then((r) => r.data),
 
+  setStock: (id: string, stock: number | null) =>
+    axios.patch<MenuItem>(`${BASE}/menu-items/${id}/stock`, { stock }).then((r) => r.data),
+
   createCategory: (name: string) =>
     axios.post<Category>(`${BASE}/categories`, { name }).then((r) => r.data),
 

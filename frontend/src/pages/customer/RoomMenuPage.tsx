@@ -253,6 +253,11 @@ export function RoomMenuPage() {
                         {hasToppings ? '+ Extras' : 'R / L'}
                       </span>
                     )}
+                    {item.trackStock && item.stock != null && item.stock <= 5 && (
+                      <span className={`absolute bottom-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded-full ${item.stock <= 2 ? 'bg-red-500 text-white' : 'bg-amber-400 text-white'}`}>
+                        Only {item.stock} left
+                      </span>
+                    )}
                   </div>
                   <div className="p-3 flex flex-col flex-1">
                     <h3 className="font-semibold text-gray-900 text-sm leading-tight">{item.name}</h3>

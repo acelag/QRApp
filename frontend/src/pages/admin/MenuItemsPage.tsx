@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -18,6 +18,8 @@ const EMPTY: Omit<MenuItem, 'id'> = {
   category: '',
   image: '',
   available: true,
+  trackStock: false,
+  stock: null,
 };
 
 export function MenuItemsPage() {
@@ -36,6 +38,7 @@ export function MenuItemsPage() {
   const [editingCatName, setEditingCatName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string>('');
+  const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = () =>
@@ -55,9 +58,21 @@ export function MenuItemsPage() {
 
   function openEdit(item: MenuItem) {
     setEditing(item);
-    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available });
+    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null });
     setPreview(item.image ?? '');
     setShowForm(true);
+  }
+
+  async function saveStock(id: string, value: string) {
+    const num = value === '' ? null : Math.max(0, parseInt(value, 10));
+    try {
+      const updated = await menuService.setStock(id, num);
+      setItems((p) => p.map((i) => (i.id === id ? updated : i)));
+      toast.success(num == null ? 'Stock tracking cleared' : `Stock set to ${num}`);
+    } catch {
+      toast.error('Failed to update stock');
+    }
+    setEditingStock(null);
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -301,6 +316,16 @@ export function MenuItemsPage() {
                     Off
                   </span>
                 )}
+                {item.trackStock && item.stock != null && item.available && (
+                  <span className={`absolute top-2 right-2 text-xs font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
+                    item.stock === 0 ? 'bg-red-500 text-white' :
+                    item.stock <= 3 ? 'bg-amber-400 text-white' :
+                    'bg-green-500 text-white'
+                  }`}>
+                    <Package size={10} />
+                    {item.stock}
+                  </span>
+                )}
               </div>
 
               {/* Tile body */}
@@ -336,10 +361,44 @@ export function MenuItemsPage() {
                   )}
                 </div>
 
+                {/* Inline stock control */}
+                {item.trackStock && (
+                  <div className="mt-2 flex items-center gap-1">
+                    {editingStock?.id === item.id ? (
+                      <>
+                        <input
+                          autoFocus
+                          type="number"
+                          min="0"
+                          value={editingStock.value}
+                          onChange={(e) => setEditingStock({ id: item.id, value: e.target.value })}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveStock(item.id, editingStock.value); if (e.key === 'Escape') setEditingStock(null); }}
+                          className="w-16 text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-orange-300"
+                        />
+                        <button onClick={() => saveStock(item.id, editingStock.value)} className="text-green-500 hover:text-green-600"><Check size={13} /></button>
+                        <button onClick={() => setEditingStock(null)} className="text-gray-400 hover:text-gray-600"><X size={13} /></button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setEditingStock({ id: item.id, value: String(item.stock ?? '') })}
+                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
+                          item.stock == null ? 'text-gray-400 hover:bg-gray-100' :
+                          item.stock <= 3 ? 'text-amber-600 bg-amber-50 hover:bg-amber-100' :
+                          'text-green-600 bg-green-50 hover:bg-green-100'
+                        }`}
+                      >
+                        {item.stock == null ? <><Package size={11} /> Set stock</> :
+                         item.stock <= 3 ? <><AlertTriangle size={11} /> {item.stock} left</> :
+                         <><Package size={11} /> {item.stock} in stock</>}
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Extras toggle */}
                 <button
                   onClick={() => setExpandedToppings(expandedToppings === item.id ? null : item.id)}
-                  className="mt-2 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors self-start"
+                  className="mt-1 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors self-start"
                 >
                   Extras ({(item.toppings ?? []).length})
                   {expandedToppings === item.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
@@ -613,6 +672,35 @@ export function MenuItemsPage() {
               >
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+            </div>
+
+            {/* Stock tracking */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.trackStock ?? false}
+                  onChange={(e) => setForm((f) => ({ ...f, trackStock: e.target.checked, stock: e.target.checked ? (f.stock ?? null) : null }))}
+                  className="accent-orange-500"
+                />
+                <Package size={14} className="text-gray-400" />
+                Track inventory / stock
+              </label>
+              {form.trackStock && (
+                <div>
+                  <label className="text-sm text-gray-600 mb-1 block">Stock quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.stock ?? ''}
+                    onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value ? parseInt(e.target.value, 10) : null }))}
+                    placeholder="e.g. 5"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Auto-marks unavailable when stock reaches 0. Leave blank to track without a limit.</p>
+                </div>
+              )}
             </div>
 
             {/* Available toggle */}

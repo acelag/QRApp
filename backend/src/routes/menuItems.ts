@@ -29,6 +29,8 @@ const toItem = (row: Record<string, unknown>) => ({
   category:         row.category_id,
   image:            row.image ?? undefined,
   available:        row.available === true,
+  trackStock:       row.track_stock === true,
+  stock:            row.stock != null ? Number(row.stock) : null,
   toppings:         (row.toppings as { id: string; name: string; price: number; available: boolean }[] | null) ?? [],
 });
 
@@ -49,36 +51,41 @@ router.get('/', optionalAuthenticate, async (req, res) => {
 });
 
 router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
-  const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true } =
-    req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean };
+  const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock } =
+    req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null };
   if (!name || !category) { res.status(400).json({ error: 'name and category are required' }); return; }
   const safeDiscount = Math.min(100, Math.max(0, Number(discountPct) || 0));
   const safeLargePrice = largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null;
   const safeLargeDiscount = Math.min(100, Math.max(0, Number(largeDiscountPct) || 0));
+  const safeStock = trackStock && stock != null ? Math.max(0, Math.round(Number(stock))) : null;
   const id = uuid();
   await pool.query(
-    `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-    [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available],
+    `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available, track_stock, stock) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+    [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock],
   );
-  res.status(201).json(toItem({ id, name, description, price, discount_pct: safeDiscount, large_price: safeLargePrice, large_discount_pct: safeLargeDiscount, category_id: category, image, available, toppings: [] }));
+  res.status(201).json(toItem({ id, name, description, price, discount_pct: safeDiscount, large_price: safeLargePrice, large_discount_pct: safeLargeDiscount, category_id: category, image, available, track_stock: trackStock, stock: safeStock, toppings: [] }));
 });
 
 router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   const existing = await pool.query('SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if (!existing.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = existing.rows[0] as Record<string, unknown>;
-  const { name, description, price, discountPct, largePrice, largeDiscountPct, category, image, available } =
-    req.body as { name?: string; description?: string; price?: number; discountPct?: number; largePrice?: number | null; largeDiscountPct?: number; category?: string; image?: string; available?: boolean };
+  const { name, description, price, discountPct, largePrice, largeDiscountPct, category, image, available, trackStock, stock } =
+    req.body as { name?: string; description?: string; price?: number; discountPct?: number; largePrice?: number | null; largeDiscountPct?: number; category?: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null };
   const safeDiscount = discountPct !== undefined ? Math.min(100, Math.max(0, Number(discountPct) || 0)) : Number(row.discount_pct ?? 0);
   const safeLargePrice = largePrice !== undefined
     ? (largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null)
     : (row.large_price != null ? Number(row.large_price) : null);
   const safeLargeDiscount = largeDiscountPct !== undefined ? Math.min(100, Math.max(0, Number(largeDiscountPct) || 0)) : Number(row.large_discount_pct ?? 0);
+  const safeTrackStock = trackStock !== undefined ? trackStock : row.track_stock === true;
+  const safeStock = safeTrackStock && stock !== undefined
+    ? (stock != null ? Math.max(0, Math.round(Number(stock))) : null)
+    : (row.stock != null ? Number(row.stock) : null);
   await pool.query(
-    `UPDATE menu_items SET name=$1, description=$2, price=$3, discount_pct=$4, large_price=$5, large_discount_pct=$6, category_id=$7, image=$8, available=$9 WHERE id=$10`,
+    `UPDATE menu_items SET name=$1, description=$2, price=$3, discount_pct=$4, large_price=$5, large_discount_pct=$6, category_id=$7, image=$8, available=$9, track_stock=$10, stock=$11 WHERE id=$12`,
     [name ?? row.name, description ?? row.description, price ?? row.price, safeDiscount, safeLargePrice, safeLargeDiscount,
      category ?? row.category_id, image !== undefined ? (image || null) : row.image,
-     available !== undefined ? available : row.available, req.params.id],
+     available !== undefined ? available : row.available, safeTrackStock, safeStock, req.params.id],
   );
   const updated = await pool.query(
     `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`,
@@ -98,6 +105,23 @@ router.patch('/:id/availability', authenticate, requireRole('admin', 'kitchen'),
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   const row = result.rows[0] as { id: string; name: string; available: boolean };
   res.json({ id: row.id, name: row.name, available: row.available });
+});
+
+// ── Quick stock update ────────────────────────────────────────────────────────
+router.patch('/:id/stock', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { stock } = req.body as { stock: number | null };
+  const safeStock = stock != null ? Math.max(0, Math.round(Number(stock))) : null;
+  // Re-enable availability if restocking
+  const availableUpdate = safeStock != null && safeStock > 0
+    ? ', available = true'
+    : '';
+  const result = await pool.query(
+    `UPDATE menu_items SET stock = $1${availableUpdate} WHERE id = $2 AND restaurant_id = $3`,
+    [safeStock, req.params.id, req.user!.restaurantId],
+  );
+  if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  const updated = await pool.query(`${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`, [req.params.id]);
+  res.json(toItem(updated.rows[0] as Record<string, unknown>));
 });
 
 router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {

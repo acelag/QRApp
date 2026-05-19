@@ -191,6 +191,8 @@ export async function createSchema(): Promise<void> {
   await addCol('orders',          'customer_phone',        'VARCHAR(30) NULL');
   await addCol('restaurants',     'room_service_open',     'VARCHAR(5) NULL');
   await addCol('restaurants',     'room_service_close',    'VARCHAR(5) NULL');
+  await addCol('menu_items',      'track_stock',           'BOOLEAN NOT NULL DEFAULT FALSE');
+  await addCol('menu_items',      'stock',                 'INTEGER NULL');
 
   console.log('✓ Schema ready');
 }

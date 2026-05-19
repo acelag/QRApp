@@ -16,6 +16,8 @@ export interface MenuItem {
   category: string;
   image?: string;
   available: boolean;
+  trackStock?: boolean;
+  stock?: number | null;
   toppings?: Topping[];
 }
 
