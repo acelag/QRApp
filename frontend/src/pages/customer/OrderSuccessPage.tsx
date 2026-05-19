@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { CheckCircle, RotateCcw, Clock, MessageCircle } from 'lucide-react';
+import { CheckCircle, RotateCcw, Clock } from 'lucide-react';
 import type { Order } from '../../types';
 import type { CartItem } from '../../types/Order';
 import { orderService } from '../../services/orderService';
@@ -60,23 +60,6 @@ export function OrderSuccessPage() {
     } else {
       toast.error('Cannot reorder — original order details unavailable');
     }
-  }
-
-  function buildWhatsAppUrl(o: Order): string {
-    const lines: string[] = [
-      `✅ Order Confirmed! #${o.orderNumber ?? o.id.slice(0, 8).toUpperCase()}`,
-      '',
-      ...o.items.map((i) => {
-        const toppingsTotal = (i.toppings ?? []).reduce((s, t) => s + t.price, 0);
-        return `• ${i.quantity}× ${i.name} — ${fmt((i.price + toppingsTotal) * i.quantity)}`;
-      }),
-      '',
-      `Total: ${fmt(o.totalAmount)}`,
-    ];
-    const text = encodeURIComponent(lines.join('\n'));
-    const phone = o.customerPhone!.replace(/\D/g, '');
-    const e164 = phone.startsWith('0') ? `94${phone.slice(1)}` : phone;
-    return `https://wa.me/${e164}?text=${text}`;
   }
 
   if (!order) {
@@ -173,18 +156,6 @@ export function OrderSuccessPage() {
           <div className="mb-3">
             <CustomerNotifyButton orderId={order.id} />
           </div>
-        )}
-
-        {/* WhatsApp confirmation */}
-        {order.customerPhone && (
-          <a
-            href={buildWhatsAppUrl(order)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm bg-green-500 text-white hover:bg-green-600 transition-colors mb-3"
-          >
-            <MessageCircle size={16} /> Send Confirmation via WhatsApp
-          </a>
         )}
 
         {/* Order Again */}
