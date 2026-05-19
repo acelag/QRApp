@@ -1,7 +1,49 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
+import multer from 'multer';
 import { pool } from '../db/database';
 import { authenticate, optionalAuthenticate, requireRole, AuthRequest } from '../middleware/auth';
+
+const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const parseRow = (line: string): string[] => {
+    const cols: string[] = [];
+    let i = 0;
+    while (i < line.length) {
+      if (line[i] === '"') {
+        let val = ''; i++;
+        while (i < line.length) {
+          if (line[i] === '"' && line[i + 1] === '"') { val += '"'; i += 2; }
+          else if (line[i] === '"') { i++; break; }
+          else { val += line[i++]; }
+        }
+        cols.push(val);
+        if (line[i] === ',') i++;
+      } else {
+        const end = line.indexOf(',', i);
+        if (end === -1) { cols.push(line.slice(i).trim()); break; }
+        cols.push(line.slice(i, end).trim());
+        i = end + 1;
+      }
+    }
+    return cols;
+  };
+  const headers = parseRow(lines[0]).map((h) => h.toLowerCase().trim());
+  return lines.slice(1).map((line) => {
+    const vals = parseRow(line);
+    const row: Record<string, string> = {};
+    headers.forEach((h, idx) => { row[h] = vals[idx] ?? ''; });
+    return row;
+  });
+}
+
+const csvEscape = (v: unknown): string => {
+  const s = String(v ?? '');
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+};
 
 const router = Router();
 
@@ -32,6 +74,97 @@ const toItem = (row: Record<string, unknown>) => ({
   trackStock:       row.track_stock === true,
   stock:            row.stock != null ? Number(row.stock) : null,
   toppings:         (row.toppings as { id: string; name: string; price: number; available: boolean }[] | null) ?? [],
+});
+
+// ── Export ────────────────────────────────────────────────────────────────────
+router.get('/export', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const rid = req.user!.restaurantId;
+  const result = await pool.query(
+    `SELECT mi.name, mi.description, mi.price, c.name AS category_name,
+            mi.available, mi.discount_pct, mi.large_price, mi.large_discount_pct,
+            mi.track_stock, mi.stock
+     FROM menu_items mi
+     JOIN categories c ON c.id = mi.category_id
+     WHERE mi.restaurant_id = $1
+     ORDER BY c.name, mi.name`,
+    [rid],
+  );
+  const headers = ['name', 'description', 'price', 'category', 'available', 'discount_pct', 'large_price', 'large_discount_pct', 'track_stock', 'stock'];
+  const rows = (result.rows as Record<string, unknown>[]).map((r) =>
+    [r.name, r.description, r.price, r.category_name, r.available,
+     r.discount_pct ?? 0, r.large_price ?? '', r.large_discount_pct ?? 0,
+     r.track_stock, r.stock ?? ''].map(csvEscape).join(','),
+  );
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="menu.csv"');
+  res.send([headers.join(','), ...rows].join('\n'));
+});
+
+// ── Import ────────────────────────────────────────────────────────────────────
+router.post('/import', authenticate, requireRole('admin'), memUpload.single('file'), async (req: AuthRequest, res) => {
+  if (!req.file) { res.status(400).json({ error: 'CSV file required' }); return; }
+  const rows = parseCSV(req.file.buffer.toString('utf-8'));
+  if (!rows.length) { res.status(400).json({ error: 'No data rows found in CSV' }); return; }
+
+  const rid = req.user!.restaurantId;
+  let created = 0, updated = 0;
+  const errors: { row: number; message: string }[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 2;
+    try {
+      const name = row.name?.trim();
+      const categoryName = row.category?.trim();
+      const price = parseFloat(row.price ?? '');
+      if (!name)                        { errors.push({ row: rowNum, message: 'name is required' }); continue; }
+      if (!categoryName)                { errors.push({ row: rowNum, message: 'category is required' }); continue; }
+      if (isNaN(price) || price < 0)   { errors.push({ row: rowNum, message: `invalid price "${row.price}"` }); continue; }
+
+      // Look up or create category
+      const catRes = await pool.query(
+        'SELECT id FROM categories WHERE restaurant_id = $1 AND LOWER(name) = LOWER($2)', [rid, categoryName]);
+      let categoryId: string;
+      if (catRes.rows.length) {
+        categoryId = (catRes.rows[0] as Record<string, unknown>).id as string;
+      } else {
+        categoryId = uuid();
+        await pool.query('INSERT INTO categories (id,restaurant_id,name) VALUES ($1,$2,$3)', [categoryId, rid, categoryName]);
+      }
+
+      const available     = row.available?.toLowerCase() !== 'false';
+      const discountPct   = Math.min(100, Math.max(0, parseFloat(row.discount_pct ?? '0') || 0));
+      const largePriceRaw = parseFloat(row.large_price ?? '');
+      const largePrice    = !isNaN(largePriceRaw) && largePriceRaw > 0 ? largePriceRaw : null;
+      const largeDiscPct  = Math.min(100, Math.max(0, parseFloat(row.large_discount_pct ?? '0') || 0));
+      const trackStock    = row.track_stock?.toLowerCase() === 'true';
+      const stockRaw      = parseInt(row.stock ?? '', 10);
+      const stock         = trackStock && !isNaN(stockRaw) ? Math.max(0, stockRaw) : null;
+      const description   = row.description?.trim() ?? '';
+
+      const existing = await pool.query(
+        'SELECT id FROM menu_items WHERE restaurant_id = $1 AND LOWER(name) = LOWER($2)', [rid, name]);
+      if (existing.rows.length) {
+        await pool.query(
+          `UPDATE menu_items SET description=$1,price=$2,discount_pct=$3,large_price=$4,large_discount_pct=$5,
+           category_id=$6,available=$7,track_stock=$8,stock=$9 WHERE id=$10`,
+          [description, price, discountPct, largePrice, largeDiscPct, categoryId, available, trackStock, stock,
+           (existing.rows[0] as Record<string, unknown>).id],
+        );
+        updated++;
+      } else {
+        await pool.query(
+          `INSERT INTO menu_items (id,restaurant_id,name,description,price,discount_pct,large_price,large_discount_pct,category_id,image,available,track_stock,stock)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NULL,$10,$11,$12)`,
+          [uuid(), rid, name, description, price, discountPct, largePrice, largeDiscPct, categoryId, available, trackStock, stock],
+        );
+        created++;
+      }
+    } catch (err) {
+      errors.push({ row: rowNum, message: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  }
+  res.json({ created, updated, errors });
 });
 
 router.get('/', optionalAuthenticate, async (req, res) => {

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const EMPTY: Omit<MenuItem, 'id'> = {
@@ -39,7 +40,9 @@ export function MenuItemsPage() {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string>('');
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const fileRef      = useRef<HTMLInputElement>(null);
+  const importRef    = useRef<HTMLInputElement>(null);
 
   const load = () =>
     Promise.all([menuService.getItems(), menuService.getCategories()]).then(([i, c]) => {
@@ -73,6 +76,43 @@ export function MenuItemsPage() {
       toast.error('Failed to update stock');
     }
     setEditingStock(null);
+  }
+
+  async function handleExport() {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL ?? ''}/api/menu-items/export`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data as Blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'menu.csv'; a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Export failed');
+    }
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await axios.post<{ created: number; updated: number; errors: { row: number; message: string }[] }>(
+        `${import.meta.env.VITE_API_URL ?? ''}/api/menu-items/import`, fd,
+      );
+      const { created, updated, errors } = res.data;
+      if (errors.length) {
+        toast.error(`${created} created, ${updated} updated — ${errors.length} row error(s)`);
+      } else {
+        toast.success(`Import done: ${created} created, ${updated} updated`);
+      }
+      load();
+    } catch {
+      toast.error('Import failed');
+    } finally {
+      setImporting(false);
+    }
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -232,6 +272,14 @@ export function MenuItemsPage() {
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Menu Items</h1>
+          <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
+            <Download size={17} />
+          </button>
+          <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
+            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors disabled:opacity-50">
+            {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+          </button>
+          <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
           <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
             <Plus size={14} /> Add Item
           </button>
