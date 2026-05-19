@@ -16,12 +16,13 @@ export function CartPage() {
   const { fmt } = useCurrency();
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState('');
 
   async function handlePlaceOrder() {
     if (!tableId || !tableNumber || items.length === 0) return;
     setPlacing(true);
     try {
-      const order = await orderService.placeOrder(tableId, tableNumber, items, sessionId ?? undefined, restaurantId ?? undefined);
+      const order = await orderService.placeOrder(tableId, tableNumber, items, sessionId ?? undefined, restaurantId ?? undefined, undefined, customerPhone.trim() || undefined);
       clearCart();
       navigate(`/order-success/${order.id}`);
     } catch {
@@ -128,8 +129,15 @@ export function CartPage() {
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4">
-        <div className="max-w-lg mx-auto">
-          <div className="flex justify-between text-sm text-gray-500 mb-1">
+        <div className="max-w-lg mx-auto space-y-2">
+          <input
+            type="tel"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            placeholder="📱 Phone for WhatsApp bill (optional)"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+          />
+          <div className="flex justify-between text-sm text-gray-500">
             <span>Subtotal</span>
             <span>{fmt(total)}</span>
           </div>

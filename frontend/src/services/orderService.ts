@@ -4,9 +4,9 @@ import type { CartItem, Order, OrderStatus } from '../types';
 const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 export const orderService = {
-  placeOrder: (tableId: string, tableNumber: number, items: CartItem[], sessionId?: string, restaurantId?: string, promoCode?: string) =>
+  placeOrder: (tableId: string, tableNumber: number, items: CartItem[], sessionId?: string, restaurantId?: string, promoCode?: string, customerPhone?: string) =>
     axios
-      .post<Order>(`${BASE}/orders`, { tableId, tableNumber, items, sessionId, restaurantId, orderType: 'dine-in', promoCode })
+      .post<Order>(`${BASE}/orders`, { tableId, tableNumber, items, sessionId, restaurantId, orderType: 'dine-in', promoCode, customerPhone })
       .then((r) => r.data),
 
   placeTakeawayOrder: (items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string, customerPhone?: string) =>

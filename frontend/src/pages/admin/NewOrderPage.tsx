@@ -172,7 +172,7 @@ export function NewOrderPage() {
         const table = selectedTable!;
         const restaurantId = user?.restaurantId ?? '';
         const session = await sessionService.getOrCreate(table.id, table.number, restaurantId);
-        await orderService.placeOrder(table.id, table.number, cart, session.id, restaurantId, code);
+        await orderService.placeOrder(table.id, table.number, cart, session.id, restaurantId, code, phone);
         toast.success(`Dine-in order placed for Table ${table.number}!`);
         navigate('/admin/orders');
       } else {
@@ -380,23 +380,24 @@ export function NewOrderPage() {
             </div>
           )}
 
-          {/* Customer / guest name & phone — takeaway or room-service */}
-          {(mode === 'takeaway' || mode === 'room-service') && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
-                  {mode === 'room-service' ? 'Guest Name' : 'Customer Name'}
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. John (optional)"
-                  className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
-                    mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : 'focus:ring-1 focus:ring-purple-300'
-                  }`}
-                />
-              </div>
+          {/* Customer / guest name & phone */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+              {mode !== 'dine-in' && (
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                    {mode === 'room-service' ? 'Guest Name' : 'Customer Name'}
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="e.g. John (optional)"
+                    className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
+                      mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : 'focus:ring-1 focus:ring-purple-300'
+                    }`}
+                  />
+                </div>
+              )}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
                   WhatsApp / Phone
@@ -407,12 +408,11 @@ export function NewOrderPage() {
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="e.g. 0771234567 (optional)"
                   className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
-                    mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : 'focus:ring-1 focus:ring-purple-300'
+                    mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : mode === 'dine-in' ? 'focus:ring-1 focus:ring-orange-300' : 'focus:ring-1 focus:ring-purple-300'
                   }`}
                 />
               </div>
             </div>
-          )}
 
           {/* Cart */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
