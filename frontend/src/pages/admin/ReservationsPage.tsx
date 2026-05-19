@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Plus, ChevronLeft, ChevronRight, Users, Phone, MessageSquare,
-  Clock, X, Loader2, CalendarDays, Table2,
+  X, Loader2, CalendarDays, Table2,
 } from 'lucide-react';
 import { reservationService, type ReservationInput } from '../../services/reservationService';
 import type { Reservation, ReservationStatus } from '../../types';
