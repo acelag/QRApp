@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 
-type Tab = 'sales' | 'items' | 'extras' | 'categories';
+type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap';
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -208,6 +208,7 @@ export function ReportsPage() {
             <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-2xl w-fit">
               {([
                 { key: 'sales',      label: 'Sales by Day' },
+                { key: 'heatmap',    label: '🔥 Heatmap' },
                 { key: 'categories', label: 'Categories' },
                 { key: 'items',      label: 'Items' },
                 ...(report.toppings.length > 0 ? [{ key: 'extras', label: 'Extras' }] : []),
@@ -223,6 +224,150 @@ export function ReportsPage() {
                 </button>
               ))}
             </div>
+
+            {/* Heatmap tab */}
+            {tab === 'heatmap' && (() => {
+              const cells = report.heatmap;
+              // Build lookup: [dayOfWeek][hour] → orderCount
+              const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+              const revGrid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+              cells.forEach((c) => { grid[c.dayOfWeek][c.hour] = c.orderCount; revGrid[c.dayOfWeek][c.hour] = c.revenue; });
+              const maxCount = Math.max(1, ...cells.map((c) => c.orderCount));
+
+              // Day labels — reorder so Monday first (DOW: Sun=0)
+              const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon→Sun
+              const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+              const HOUR_LABELS = Array.from({ length: 24 }, (_, h) =>
+                h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`
+              );
+
+              // Peak stats
+              const peakCell  = cells.reduce((best, c) => c.orderCount > best.orderCount ? c : best, { dayOfWeek: 0, hour: 0, orderCount: 0, revenue: 0 });
+              const hourTotals = Array(24).fill(0) as number[];
+              cells.forEach((c) => { hourTotals[c.hour] += c.orderCount; });
+              const peakHour = hourTotals.indexOf(Math.max(...hourTotals));
+
+              const totalOrders = cells.reduce((s, c) => s + c.orderCount, 0);
+
+              function cellBg(count: number): string {
+                if (count === 0) return '#f9fafb';
+                const intensity = count / maxCount;
+                // interpolate from light orange to deep orange
+                const r = Math.round(255 - (255 - 234) * intensity);
+                const g = Math.round(237 - (237 - 88) * intensity);
+                const b = Math.round(213 - (213 - 36) * intensity);
+                return `rgb(${r},${g},${b})`;
+              }
+              function cellText(count: number): string {
+                return count / maxCount > 0.5 ? '#fff' : '#374151';
+              }
+
+              return (
+                <div className="space-y-4">
+                  {/* Peak stats */}
+                  {totalOrders === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
+                      <Flame size={32} className="mx-auto mb-2 text-gray-200" />
+                      <p>No orders in this period.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+                          <p className="text-2xl font-bold text-orange-500">{HOUR_LABELS[peakHour]}</p>
+                          <p className="text-xs text-gray-400 mt-1">Busiest hour</p>
+                          <p className="text-xs text-gray-500 font-medium">{hourTotals[peakHour]} orders</p>
+                        </div>
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+                          <p className="text-2xl font-bold text-orange-500">{DAY_LABELS[peakCell.dayOfWeek]}</p>
+                          <p className="text-xs text-gray-400 mt-1">Peak slot</p>
+                          <p className="text-xs text-gray-500 font-medium">{HOUR_LABELS[peakCell.hour]} · {peakCell.orderCount} orders</p>
+                        </div>
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+                          <p className="text-2xl font-bold text-orange-500">{totalOrders}</p>
+                          <p className="text-xs text-gray-400 mt-1">Total orders</p>
+                          <p className="text-xs text-gray-500 font-medium">in period</p>
+                        </div>
+                      </div>
+
+                      {/* Heatmap grid */}
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Orders by Day &amp; Hour</p>
+                          <p className="text-xs text-gray-400">UTC times</p>
+                        </div>
+                        <div className="overflow-x-auto px-4 pb-4">
+                          <div style={{ minWidth: 560 }}>
+                            {/* Hour header */}
+                            <div className="flex mb-1 ml-10">
+                              {HOUR_LABELS.map((h, i) => (
+                                <div key={i} className="flex-1 text-center text-gray-400 font-mono" style={{ fontSize: 9 }}>{i % 3 === 0 ? h : ''}</div>
+                              ))}
+                            </div>
+                            {/* Rows */}
+                            {DAY_ORDER.map((dow) => (
+                              <div key={dow} className="flex items-center mb-0.5">
+                                <div className="w-10 shrink-0 text-xs font-semibold text-gray-500 pr-1 text-right">{DAY_LABELS[dow]}</div>
+                                {Array.from({ length: 24 }, (_, h) => {
+                                  const count = grid[dow][h];
+                                  const rev   = revGrid[dow][h];
+                                  return (
+                                    <div
+                                      key={h}
+                                      className="flex-1 mx-px rounded-sm flex items-center justify-center cursor-default"
+                                      style={{ height: 28, backgroundColor: cellBg(count) }}
+                                      title={count > 0 ? `${DAY_LABELS[dow]} ${HOUR_LABELS[h]}: ${count} orders · ${fmt(rev)}` : undefined}
+                                    >
+                                      {count > 0 && (
+                                        <span style={{ fontSize: 9, fontWeight: 700, color: cellText(count), lineHeight: 1 }}>
+                                          {count}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ))}
+                            {/* Colour legend */}
+                            <div className="mt-3 flex items-center gap-2 justify-end">
+                              <span className="text-xs text-gray-400">Fewer</span>
+                              {[0.1, 0.3, 0.5, 0.7, 0.9, 1].map((v) => (
+                                <div key={v} className="w-5 h-3 rounded-sm" style={{ backgroundColor: cellBg(Math.round(v * maxCount)) }} />
+                              ))}
+                              <span className="text-xs text-gray-400">More</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Hourly bar summary */}
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Orders by Hour (all days combined)</p>
+                        <div className="flex items-end gap-0.5 h-20">
+                          {hourTotals.map((count, h) => {
+                            const maxH = Math.max(1, ...hourTotals);
+                            const pct  = (count / maxH) * 100;
+                            return (
+                              <div key={h} className="flex-1 flex flex-col items-center gap-0.5" title={`${HOUR_LABELS[h]}: ${count} orders`}>
+                                <div
+                                  className="w-full rounded-t-sm transition-all"
+                                  style={{ height: `${Math.max(2, pct)}%`, backgroundColor: h === peakHour ? '#f97316' : '#fed7aa' }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex mt-1">
+                          {HOUR_LABELS.map((h, i) => (
+                            <div key={i} className="flex-1 text-center text-gray-400 font-mono" style={{ fontSize: 8 }}>{i % 6 === 0 ? h : ''}</div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Categories tab */}
             {tab === 'categories' && (

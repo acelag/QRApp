@@ -13,7 +13,7 @@ router.get('/', async (req: AuthRequest, res) => {
   const fromIso = `${from}T00:00:00.000Z`;
   const toIso   = `${to}T23:59:59.999Z`;
 
-  const [summaryRes, dailyRes, itemsRes, categoriesRes, toppingsRes] = await Promise.all([
+  const [summaryRes, dailyRes, itemsRes, categoriesRes, toppingsRes, heatmapRes] = await Promise.all([
     // Summary totals
     pool.query<{ total_orders: number; total_revenue: number; dine_in_orders: number; takeaway_orders: number }>(
       `SELECT
@@ -103,6 +103,20 @@ router.get('/', async (req: AuthRequest, res) => {
        LIMIT 20`,
       [rid, fromIso, toIso],
     ),
+
+    // Hourly heatmap — orders per (day-of-week, hour)
+    pool.query<{ day_of_week: number; hour: number; order_count: number; revenue: number }>(
+      `SELECT
+         EXTRACT(DOW  FROM created_at::timestamptz)::int  AS day_of_week,
+         EXTRACT(HOUR FROM created_at::timestamptz)::int  AS hour,
+         COUNT(*)::int                                    AS order_count,
+         COALESCE(SUM(total_amount), 0)::float            AS revenue
+       FROM orders
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
+       GROUP BY day_of_week, hour
+       ORDER BY day_of_week, hour`,
+      [rid, fromIso, toIso],
+    ),
   ]);
 
   const s = summaryRes.rows[0];
@@ -138,6 +152,12 @@ router.get('/', async (req: AuthRequest, res) => {
       name:     r.category_name,
       quantity: r.total_qty,
       revenue:  r.revenue,
+    })),
+    heatmap: heatmapRes.rows.map((r) => ({
+      dayOfWeek:  r.day_of_week,
+      hour:       r.hour,
+      orderCount: r.order_count,
+      revenue:    r.revenue,
     })),
   });
 });

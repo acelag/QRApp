@@ -39,12 +39,20 @@ export interface CategoryRow {
   revenue: number;
 }
 
+export interface HeatmapCell {
+  dayOfWeek: number;  // 0 = Sunday … 6 = Saturday
+  hour: number;       // 0 – 23
+  orderCount: number;
+  revenue: number;
+}
+
 export interface Report {
   summary: ReportSummary;
   daily: DailyRow[];
   items: ItemRow[];
   toppings: ToppingRow[];
   categories: CategoryRow[];
+  heatmap: HeatmapCell[];
 }
 
 export const reportService = {
