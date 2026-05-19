@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Users,
-  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock, Globe, Plus, Trash2,
+  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock, Globe, Plus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
