@@ -31,6 +31,7 @@ import { SessionReceiptPage } from './pages/admin/SessionReceiptPage';
 import { RestaurantsPage } from './pages/admin/RestaurantsPage';
 import { TakeawayOrderPage } from './pages/admin/TakeawayOrderPage';
 import { NewOrderPage } from './pages/admin/NewOrderPage';
+import { ReadyDisplayPage } from './pages/admin/ReadyDisplayPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 
 function RootRedirect() {
@@ -78,6 +79,7 @@ export default function App() {
             <Route path="/admin/restaurants" element={<ProtectedRoute role="super_admin"><RestaurantsPage /></ProtectedRoute>} />
             <Route path="/admin/takeaway" element={<ProtectedRoute role="admin"><TakeawayOrderPage /></ProtectedRoute>} />
             <Route path="/admin/new-order" element={<ProtectedRoute role="admin"><NewOrderPage /></ProtectedRoute>} />
+            <Route path="/admin/ready-display" element={<ProtectedRoute role="any"><ReadyDisplayPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute role="admin"><ReportsPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by both kitchen and admin */}
