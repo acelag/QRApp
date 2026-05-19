@@ -244,7 +244,7 @@ router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, 
      category ?? row.category_id, image !== undefined ? (image || null) : row.image,
      available !== undefined ? available : row.available, safeTrackStock, safeStock, req.params.id],
   );
-  await saveTranslations(req.params.id, translations);
+  await saveTranslations(String(req.params.id), translations);
   const updated = await pool.query(
     `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`,
     [req.params.id],
