@@ -109,6 +109,7 @@ export function NewOrderPage() {
     setPromoError('');
   }
 
+  const total      = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
   const discount   = appliedPromo?.discountAmount ?? 0;
   const finalTotal = Math.max(0, total - discount);
 
@@ -140,7 +141,6 @@ export function NewOrderPage() {
   }
 
   const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
-  const total = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
 
   function handleAddItem(item: MenuItem) {
@@ -162,7 +162,7 @@ export function NewOrderPage() {
     try {
       const code = appliedPromo?.code;
       if (mode === 'takeaway') {
-        const order = await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined, user?.restaurantId, code);
+        const order = await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined, user?.restaurantId ?? undefined, code);
         toast.success('Takeaway order placed!');
         navigate(`/receipt/${order.id}`);
       } else if (mode === 'dine-in') {
