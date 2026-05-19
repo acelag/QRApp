@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Tag, X } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Table, Room } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
@@ -8,6 +8,7 @@ import type { CartItem } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { orderService } from '../../services/orderService';
+import { promoCodeService, type ValidateResult } from '../../services/promoCodeService';
 import { tableService } from '../../services/tableService';
 import { roomService } from '../../services/roomService';
 import { sessionService } from '../../services/sessionService';
@@ -74,6 +75,11 @@ export function NewOrderPage() {
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
   const [editingNotesKey, setEditingNotesKey] = useState<string | null>(null);
 
+  const [promoInput, setPromoInput]       = useState('');
+  const [appliedPromo, setAppliedPromo]   = useState<ValidateResult | null>(null);
+  const [promoLoading, setPromoLoading]   = useState(false);
+  const [promoError, setPromoError]       = useState('');
+
   useEffect(() => {
     Promise.all([
       menuService.getCategories(),
@@ -98,6 +104,39 @@ export function NewOrderPage() {
     setSelectedTable(null);
     setSelectedRoom(null);
     setCustomerName('');
+    setAppliedPromo(null);
+    setPromoInput('');
+    setPromoError('');
+  }
+
+  const discount   = appliedPromo?.discountAmount ?? 0;
+  const finalTotal = Math.max(0, total - discount);
+
+  async function handleApplyPromo() {
+    const code = promoInput.trim().toUpperCase();
+    if (!code || !user?.restaurantId) return;
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      const result = await promoCodeService.validate(code, user.restaurantId, total);
+      if (result.valid) {
+        setAppliedPromo(result);
+        setPromoInput('');
+      } else {
+        setPromoError(result.message ?? 'Invalid promo code');
+        setAppliedPromo(null);
+      }
+    } catch {
+      setPromoError('Failed to validate promo code');
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  function removePromo() {
+    setAppliedPromo(null);
+    setPromoInput('');
+    setPromoError('');
   }
 
   const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
@@ -121,21 +160,22 @@ export function NewOrderPage() {
 
     setPlacing(true);
     try {
+      const code = appliedPromo?.code;
       if (mode === 'takeaway') {
-        const order = await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined);
+        const order = await orderService.placeTakeawayOrder(cart, customerName.trim() || undefined, user?.restaurantId, code);
         toast.success('Takeaway order placed!');
         navigate(`/receipt/${order.id}`);
       } else if (mode === 'dine-in') {
         const table = selectedTable!;
         const restaurantId = user?.restaurantId ?? '';
         const session = await sessionService.getOrCreate(table.id, table.number, restaurantId);
-        const order = await orderService.placeOrder(table.id, table.number, cart, session.id);
+        const order = await orderService.placeOrder(table.id, table.number, cart, session.id, restaurantId, code);
         toast.success(`Dine-in order placed for Table ${table.number}!`);
         navigate(`/receipt/${order.id}`);
       } else {
         const room = selectedRoom!;
         const restaurantId = user?.restaurantId ?? '';
-        const order = await orderService.placeRoomOrder(room.id, room.number, cart, customerName.trim() || undefined, restaurantId);
+        const order = await orderService.placeRoomOrder(room.id, room.number, cart, customerName.trim() || undefined, restaurantId, code);
         toast.success(`Room service order placed for Room ${room.number}!`);
         navigate(`/receipt/${order.id}`);
       }
@@ -439,10 +479,63 @@ export function NewOrderPage() {
               </ul>
             )}
 
+            {/* Promo code */}
+            {cart.length > 0 && (
+              <div className="px-4 py-3 border-t border-gray-50">
+                {appliedPromo ? (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                    <Tag size={13} className="text-green-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-green-700">{appliedPromo.code}</p>
+                      <p className="text-xs text-green-600">
+                        {appliedPromo.type === 'percentage' ? `${appliedPromo.value}%` : fmt(appliedPromo.value!)} off · saving {fmt(discount)}
+                      </p>
+                    </div>
+                    <button onClick={removePromo} className="text-green-400 hover:text-red-400 transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={promoInput}
+                        onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                        onKeyDown={(e) => e.key === 'Enter' && handleApplyPromo()}
+                        placeholder="Promo code"
+                        className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 uppercase tracking-wide"
+                      />
+                      <button
+                        onClick={handleApplyPromo}
+                        disabled={!promoInput.trim() || promoLoading}
+                        className="px-3 py-2 bg-orange-500 text-white rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                      >
+                        {promoLoading ? <Loader2 size={14} className="animate-spin" /> : <><Tag size={13} /> Apply</>}
+                      </button>
+                    </div>
+                    {promoError && <p className="text-xs text-red-500">{promoError}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="px-4 py-3 border-t border-gray-100">
-              <div className="flex justify-between text-sm font-semibold text-gray-900 mb-3">
-                <span>Total</span>
-                <span>{fmt(total)}</span>
+              <div className="space-y-1 mb-3">
+                {discount > 0 && (
+                  <>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Subtotal</span><span>{fmt(total)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-green-600 font-semibold">
+                      <span>Discount ({appliedPromo?.code})</span><span>−{fmt(discount)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between text-sm font-semibold text-gray-900">
+                  <span>Total</span>
+                  <span>{fmt(finalTotal)}</span>
+                </div>
               </div>
               <button
                 onClick={handlePlace}
