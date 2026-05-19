@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid } from 'lucide-react';
+import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
@@ -36,6 +36,7 @@ export function DashboardPage() {
   ];
 
   const navItems = [
+    { to: '/admin/new-order', label: 'New Order',       icon: PlusCircle,     desc: 'Place takeaway or dine-in order' },
     { to: '/admin/orders',  label: 'Live Orders',      icon: ClipboardList,  desc: 'Manage incoming orders' },
     { to: '/admin/bills',   label: 'Bills',            icon: Receipt,        desc: 'Table bills & takeaway receipts' },
     { to: '/admin/reports', label: 'Reports',          icon: BarChart2,      desc: 'Sales & item performance' },
