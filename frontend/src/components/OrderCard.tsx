@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
@@ -22,6 +23,16 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
   const { fmt } = useCurrency();
+
+  const [cooked, setCooked] = useState<Set<number>>(new Set());
+
+  function toggleItem(idx: number) {
+    setCooked((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  }
 
   function handlePrint() {
     const url = order.sessionId
@@ -116,10 +127,22 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
         {order.items.map((item, idx) => {
           const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
           const lineTotal = (item.price + toppingsTotal) * item.quantity;
+          const isDone = cooked.has(idx);
           return (
-            <li key={idx} className="text-sm">
+            <li
+              key={idx}
+              className={`text-sm ${hidePrices ? 'cursor-pointer select-none active:opacity-60 transition-opacity' : ''}`}
+              onClick={hidePrices ? () => toggleItem(idx) : undefined}
+            >
               <div className="flex justify-between items-start gap-2">
-                <span className="text-gray-800 flex items-center gap-1.5 flex-wrap flex-1">
+                {hidePrices && (
+                  <div className="shrink-0 mt-0.5">
+                    {isDone
+                      ? <CheckCircle2 size={16} className="text-green-500" />
+                      : <Circle size={16} className="text-gray-300" />}
+                  </div>
+                )}
+                <span className={`text-gray-800 flex items-center gap-1.5 flex-wrap flex-1 transition-opacity ${isDone ? 'opacity-35 line-through' : ''}`}>
                   <span className="font-bold text-base text-gray-900">{item.quantity}×</span>
                   <span className="font-medium">{item.name}</span>
                   {item.size && (
@@ -136,7 +159,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
                 )}
               </div>
               {(item.toppings ?? []).length > 0 && (
-                <ul className="ml-6 mt-1 space-y-0.5">
+                <ul className={`mt-1 space-y-0.5 transition-opacity ${hidePrices ? 'ml-6' : 'ml-6'} ${isDone ? 'opacity-35' : ''}`}>
                   {item.toppings!.map((t, ti) => (
                     <li key={ti} className="flex justify-between text-xs text-gray-400">
                       <span>+ {t.name}</span>
@@ -167,10 +190,20 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
       )}
 
       {/* Footer */}
-      <div className={`px-4 py-3 border-t border-gray-100 flex items-center gap-2 ${hidePrices ? 'justify-end' : 'justify-between'}`}>
+      <div className={`px-4 py-3 border-t border-gray-100 flex items-center gap-2 ${hidePrices ? 'justify-between' : 'justify-between'}`}>
         {!hidePrices && (
           <span className="font-semibold text-gray-900 text-sm">Total: {fmt(order.totalAmount)}</span>
         )}
+        {hidePrices && cooked.size > 0 && (
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+            cooked.size === order.items.length
+              ? 'bg-green-100 text-green-700'
+              : 'bg-orange-100 text-orange-600'
+          }`}>
+            {cooked.size}/{order.items.length} done
+          </span>
+        )}
+        {hidePrices && cooked.size === 0 && <span />}
         <div className="flex items-center gap-2 shrink-0">
           {showPrint && (
             <button
