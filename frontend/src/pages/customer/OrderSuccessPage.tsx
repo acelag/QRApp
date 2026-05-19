@@ -6,6 +6,7 @@ import type { CartItem } from '../../types/Order';
 import { orderService } from '../../services/orderService';
 import { restaurantService } from '../../services/restaurantService';
 import { StatusBadge } from '../../components/StatusBadge';
+import { CustomerNotifyButton } from '../../components/CustomerNotifyButton';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useCart } from '../../context/CartContext';
 import toast from 'react-hot-toast';
@@ -149,6 +150,13 @@ export function OrderSuccessPage() {
             <span>{fmt(order.totalAmount)}</span>
           </div>
         </div>
+
+        {/* Push notification opt-in */}
+        {order.status !== 'served' && (
+          <div className="mb-3">
+            <CustomerNotifyButton orderId={order.id} />
+          </div>
+        )}
 
         {/* Order Again */}
         <button

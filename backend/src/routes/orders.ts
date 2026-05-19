@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { pool } from '../db/database';
 import { authenticate, optionalAuthenticate, requireRole, AuthRequest } from '../middleware/auth';
-import { sendPushToAll, newOrderPayload } from '../lib/pushNotifier';
+import { sendPushToAll, newOrderPayload, sendPushToOrder } from '../lib/pushNotifier';
 
 const router = Router();
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served';
@@ -189,6 +189,7 @@ router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async
         'UPDATE orders SET status=$1, updated_at=$2, payment_method=COALESCE($3, payment_method) WHERE id=$4',
         [status, now, paymentMethod ?? null, req.params.id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  sendPushToOrder(String(req.params.id), status).catch(() => {});
   res.json(await buildOrder(String(req.params.id)));
 });
 
