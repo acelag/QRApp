@@ -4,8 +4,6 @@ import { ArrowLeft, Plus, Trash2, QrCode, Printer, BedDouble } from 'lucide-reac
 import { QRCodeSVG } from 'qrcode.react';
 import type { Room } from '../../types';
 import { roomService } from '../../services/roomService';
-import { restaurantService } from '../../services/restaurantService';
-import { loadQRSettings, type QRSettings } from '../../lib/qrSettings';
 import toast from 'react-hot-toast';
 
 // ── Print helpers ─────────────────────────────────────────────────────────────
@@ -56,24 +54,11 @@ export function RoomsPage() {
   const [number, setNumber]       = useState('');
   const [name, setName]           = useState('');
   const [qrPreview, setQrPreview] = useState<Room | null>(null);
-  const [qrSettings] = useState<QRSettings>(loadQRSettings);
-  const [restaurantLogo, setRestaurantLogo] = useState<string | null>(null);
 
   const qrRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const load = () => roomService.getRooms().then(setRooms).catch(() => {});
-  useEffect(() => {
-    load();
-    restaurantService.getMyRestaurant()
-      .then((r) => r && setRestaurantLogo(r.logo ?? null))
-      .catch(() => {});
-  }, []);
-
-  function imgSettings(size: number) {
-    if (!qrSettings.useLogo || !restaurantLogo) return undefined;
-    const dim = Math.round(size * 0.22);
-    return { src: restaurantLogo, height: dim, width: dim, excavate: true };
-  }
+  useEffect(() => { load(); }, []);
 
   const origin = window.location.origin;
 
@@ -137,7 +122,7 @@ export function RoomsPage() {
               else qrRefs.current.delete(r.id);
             }}
           >
-            <QRCodeSVG value={`${origin}/room/${r.id}`} size={220} fgColor={qrSettings.fgColor} bgColor={qrSettings.bgColor} imageSettings={imgSettings(220)} />
+            <QRCodeSVG value={`${origin}/room/${r.id}`} size={220} />
           </div>
         ))}
       </div>
@@ -246,7 +231,7 @@ export function RoomsPage() {
             </div>
             {qrPreview.name && <p className="text-xs text-gray-400 -mt-2">{qrPreview.name}</p>}
 
-            <QRCodeSVG value={`${origin}/room/${qrPreview.id}`} size={200} fgColor={qrSettings.fgColor} bgColor={qrSettings.bgColor} imageSettings={imgSettings(200)} />
+            <QRCodeSVG value={`${origin}/room/${qrPreview.id}`} size={200} />
 
             <p className="text-xs text-gray-300 text-center break-all">
               {origin}/room/{qrPreview.id}

@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, QrCode, Printer, ShoppingBag, Palette } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, QrCode, Printer, ShoppingBag } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { Table } from '../../types';
 import { tableService } from '../../services/tableService';
-import { restaurantService } from '../../services/restaurantService';
 import { useAuth } from '../../context/AuthContext';
-import { loadQRSettings, saveQRSettings, type QRSettings } from '../../lib/qrSettings';
 import toast from 'react-hot-toast';
 
 // ── Print helpers ─────────────────────────────────────────────────────────────
@@ -60,8 +58,6 @@ export function TablesPage() {
   const [seats, setSeats]       = useState('4');
   const [qrPreview, setQrPreview] = useState<Table | null>(null);
   const [takeawayQrOpen, setTakeawayQrOpen] = useState(false);
-  const [qrSettings, setQrSettings] = useState<QRSettings>(loadQRSettings);
-  const [restaurantLogo, setRestaurantLogo] = useState<string | null>(null);
 
   const takeawayUrl = user?.restaurantId ? `${window.location.origin}/takeaway/${user.restaurantId}` : '';
 
@@ -70,30 +66,9 @@ export function TablesPage() {
   const takeawayQrRef = useRef<HTMLDivElement>(null);
 
   const load = () => tableService.getTables().then(setTables).catch(() => {});
-  useEffect(() => {
-    load();
-    if (user?.restaurantId) {
-      restaurantService.getRestaurantInfo(user.restaurantId)
-        .then((info) => setRestaurantLogo(info.logo))
-        .catch(() => {});
-    }
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const origin = window.location.origin;
-
-  function updateQR(patch: Partial<QRSettings>) {
-    setQrSettings((prev) => {
-      const next = { ...prev, ...patch };
-      saveQRSettings(next);
-      return next;
-    });
-  }
-
-  function imgSettings(size: number) {
-    if (!qrSettings.useLogo || !restaurantLogo) return undefined;
-    const dim = Math.round(size * 0.22);
-    return { src: restaurantLogo, height: dim, width: dim, excavate: true };
-  }
 
   // ── Get SVG html for a table ───────────────────────────────────────────────
   function getSvg(tableId: string): string {
@@ -174,12 +149,12 @@ export function TablesPage() {
               else qrRefs.current.delete(t.id);
             }}
           >
-            <QRCodeSVG value={`${origin}/menu/${t.id}`} size={220} fgColor={qrSettings.fgColor} bgColor={qrSettings.bgColor} imageSettings={imgSettings(220)} />
+            <QRCodeSVG value={`${origin}/menu/${t.id}`} size={220} />
           </div>
         ))}
         {takeawayUrl && (
           <div ref={takeawayQrRef}>
-            <QRCodeSVG value={takeawayUrl} size={220} fgColor={qrSettings.fgColor} bgColor={qrSettings.bgColor} imageSettings={imgSettings(220)} />
+            <QRCodeSVG value={takeawayUrl} size={220} />
           </div>
         )}
       </div>
@@ -214,7 +189,7 @@ export function TablesPage() {
                 className="cursor-pointer"
                 onClick={() => setTakeawayQrOpen(true)}
               >
-                <QRCodeSVG value={takeawayUrl} size={96} fgColor={qrSettings.fgColor} bgColor={qrSettings.bgColor} imageSettings={imgSettings(96)} />
+                <QRCodeSVG value={takeawayUrl} size={96} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-400 break-all mb-3">{takeawayUrl}</p>
@@ -236,39 +211,6 @@ export function TablesPage() {
             </div>
           </div>
         )}
-
-        {/* QR Style */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-3">
-            <Palette size={14} className="text-orange-500" />
-            <h2 className="font-semibold text-gray-700 text-sm">QR Code Style</h2>
-          </div>
-          <div className="flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-              <span className="text-gray-500">Foreground</span>
-              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-gray-200">
-                <div className="absolute inset-0" style={{ backgroundColor: qrSettings.fgColor }} />
-                <input type="color" value={qrSettings.fgColor} onChange={(e) => updateQR({ fgColor: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-              </div>
-            </label>
-            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-              <span className="text-gray-500">Background</span>
-              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-gray-200">
-                <div className="absolute inset-0" style={{ backgroundColor: qrSettings.bgColor }} />
-                <input type="color" value={qrSettings.bgColor} onChange={(e) => updateQR({ bgColor: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-              </div>
-            </label>
-            {restaurantLogo && (
-              <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                <input type="checkbox" checked={qrSettings.useLogo} onChange={(e) => updateQR({ useLogo: e.target.checked })} className="rounded accent-orange-500" />
-                <span>Show logo</span>
-              </label>
-            )}
-            <div className="ml-auto p-1.5 rounded-xl border border-gray-100" style={{ backgroundColor: qrSettings.bgColor }}>
-              <QRCodeSVG value={`${origin}/menu/preview`} size={56} fgColor={qrSettings.fgColor} bgColor={qrSettings.bgColor} imageSettings={imgSettings(56)} />
-            </div>
-          </div>
-        </div>
 
         {/* Add table */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -346,7 +288,7 @@ export function TablesPage() {
             </div>
             <p className="text-xs text-gray-400 -mt-2 text-center">Customers scan this to place takeaway orders</p>
 
-            <QRCodeSVG value={takeawayUrl} size={200} fgColor={qrSettings.fgColor} bgColor={qrSettings.bgColor} imageSettings={imgSettings(200)} />
+            <QRCodeSVG value={takeawayUrl} size={200} />
 
             <p className="text-xs text-gray-300 text-center break-all">{takeawayUrl}</p>
 
@@ -381,7 +323,7 @@ export function TablesPage() {
             <h2 className="font-bold text-gray-900 text-lg">Table {qrPreview.number}</h2>
             <p className="text-xs text-gray-400 -mt-2">{qrPreview.seats} seats</p>
 
-            <QRCodeSVG value={`${origin}/menu/${qrPreview.id}`} size={200} fgColor={qrSettings.fgColor} bgColor={qrSettings.bgColor} imageSettings={imgSettings(200)} />
+            <QRCodeSVG value={`${origin}/menu/${qrPreview.id}`} size={200} />
 
             <p className="text-xs text-gray-300 text-center break-all">
               {origin}/menu/{qrPreview.id}
