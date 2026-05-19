@@ -22,10 +22,11 @@ const cartKey = (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) 
   `${menuItemId}|${size ?? 'regular'}|${toppingKey(toppings)}`;
 
 type CartAction =
-  | { type: 'ADD';    item: MenuItem; size?: Size; toppings?: SelectedTopping[] }
-  | { type: 'INC';    key: string }
-  | { type: 'DEC';    key: string }
-  | { type: 'REMOVE'; key: string }
+  | { type: 'ADD';       item: MenuItem; size?: Size; toppings?: SelectedTopping[]; notes?: string }
+  | { type: 'INC';       key: string }
+  | { type: 'DEC';       key: string }
+  | { type: 'REMOVE';    key: string }
+  | { type: 'SET_NOTES'; key: string; notes: string }
   | { type: 'CLEAR' };
 
 function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
@@ -35,7 +36,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
       const price = effectivePrice(action.item, action.size);
       const exists = state.find((c) => cartKey(c.menuItemId, c.size, c.toppings) === key);
       if (exists) return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === key ? { ...c, quantity: c.quantity + 1 } : c);
-      return [...state, { menuItemId: action.item.id, name: action.item.name, price, quantity: 1, size: action.size, toppings: action.toppings }];
+      return [...state, { menuItemId: action.item.id, name: action.item.name, price, quantity: 1, size: action.size, toppings: action.toppings, notes: action.notes }];
     }
     case 'INC':
       return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === action.key ? { ...c, quantity: c.quantity + 1 } : c);
@@ -43,6 +44,8 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
       return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === action.key ? { ...c, quantity: c.quantity - 1 } : c).filter((c) => c.quantity > 0);
     case 'REMOVE':
       return state.filter((c) => cartKey(c.menuItemId, c.size, c.toppings) !== action.key);
+    case 'SET_NOTES':
+      return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === action.key ? { ...c, notes: action.notes || undefined } : c);
     case 'CLEAR': return [];
     default: return state;
   }
@@ -64,6 +67,7 @@ export function RoomMenuPage() {
   const [cartOpen, setCartOpen]     = useState(false);
   const [placing, setPlacing]       = useState(false);
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
+  const [editingNotesKey, setEditingNotesKey] = useState<string | null>(null);
 
   const { fmt, loadCurrency } = useCurrency();
   const { loadTheme } = useTheme();
@@ -245,6 +249,27 @@ export function RoomMenuPage() {
                             ))}
                           </ul>
                         )}
+                        {/* Inline notes */}
+                        <div className="ml-16 mt-1">
+                          {editingNotesKey === key ? (
+                            <input
+                              autoFocus
+                              type="text"
+                              value={c.notes ?? ''}
+                              onChange={(e) => dispatch({ type: 'SET_NOTES', key, notes: e.target.value })}
+                              onBlur={() => setEditingNotesKey(null)}
+                              placeholder="e.g. no onions, less spicy…"
+                              className="w-full text-xs border border-blue-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-blue-300"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => setEditingNotesKey(key)}
+                              className="text-xs text-blue-400 hover:text-blue-600"
+                            >
+                              {c.notes ? `📝 ${c.notes}` : '+ Add note'}
+                            </button>
+                          )}
+                        </div>
                       </li>
                     );
                   })}
@@ -271,8 +296,8 @@ export function RoomMenuPage() {
       {toppingModal && (
         <ToppingSelectionModal
           item={toppingModal.item}
-          onConfirm={(toppings, size) => {
-            dispatch({ type: 'ADD', item: toppingModal.item, size, toppings });
+          onConfirm={(toppings, size, notes) => {
+            dispatch({ type: 'ADD', item: toppingModal.item, size, toppings, notes });
             setToppingModal(null);
           }}
           onClose={() => setToppingModal(null)}

@@ -8,7 +8,7 @@ import { useCurrency } from '../context/CurrencyContext';
 interface Props {
   item: MenuItem;
   size?: 'regular' | 'large';
-  onConfirm: (toppings: SelectedTopping[], size?: 'regular' | 'large') => void;
+  onConfirm: (toppings: SelectedTopping[], size?: 'regular' | 'large', notes?: string) => void;
   onClose: () => void;
 }
 
@@ -19,6 +19,7 @@ export function ToppingSelectionModal({ item, size: sizeProp, onConfirm, onClose
   const [selectedSize, setSelectedSize] = useState<'regular' | 'large'>(sizeProp ?? 'regular');
   const availableToppings = (item.toppings ?? []).filter((t) => t.available);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState('');
 
   const activeSize = sizeProp ?? (hasLarge ? selectedSize : undefined);
   const basePrice = effectivePrice(item, activeSize);
@@ -38,6 +39,7 @@ export function ToppingSelectionModal({ item, size: sizeProp, onConfirm, onClose
     onConfirm(
       selectedToppings.map((t) => ({ id: t.id, name: t.name, price: t.price })),
       hasLarge ? activeSize : undefined,
+      notes.trim() || undefined,
     );
   }
 
@@ -132,6 +134,18 @@ export function ToppingSelectionModal({ item, size: sizeProp, onConfirm, onClose
           })}
         </div>
         )}
+
+        {/* Special instructions */}
+        <div className="px-5 py-3 border-t border-gray-100">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Special Instructions</p>
+          <input
+            type="text"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g. no onions, less spicy, extra sauce…"
+            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-orange-300 placeholder:text-gray-300"
+          />
+        </div>
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-gray-100 space-y-3">
