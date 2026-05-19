@@ -38,6 +38,7 @@ import { RoomsPage } from './pages/admin/RoomsPage';
 import { PromoCodesPage } from './pages/admin/PromoCodesPage';
 import { RoomChargesPage } from './pages/admin/RoomChargesPage';
 import { WaitersPage } from './pages/admin/WaitersPage';
+import { ReservationsPage } from './pages/admin/ReservationsPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -90,7 +91,8 @@ export default function App() {
             <Route path="/admin/rooms" element={<ProtectedRoute role="admin"><RoomsPage /></ProtectedRoute>} />
             <Route path="/admin/promo-codes" element={<ProtectedRoute role="admin"><PromoCodesPage /></ProtectedRoute>} />
             <Route path="/admin/room-charges" element={<ProtectedRoute role="admin"><RoomChargesPage /></ProtectedRoute>} />
-            <Route path="/admin/waiters"      element={<ProtectedRoute role="admin"><WaitersPage /></ProtectedRoute>} />
+            <Route path="/admin/waiters"       element={<ProtectedRoute role="admin"><WaitersPage /></ProtectedRoute>} />
+            <Route path="/admin/reservations" element={<ProtectedRoute role="admin"><ReservationsPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by both kitchen and admin */}
             <Route path="/kitchen" element={<ProtectedRoute role="any"><KitchenPage /></ProtectedRoute>} />

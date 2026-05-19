@@ -206,5 +206,22 @@ export async function createSchema(): Promise<void> {
   await addCol('orders', 'assigned_waiter_id',   'VARCHAR(36) NULL');
   await addCol('orders', 'assigned_waiter_name', 'VARCHAR(255) NULL');
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS reservations (
+      id             VARCHAR(36)   NOT NULL PRIMARY KEY,
+      restaurant_id  VARCHAR(36)   NOT NULL,
+      table_id       VARCHAR(36)   NULL,
+      table_number   INTEGER       NULL,
+      customer_name  VARCHAR(255)  NOT NULL,
+      customer_phone VARCHAR(30)   NULL,
+      party_size     INTEGER       NOT NULL DEFAULT 1,
+      date           VARCHAR(10)   NOT NULL,
+      time           VARCHAR(5)    NOT NULL,
+      status         VARCHAR(20)   NOT NULL DEFAULT 'pending',
+      notes          VARCHAR(500)  NULL,
+      created_at     VARCHAR(50)   NOT NULL
+    );
+  `);
+
   console.log('✓ Schema ready');
 }

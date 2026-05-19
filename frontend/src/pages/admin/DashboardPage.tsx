@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble, Tag, CreditCard, UserCheck } from 'lucide-react';
+import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble, Tag, CreditCard, UserCheck, CalendarDays } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
@@ -47,7 +47,8 @@ export function DashboardPage() {
     { to: '/admin/ready-display', label: 'Ready Display', icon: MonitorPlay,  desc: 'Show orders ready for pickup' },
     { to: '/admin/promo-codes',  label: 'Promo Codes',   icon: Tag,            desc: 'Discount & promo codes' },
     { to: '/admin/room-charges', label: 'Room Charges',  icon: CreditCard,     desc: 'Pending charge-to-room bills' },
-    { to: '/admin/waiters',      label: 'Waiters',        icon: UserCheck,      desc: 'Manage waiter staff list' },
+    { to: '/admin/waiters',       label: 'Waiters',         icon: UserCheck,      desc: 'Manage waiter staff list' },
+    { to: '/admin/reservations',  label: 'Reservations',    icon: CalendarDays,   desc: 'Table bookings by date' },
   ];
 
   return (
