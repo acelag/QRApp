@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { getCurrencySymbol, restaurantService } from '../services/restaurantService';
+import { getCurrencySymbol, formatCurrency, restaurantService } from '../services/restaurantService';
 import { useAuth } from './AuthContext';
 
 interface CurrencyContextValue {
@@ -13,7 +13,7 @@ interface CurrencyContextValue {
 const CurrencyContext = createContext<CurrencyContextValue>({
   symbol: '$',
   currencyCode: 'USD',
-  fmt: (n) => `$ ${n.toFixed(2)}`,
+  fmt: (n) => formatCurrency(n, 'USD'),
   loadCurrency: () => {},
 });
 
@@ -21,7 +21,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [currencyCode, setCurrencyCode] = useState('USD');
   const symbol = getCurrencySymbol(currencyCode);
-  const fmt = useCallback((n: number) => `${getCurrencySymbol(currencyCode)} ${n.toFixed(2)}`, [currencyCode]);
+  const fmt = useCallback((n: number) => formatCurrency(n, currencyCode), [currencyCode]);
 
   // Auto-load for authenticated admin/kitchen users
   useEffect(() => {

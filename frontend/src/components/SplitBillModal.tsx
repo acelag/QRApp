@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Minus, Plus, Printer, Users, List, AlertTriangle } from 'lucide-react';
 import type { Session, BillItem } from '../services/sessionService';
-import { computeCharges, getCurrencySymbol, type RestaurantSettings } from '../services/restaurantService';
+import { computeCharges, formatCurrency, type RestaurantSettings } from '../services/restaurantService';
 
 interface Props {
   session: Session;
@@ -40,8 +40,8 @@ function buildEvenReceiptHtml(
   perPerson: number,
   grandTotal: number,
 ): string {
-  const sym = getCurrencySymbol(settings?.currency ?? 'USD');
-  const fmt = (n: number) => `${sym}${n.toFixed(2)}`;
+  const code = settings?.currency ?? 'USD';
+  const fmt = (n: number) => formatCurrency(n, code);
   const date = new Date(session.createdAt).toLocaleDateString();
   const time = new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const name = settings?.name ?? 'RESTAURANT';
@@ -81,8 +81,8 @@ function buildByItemReceiptHtml(
   subtotal: number,
   grandTotal: number,
 ): string {
-  const sym = getCurrencySymbol(settings?.currency ?? 'USD');
-  const fmt = (n: number) => `${sym}${n.toFixed(2)}`;
+  const code = settings?.currency ?? 'USD';
+  const fmt = (n: number) => formatCurrency(n, code);
   const date = new Date(session.createdAt).toLocaleDateString();
   const time = new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const name = settings?.name ?? 'RESTAURANT';
@@ -147,8 +147,8 @@ export function SplitBillModal({ session, settings, onClose }: Props) {
   // by-item: assignments[itemIdx] = Set of guest numbers (1-based)
   const [assignments, setAssignments] = useState<Record<number, Set<number>>>({});
 
-  const sym = getCurrencySymbol(settings?.currency ?? 'USD');
-  const fmt = (n: number) => `${sym} ${n.toFixed(2)}`;
+  const currCode = settings?.currency ?? 'USD';
+  const fmt = (n: number) => formatCurrency(n, currCode);
 
   const subtotal = session.totalAmount ?? 0;
   const charges = computeCharges(subtotal, {

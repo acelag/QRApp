@@ -33,7 +33,7 @@ export const CURRENCIES = [
   { code: 'CAD', symbol: 'C$',  name: 'Canadian Dollar' },
   { code: 'SGD', symbol: 'S$',  name: 'Singapore Dollar' },
   { code: 'INR', symbol: '₹',   name: 'Indian Rupee' },
-  { code: 'LKR', symbol: 'Rs',  name: 'Sri Lankan Rupee' },
+  { code: 'LKR', symbol: 'Rs.',  name: 'Sri Lankan Rupee' },
   { code: 'JPY', symbol: '¥',   name: 'Japanese Yen' },
   { code: 'AED', symbol: 'AED', name: 'UAE Dirham' },
   { code: 'MYR', symbol: 'RM',  name: 'Malaysian Ringgit' },
@@ -42,6 +42,29 @@ export const CURRENCIES = [
 
 export const getCurrencySymbol = (code: string): string =>
   CURRENCIES.find((c) => c.code === code)?.symbol ?? code;
+
+/** Currencies where fractional units are never shown (e.g. LKR, JPY). */
+const ZERO_DECIMAL = new Set(['JPY', 'LKR']);
+
+/**
+ * Format a monetary amount with the correct symbol, thousand separators,
+ * and decimal places for the given ISO currency code.
+ *
+ * Examples:
+ *   formatCurrency(1500,    'LKR') → "Rs. 1,500"
+ *   formatCurrency(1500.50, 'USD') → "$ 1,500.50"
+ *   formatCurrency(1500,    'JPY') → "¥ 1,500"
+ */
+export function formatCurrency(amount: number, code: string): string {
+  const decimals = ZERO_DECIMAL.has(code) ? 0 : 2;
+  const symbol   = getCurrencySymbol(code);
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping: true,
+  }).format(amount);
+  return `${symbol} ${formatted}`;
+}
 
 /** Compute line-by-line charges from a subtotal and settings. */
 export function computeCharges(subtotal: number, settings: Pick<BillingCharges, 'serviceChargePct' | 'taxPct'>) {
