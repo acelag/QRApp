@@ -25,7 +25,6 @@ import roomsRouter from './routes/rooms';
 import promoCodesRouter from './routes/promoCodes';
 import customerPushRouter from './routes/customerPush';
 import waitersRouter from './routes/waiters';
-import reservationsRouter from './routes/reservations';
 import tagsRouter from './routes/tags';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
@@ -96,7 +95,6 @@ app.use('/api/rooms',        roomsRouter);
 app.use('/api/promo-codes',  promoCodesRouter);
 app.use('/api/customer-push', customerPushRouter);
 app.use('/api/waiters',       waitersRouter);
-app.use('/api/reservations',  reservationsRouter);
 app.use('/api/tags',          tagsRouter);
 app.use('/api/upload',      authenticate, requireRole('admin'), uploadRouter);
 app.use('/api/users',       usersRouter);
