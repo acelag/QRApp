@@ -60,7 +60,6 @@ export function OrderSuccessPage() {
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
-  const [prevStatus, setPrevStatus] = useState<StatusStep | null>(null);
   const [bump, setBump] = useState(false);
   const { fmt } = useCurrency();
   const { bulkAdd } = useCart();
@@ -72,7 +71,6 @@ export function OrderSuccessPage() {
       orderService.getOrder(orderId).then((o) => {
         setOrder((prev) => {
           if (prev && prev.status !== o.status) {
-            setPrevStatus(prev.status as StatusStep);
             setBump(true);
             setTimeout(() => setBump(false), 700);
           }
