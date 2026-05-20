@@ -208,7 +208,7 @@ export function SettingsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Top nav */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-600">
             <ArrowLeft size={18} />
           </Link>
@@ -216,7 +216,7 @@ export function SettingsPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+      <main className="px-3 sm:px-4 lg:px-6 py-6 space-y-4">
 
         {/* ── Hero profile card ─────────────────────────────────────────── */}
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
@@ -267,10 +267,10 @@ export function SettingsPage() {
           )}
         </div>
 
-        {/* ── Two-column grid on lg+ ───────────────────────────────────── */}
+        {/* ── Two-column grid on lg+, right side splits again on xl ──── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 
-          {/* ══ LEFT COLUMN — Account + links ═══════════════════════════ */}
+          {/* ══ COL 1 — Account ══════════════════════════════════════════ */}
           <div className="space-y-4">
 
         {/* ── Account credentials ───────────────────────────────────────── */}
@@ -377,7 +377,10 @@ export function SettingsPage() {
 
           </div>{/* end LEFT column */}
 
-          {/* ══ RIGHT COLUMN — Billing + config cards ═══════════════════ */}
+          {/* ══ COL 2+3 — nested grid: splits into 2 on xl ══════════════ */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+
+          {/* ── COL 2 — Billing + Order Number ───────────────────────── */}
           <div className="space-y-4">
 
         {/* ── Billing configuration ─────────────────────────────────────── */}
@@ -520,6 +523,11 @@ export function SettingsPage() {
             </div>
           </div>
         )}
+
+          </div>{/* end COL 2 */}
+
+          {/* ── COL 3 — Wait Time + Room Service + Theme ─────────────── */}
+          <div className="space-y-4">
 
         {/* ── Estimated Wait Time ───────────────────────────────────────── */}
         {restaurant && (
@@ -711,8 +719,10 @@ export function SettingsPage() {
           </div>
         )}
 
-          </div>{/* end RIGHT column */}
-        </div>{/* end two-column grid */}
+          </div>{/* end COL 3 */}
+
+          </div>{/* end nested xl:grid-cols-2 */}
+        </div>{/* end outer lg:grid-cols-2 */}
 
         {/* ── Quick links (full width below grid) ──────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
