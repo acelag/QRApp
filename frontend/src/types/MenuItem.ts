@@ -33,6 +33,7 @@ export interface MenuItem {
   sortOrder?: number;
   tags?: string[];
   toppings?: Topping[];
+  prepTimeMins?: number | null;
 }
 
 /** Returns the effective price after discount for the given size. */

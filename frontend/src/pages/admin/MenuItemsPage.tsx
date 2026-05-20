@@ -40,6 +40,7 @@ const EMPTY: Omit<MenuItem, 'id'> = {
   trackStock: false,
   stock: null,
   tags: [],
+  prepTimeMins: null,
 };
 
 export function MenuItemsPage() {
@@ -112,7 +113,7 @@ export function MenuItemsPage() {
 
   function openEdit(item: MenuItem) {
     setEditing(item);
-    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null, tags: item.tags ?? [] });
+    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null, tags: item.tags ?? [], prepTimeMins: item.prepTimeMins ?? null });
     setPreview(item.image ?? '');
     setShowForm(true);
   }
@@ -1059,6 +1060,25 @@ export function MenuItemsPage() {
                   <p className="text-xs text-gray-400 mt-1">Auto-marks unavailable when stock reaches 0. Leave blank to track without a limit.</p>
                 </div>
               )}
+            </div>
+
+            {/* Prep time */}
+            <div>
+              <label className="text-sm text-gray-600 mb-1 block">Prep time (minutes)</label>
+              <div className="relative w-32">
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  step="1"
+                  value={form.prepTimeMins ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, prepTimeMins: e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null }))}
+                  placeholder="e.g. 15"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">min</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Shown to kitchen as a countdown timer. Leave blank if not applicable.</p>
             </div>
 
             {/* Tags */}

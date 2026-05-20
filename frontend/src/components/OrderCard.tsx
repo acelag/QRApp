@@ -20,15 +20,35 @@ interface Props {
   isNext?: boolean;
   priority?: number;
   hidePrices?: boolean;
+  /** Map of menuItem name → prepTimeMins (used in kitchen mode) */
+  prepTimeMap?: Record<string, number>;
+  /** Current epoch ms — passed from parent so all cards tick in sync */
+  clockMs?: number;
 }
 
-export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
   const { fmt } = useCurrency();
 
-  const ageMins = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60_000);
+  const now = clockMs ?? Date.now();
+  const ageMins = Math.floor((now - new Date(order.createdAt).getTime()) / 60_000);
   const isStale = order.status === 'pending' && ageMins >= STALE_MINUTES;
+
+  /** Returns a countdown string for a given item name, or null if no prep time set */
+  function itemCountdown(itemName: string): { label: string; over: boolean } | null {
+    if (!prepTimeMap || !clockMs) return null;
+    const prepMins = prepTimeMap[itemName];
+    if (!prepMins) return null;
+    const elapsedMs = now - new Date(order.createdAt).getTime();
+    const remainMs  = prepMins * 60_000 - elapsedMs;
+    if (remainMs <= 0) {
+      const overMins = Math.floor(-remainMs / 60_000);
+      return { label: overMins > 0 ? `+${overMins}m` : 'due!', over: true };
+    }
+    const remMins = Math.ceil(remainMs / 60_000);
+    return { label: `${remMins}m`, over: false };
+  }
 
   const [cooked, setCooked] = useState<Set<number>>(new Set());
 
@@ -189,6 +209,17 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, w
                     </span>
                   )}
                   {item.notes && <span className="text-gray-400 italic text-xs">({item.notes})</span>}
+                  {hidePrices && (() => {
+                    const cd = itemCountdown(item.name);
+                    if (!cd) return null;
+                    return (
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                        cd.over ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        ⏱ {cd.label}
+                      </span>
+                    );
+                  })()}
                 </span>
                 {!hidePrices && (
                   <span className="text-gray-500 shrink-0 text-xs tabular-nums">{fmt(lineTotal)}</span>

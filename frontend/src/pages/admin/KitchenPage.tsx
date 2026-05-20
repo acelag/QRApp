@@ -33,6 +33,19 @@ export function KitchenPage() {
   const [toggling, setToggling]       = useState<Set<string>>(new Set());
   const [itemsLoaded, setItemsLoaded] = useState(false);
 
+  // Prep-time countdown clock — ticks every 15 s so badges stay fresh
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setClockMs(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // prepTimeMap: item name → prep minutes (built from menu items)
+  const prepTimeMap: Record<string, number> = {};
+  for (const mi of menuItems) {
+    if (mi.prepTimeMins) prepTimeMap[mi.name] = mi.prepTimeMins;
+  }
+
   function handleLogout() { logout(); navigate('/login', { replace: true }); }
 
   // ── Orders polling ────────────────────────────────────────────────────────
@@ -78,17 +91,17 @@ export function KitchenPage() {
     }
   }
 
-  // ── Load items once when Items tab is first opened ────────────────────────
+  // ── Load items eagerly on mount (needed for prepTimeMap in Orders tab) ───
   useEffect(() => {
-    if (tab !== 'items' || itemsLoaded) return;
+    if (itemsLoaded) return;
     Promise.all([menuService.getCategories(), menuService.getItems()])
       .then(([cats, items]) => {
         setCategories(cats);
         setMenuItems(items.sort((a, b) => a.name.localeCompare(b.name)));
         setItemsLoaded(true);
       })
-      .catch(() => toast.error('Failed to load menu items'));
-  }, [tab, itemsLoaded]);
+      .catch(() => {});   // silently ignore — countdown just won't show
+  }, [itemsLoaded]);
 
   async function handleStatusChange(id: string, status: OrderStatus) {
     try {
@@ -242,6 +255,8 @@ export function KitchenPage() {
                     isNext={idx === 0}
                     priority={idx + 1}
                     hidePrices
+                    prepTimeMap={prepTimeMap}
+                    clockMs={clockMs}
                   />
                 </div>
               ))}
