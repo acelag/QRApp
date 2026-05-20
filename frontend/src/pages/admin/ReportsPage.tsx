@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag } from 'lucide-react';
+import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
@@ -80,6 +80,15 @@ function buildCsv(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
         ['TOTAL', '', '', '', report.promos.reduce((s, r) => s + r.orderCount, 0), report.promos.reduce((s, r) => s + r.totalDiscount, 0), ''],
       ]);
       break;
+    case 'payment': {
+      const totalRev = report.paymentMethods.reduce((s, r) => s + r.revenue, 0);
+      downloadCsv(`${prefix}-payment-methods.csv`, [
+        ['Payment Method', 'Orders', 'Revenue', '% of Total'],
+        ...report.paymentMethods.map((r) => [r.method, r.orderCount, r.revenue, ((r.revenue / (totalRev || 1)) * 100).toFixed(1) + '%']),
+        ['TOTAL', report.paymentMethods.reduce((s, r) => s + r.orderCount, 0), totalRev, '100%'],
+      ]);
+      break;
+    }
   }
   void fmt; // used in switch above indirectly; keep lint happy
   toast.success('CSV downloaded');
@@ -155,11 +164,22 @@ function buildPdf(report: Report, from: string, to: string, fmt: (n: number) => 
       <tbody>${report.toppings.map((r) => `<tr><td>${r.name}</td><td class="right">${r.timesOrdered}</td><td class="right">${fmt(r.revenue)}</td></tr>`).join('')}</tbody>
     </table>` : '';
 
+  const pmTotalRev = report.paymentMethods.reduce((sum, r) => sum + r.revenue, 0);
+  const paymentHtml = report.paymentMethods.length ? `
+    <h2>Revenue by Payment Method</h2>
+    <table>
+      <thead><tr><th>Method</th><th class="right">Orders</th><th class="right">Revenue</th><th class="right">Share</th></tr></thead>
+      <tbody>
+        ${report.paymentMethods.map((r) => `<tr><td style="text-transform:capitalize">${r.method}</td><td class="right">${r.orderCount}</td><td class="right">${fmt(r.revenue)}</td><td class="right">${((r.revenue / (pmTotalRev || 1)) * 100).toFixed(1)}%</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr class="total"><td>Total</td><td class="right">${report.paymentMethods.reduce((s, r) => s + r.orderCount, 0)}</td><td class="right">${fmt(pmTotalRev)}</td><td class="right">100%</td></tr></tfoot>
+    </table>` : '';
+
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sales Report ${from} – ${to}</title><style>${PDF_STYLES}</style></head>
     <body>
       <h1>Sales Report</h1>
       <p>${from === to ? from : `${from} – ${to}`} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</p>
-      ${summaryHtml}${dailyHtml}${catHtml}${itemsHtml}${extrasHtml}
+      ${summaryHtml}${dailyHtml}${catHtml}${itemsHtml}${extrasHtml}${paymentHtml}
     </body></html>`;
 
   const win = window.open('', '_blank', 'width=800,height=700');
@@ -171,7 +191,7 @@ function buildPdf(report: Report, from: string, to: string, fmt: (n: number) => 
   toast.success('Print / Save as PDF dialog opened');
 }
 
-type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap' | 'promos';
+type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap' | 'promos' | 'payment';
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -380,6 +400,7 @@ export function ReportsPage() {
                 { key: 'items',      label: 'Items' },
                 ...(report.toppings.length > 0 ? [{ key: 'extras', label: 'Extras' }] : []),
                 { key: 'promos',     label: '🏷️ Promo Codes' },
+                { key: 'payment',    label: '💳 Payment' },
               ] as { key: Tab; label: string }[]).map((t) => (
                 <button
                   key={t.key}
@@ -827,6 +848,133 @@ export function ReportsPage() {
                       </table>
                     )}
                   </div>
+                </div>
+              );
+            })()}
+
+            {/* Payment method breakdown */}
+            {tab === 'payment' && (() => {
+              const rows = report.paymentMethods;
+              const totalRev = rows.reduce((s, r) => s + r.revenue, 0);
+              const totalOrders = rows.reduce((s, r) => s + r.orderCount, 0);
+
+              const METHOD_META: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+                cash:    { label: 'Cash',    color: 'bg-green-500',  bg: 'bg-green-50',  icon: '💵' },
+                card:    { label: 'Card',    color: 'bg-blue-500',   bg: 'bg-blue-50',   icon: '💳' },
+                qr:      { label: 'QR Pay',  color: 'bg-purple-500', bg: 'bg-purple-50', icon: '📱' },
+                unknown: { label: 'Unknown', color: 'bg-gray-400',   bg: 'bg-gray-50',   icon: '❓' },
+              };
+              const FALLBACK_COLORS = ['bg-orange-500', 'bg-teal-500', 'bg-pink-500', 'bg-amber-500'];
+
+              function getMeta(method: string, idx: number) {
+                return METHOD_META[method] ?? {
+                  label: method.charAt(0).toUpperCase() + method.slice(1),
+                  color: FALLBACK_COLORS[idx % FALLBACK_COLORS.length],
+                  bg: 'bg-gray-50',
+                  icon: '💰',
+                };
+              }
+
+              return (
+                <div className="space-y-4">
+                  {rows.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
+                      <CreditCard size={32} className="mx-auto mb-2 text-gray-200" />
+                      <p>No payment data for this period.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Summary chips */}
+                      <div className={`grid gap-3 ${rows.length <= 3 ? `grid-cols-${rows.length}` : 'grid-cols-2 sm:grid-cols-4'}`}>
+                        {rows.map((r, i) => {
+                          const meta = getMeta(r.method, i);
+                          return (
+                            <div key={r.method} className={`rounded-2xl border border-gray-100 shadow-sm p-4 ${meta.bg}`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-base">{meta.icon}</span>
+                                <span className="text-xs text-gray-500 font-medium">{meta.label}</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">{fmt(r.revenue)}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{r.orderCount} order{r.orderCount !== 1 ? 's' : ''} · {totalRev > 0 ? ((r.revenue / totalRev) * 100).toFixed(1) : '0'}%</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Stacked bar */}
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Revenue share</p>
+                        <div className="flex h-5 rounded-full overflow-hidden gap-px mb-3">
+                          {rows.map((r, i) => {
+                            const meta = getMeta(r.method, i);
+                            return (
+                              <div
+                                key={r.method}
+                                title={`${meta.label}: ${fmt(r.revenue)} (${totalRev > 0 ? ((r.revenue / totalRev) * 100).toFixed(1) : '0'}%)`}
+                                className={`${meta.color} transition-all`}
+                                style={{ width: `${(r.revenue / (totalRev || 1)) * 100}%` }}
+                              />
+                            );
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          {rows.map((r, i) => {
+                            const meta = getMeta(r.method, i);
+                            return (
+                              <div key={r.method} className="flex items-center gap-1.5 text-xs text-gray-600">
+                                <span className={`w-2.5 h-2.5 rounded-full ${meta.color} shrink-0`} />
+                                {meta.label} — {totalRev > 0 ? ((r.revenue / totalRev) * 100).toFixed(1) : '0'}%
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Table */}
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-100 bg-gray-50">
+                              <th className="text-left px-4 py-3 font-semibold text-gray-600">Method</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600">Orders</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600">Revenue</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600">Share</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((r, i) => {
+                              const meta = getMeta(r.method, i);
+                              const pct = totalRev > 0 ? (r.revenue / totalRev) * 100 : 0;
+                              return (
+                                <tr key={r.method} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-2.5 h-2.5 rounded-full ${meta.color} shrink-0`} />
+                                      <span className="font-medium text-gray-900">{meta.icon} {meta.label}</span>
+                                    </div>
+                                    <div className="mt-1.5 w-full bg-gray-100 rounded-full h-1.5">
+                                      <div className={`${meta.color} h-1.5 rounded-full`} style={{ width: `${pct}%` }} />
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-gray-700 font-semibold">{r.orderCount}</td>
+                                  <td className="px-4 py-3 text-right font-bold text-gray-900">{fmt(r.revenue)}</td>
+                                  <td className="px-4 py-3 text-right text-gray-500">{pct.toFixed(1)}%</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-orange-50 border-t border-orange-100">
+                              <td className="px-4 py-3 font-bold text-orange-800">Total</td>
+                              <td className="px-4 py-3 text-right font-bold text-orange-800">{totalOrders}</td>
+                              <td className="px-4 py-3 text-right font-bold text-orange-800">{fmt(totalRev)}</td>
+                              <td className="px-4 py-3 text-right font-bold text-orange-800">100%</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })()}

@@ -56,6 +56,12 @@ export interface PromoReportRow {
   avgDiscount: number;   // average discount per redemption
 }
 
+export interface PaymentMethodRow {
+  method: string;     // 'cash' | 'card' | 'qr' | 'unknown' | any custom value
+  orderCount: number;
+  revenue: number;
+}
+
 export interface Report {
   summary: ReportSummary;
   daily: DailyRow[];
@@ -64,6 +70,7 @@ export interface Report {
   categories: CategoryRow[];
   heatmap: HeatmapCell[];
   promos: PromoReportRow[];
+  paymentMethods: PaymentMethodRow[];
 }
 
 export interface TodaySummary {
