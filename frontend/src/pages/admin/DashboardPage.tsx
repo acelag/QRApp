@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble, Tag, CreditCard, UserCheck, Trophy, ShoppingBag, MapPin, Medal, LayoutDashboard, Eye } from 'lucide-react';
+import {
+  ClipboardList, UtensilsCrossed, Table2, ChefHat, LogOut, Settings,
+  Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay,
+  BedDouble, Tag, CreditCard, UserCheck, Trophy, ShoppingBag, MapPin,
+  Medal, LayoutDashboard, Eye, Activity, Banknote,
+} from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { reportService, type TodaySummary } from '../../services/reportService';
@@ -24,39 +29,65 @@ export function DashboardPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Fetch today's summary once on mount (no poll needed — data is historical)
   useEffect(() => {
     reportService.getToday().then(setToday).catch(() => {});
   }, []);
 
-  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
-  const todayOrders = orders.filter(
-    (o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr
-  );
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayOrders  = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
   const activeOrders = orders.filter((o) => o.status !== 'served');
   const todayRevenue = todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
 
   const stats = [
-    { label: "Today's Orders", value: todayOrders.length, icon: ClipboardList, color: 'bg-orange-50 text-orange-600' },
-    { label: 'Active Orders', value: activeOrders.length, icon: TrendingUp, color: 'bg-orange-50 text-orange-600' },
-    { label: "Today's Revenue", value: fmt(todayRevenue), icon: TrendingUp, color: 'bg-orange-50 text-orange-600' },
+    {
+      label: "Today's Orders",
+      value: todayOrders.length,
+      icon: ClipboardList,
+      iconCls: 'bg-blue-50 text-blue-500',
+      bar: 'bg-blue-400',
+      valueCls: 'text-blue-600',
+    },
+    {
+      label: 'Active Orders',
+      value: activeOrders.length,
+      icon: Activity,
+      iconCls: 'bg-amber-50 text-amber-500',
+      bar: 'bg-amber-400',
+      valueCls: 'text-amber-600',
+    },
+    {
+      label: "Today's Revenue",
+      value: fmt(todayRevenue),
+      icon: Banknote,
+      iconCls: 'bg-green-50 text-green-600',
+      bar: 'bg-green-400',
+      valueCls: 'text-green-700',
+    },
   ];
 
-  const navItems: { to: string; href?: string; label: string; icon: React.ElementType; desc: string }[] = [
-    { to: '/admin/new-order', label: 'New Order',       icon: PlusCircle,     desc: 'Place takeaway or dine-in order' },
-    { to: '/admin/orders',  label: 'Live Orders',      icon: ClipboardList,  desc: 'Manage incoming orders' },
-    { to: '/admin/bills',   label: 'Bills',            icon: Receipt,        desc: 'Table bills & takeaway receipts' },
-    { to: '/admin/reports', label: 'Reports',          icon: BarChart2,      desc: 'Sales & item performance' },
-    { to: '/admin/menu',    label: 'Menu Items',       icon: UtensilsCrossed, desc: 'Add, edit, delete items' },
-    { to: '/admin/tables',        label: 'Tables & QR',      icon: Table2,            desc: 'Manage tables and QR codes' },
-    { to: '/admin/table-status',  label: 'Table Status',     icon: LayoutDashboard,   desc: 'Live grid — open / occupied / stale' },
-    { to: '/admin/rooms',   label: 'Rooms & QR',       icon: BedDouble,      desc: 'Manage rooms and QR codes' },
-    { to: '/kitchen',       label: 'Kitchen Display',  icon: ChefHat,        desc: 'Live kitchen order view' },
-    { to: '/admin/ready-display', label: 'Ready Display', icon: MonitorPlay,  desc: 'Show orders ready for pickup' },
-    { to: '/admin/promo-codes',  label: 'Promo Codes',   icon: Tag,            desc: 'Discount & promo codes' },
-    { to: '/admin/room-charges', label: 'Room Charges',  icon: CreditCard,     desc: 'Pending charge-to-room bills' },
-    { to: '/admin/waiters',       label: 'Waiters',         icon: UserCheck,      desc: 'Manage waiter staff list' },
-    { to: '/admin/staff-performance', label: 'Staff Performance', icon: Trophy,      desc: 'Waiter leaderboard & stats' },
+  const navItems: {
+    to: string;
+    href?: string;
+    label: string;
+    icon: React.ElementType;
+    desc: string;
+    primary?: boolean;
+    badge?: number;
+  }[] = [
+    { to: '/admin/new-order',          label: 'New Order',          icon: PlusCircle,     desc: 'Place takeaway or dine-in order',       primary: true },
+    { to: '/admin/orders',             label: 'Live Orders',        icon: ClipboardList,  desc: 'Manage incoming orders',                primary: true, badge: activeOrders.length },
+    { to: '/admin/bills',              label: 'Bills',              icon: Receipt,        desc: 'Table bills & takeaway receipts' },
+    { to: '/admin/reports',            label: 'Reports',            icon: BarChart2,      desc: 'Sales & item performance' },
+    { to: '/admin/menu',               label: 'Menu Items',         icon: UtensilsCrossed, desc: 'Add, edit, delete items' },
+    { to: '/admin/tables',             label: 'Tables & QR',        icon: Table2,         desc: 'Manage tables and QR codes' },
+    { to: '/admin/table-status',       label: 'Table Status',       icon: LayoutDashboard, desc: 'Live grid — open / occupied / stale' },
+    { to: '/admin/rooms',              label: 'Rooms & QR',         icon: BedDouble,      desc: 'Manage rooms and QR codes' },
+    { to: '/kitchen',                  label: 'Kitchen Display',    icon: ChefHat,        desc: 'Live kitchen order view' },
+    { to: '/admin/ready-display',      label: 'Ready Display',      icon: MonitorPlay,    desc: 'Show orders ready for pickup' },
+    { to: '/admin/promo-codes',        label: 'Promo Codes',        icon: Tag,            desc: 'Discount & promo codes' },
+    { to: '/admin/room-charges',       label: 'Room Charges',       icon: CreditCard,     desc: 'Pending charge-to-room bills' },
+    { to: '/admin/waiters',            label: 'Waiters',            icon: UserCheck,      desc: 'Manage waiter staff list' },
+    { to: '/admin/staff-performance',  label: 'Staff Performance',  icon: Trophy,         desc: 'Waiter leaderboard & stats' },
     ...(user?.restaurantId ? [{
       to: '#',
       href: `/takeaway/${user.restaurantId}`,
@@ -101,24 +132,29 @@ export function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        {/* ── Stat cards ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
           {stats.map((s, i) => (
             <div
               key={s.label}
-              className={`bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100 min-w-0 ${
-                i === 2 ? 'col-span-2 sm:col-span-1' : 'sm:col-span-1'
+              className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 min-w-0 ${
+                i === 2 ? 'col-span-2 sm:col-span-1' : ''
               }`}
             >
-              <div className={`inline-flex p-2 rounded-xl mb-2 ${s.color}`}>
-                <s.icon size={18} />
+              <div className={`h-1 ${s.bar}`} />
+              <div className="p-3 sm:p-4">
+                <div className={`inline-flex p-2 rounded-xl mb-2 ${s.iconCls}`}>
+                  <s.icon size={18} />
+                </div>
+                <p className={`text-xl font-bold truncate ${s.valueCls}`}>{s.value}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
               </div>
-              <p className="text-xl font-bold text-gray-900 truncate">{s.value}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>
 
-        {/* Today's sales summary card */}
+        {/* ── Today's breakdown ──────────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
             <div className="flex items-center gap-2">
@@ -130,12 +166,11 @@ export function DashboardPage() {
             </Link>
           </div>
 
-          {/* Order-type split */}
           <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
             {[
-              { label: 'Dine-in', value: today?.dineIn ?? '—', icon: MapPin, color: 'text-orange-500' },
-              { label: 'Takeaway', value: today?.takeaway ?? '—', icon: ShoppingBag, color: 'text-purple-500' },
-              { label: 'Room Svc', value: today?.roomService ?? '—', icon: BedDouble, color: 'text-blue-500' },
+              { label: 'Dine-in',   value: today?.dineIn      ?? '—', icon: MapPin,    color: 'text-orange-500' },
+              { label: 'Takeaway',  value: today?.takeaway    ?? '—', icon: ShoppingBag, color: 'text-purple-500' },
+              { label: 'Room Svc',  value: today?.roomService ?? '—', icon: BedDouble,  color: 'text-blue-500' },
             ].map((t) => (
               <div key={t.label} className="flex flex-col items-center py-3 gap-0.5">
                 <t.icon size={13} className={t.color} />
@@ -145,7 +180,6 @@ export function DashboardPage() {
             ))}
           </div>
 
-          {/* Avg order value */}
           <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100 text-sm">
             <span className="text-gray-500">Avg. order value</span>
             <span className="font-semibold text-gray-900">
@@ -153,7 +187,6 @@ export function DashboardPage() {
             </span>
           </div>
 
-          {/* Top items */}
           <div className="px-5 py-3">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Top Items Today</p>
             {!today || today.topItems.length === 0 ? (
@@ -177,40 +210,69 @@ export function DashboardPage() {
           </div>
         </div>
 
+        {/* ── Navigation grid / list ─────────────────────────────────── */}
         {gridView ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {navItems.map((item) => {
-              const cls = "bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center gap-3 hover:border-orange-200 transition-colors";
+              const isPrimary = !!item.primary;
+              const cls = isPrimary
+                ? 'relative bg-orange-500 rounded-2xl p-4 shadow-md shadow-orange-200 border border-orange-400 flex flex-col items-center text-center gap-3 hover:bg-orange-600 transition-colors'
+                : 'relative bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center gap-3 hover:border-orange-200 transition-colors';
               const inner = (
                 <>
-                  <div className="bg-orange-50 p-3 rounded-xl text-orange-600"><item.icon size={24} /></div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm leading-tight">{item.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 leading-tight">{item.desc}</p>
+                  <div className={isPrimary ? 'bg-white/20 p-3 rounded-xl text-white' : 'bg-orange-50 p-3 rounded-xl text-orange-600'}>
+                    <item.icon size={24} />
                   </div>
+                  <div>
+                    <p className={`font-semibold text-sm leading-tight ${isPrimary ? 'text-white' : 'text-gray-900'}`}>
+                      {item.label}
+                    </p>
+                    <p className={`text-xs mt-0.5 leading-tight ${isPrimary ? 'text-orange-100' : 'text-gray-400'}`}>
+                      {item.desc}
+                    </p>
+                  </div>
+                  {item.badge != null && item.badge > 0 && (
+                    <span className={`absolute top-2 right-2 text-xs font-bold rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none ${
+                      isPrimary ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
                 </>
               );
               return item.href
-                ? <a key={item.to} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
-                : <Link key={item.to} to={item.to} className={cls}>{inner}</Link>;
+                ? <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
+                : <Link key={item.label} to={item.to} className={cls}>{inner}</Link>;
             })}
           </div>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
             {navItems.map((item) => {
-              const cls = "bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:border-orange-200 transition-colors";
+              const isPrimary = !!item.primary;
+              const cls = isPrimary
+                ? 'relative bg-orange-500 rounded-2xl p-4 shadow-md shadow-orange-200 border border-orange-400 flex items-center gap-4 hover:bg-orange-600 transition-colors'
+                : 'relative bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:border-orange-200 transition-colors';
               const inner = (
                 <>
-                  <div className="bg-orange-50 p-3 rounded-xl text-orange-600"><item.icon size={22} /></div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{item.label}</p>
-                    <p className="text-sm text-gray-500">{item.desc}</p>
+                  <div className={isPrimary ? 'bg-white/20 p-3 rounded-xl text-white' : 'bg-orange-50 p-3 rounded-xl text-orange-600'}>
+                    <item.icon size={22} />
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-semibold ${isPrimary ? 'text-white' : 'text-gray-900'}`}>{item.label}</p>
+                    <p className={`text-sm ${isPrimary ? 'text-orange-100' : 'text-gray-500'}`}>{item.desc}</p>
+                  </div>
+                  {item.badge != null && item.badge > 0 && (
+                    <span className={`text-xs font-bold rounded-full px-2.5 py-1 shrink-0 ${
+                      isPrimary ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
                 </>
               );
               return item.href
-                ? <a key={item.to} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
-                : <Link key={item.to} to={item.to} className={cls}>{inner}</Link>;
+                ? <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
+                : <Link key={item.label} to={item.to} className={cls}>{inner}</Link>;
             })}
           </div>
         )}
