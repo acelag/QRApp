@@ -27,6 +27,8 @@ export interface Session {
   createdAt: string;
   closedAt: string | null;
   paymentMethod?: string | null;
+  mergedIntoSessionId?: string | null;
+  mergedSessions?: { id: string; tableNumber: number }[];
   orders?: SessionOrder[];
   billItems?: BillItem[];
   totalAmount?: number;
@@ -50,4 +52,12 @@ export const sessionService = {
   /** Mark a session as paid — admin only. */
   markAsPaid: (sessionId: string, paymentMethod?: string) =>
     axios.patch<Session>(`${BASE}/${sessionId}/pay`, { paymentMethod }).then((r) => r.data),
+
+  /** Merge sessionId into intoSessionId (secondary → primary). Returns updated primary. */
+  merge: (sessionId: string, intoSessionId: string) =>
+    axios.patch<Session>(`${BASE}/${sessionId}/merge`, { intoSessionId }).then((r) => r.data),
+
+  /** Detach a secondary session from its primary. Returns the now-standalone session. */
+  unmerge: (sessionId: string) =>
+    axios.patch<Session>(`${BASE}/${sessionId}/unmerge`).then((r) => r.data),
 };

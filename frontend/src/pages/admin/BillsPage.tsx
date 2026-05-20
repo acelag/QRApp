@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw, Printer, ShoppingBag, Table2, Users } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw, Printer, ShoppingBag, Table2, Users, GitMerge, Unlink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
@@ -33,6 +33,9 @@ export function BillsPage() {
   const [payingOrder, setPayingOrder] = useState<string | null>(null);
   const [billingSettings, setBillingSettings] = useState<RestaurantSettings | null>(null);
   const [splitSession, setSplitSession] = useState<Session | null>(null);
+  const [mergeSource, setMergeSource] = useState<Session | null>(null); // session waiting to be merged
+  const [merging, setMerging] = useState(false);
+  const [unmerging, setUnmerging] = useState<string | null>(null);
   // Payment method modal state
   const [paymentTarget, setPaymentTarget] = useState<{ type: 'session'; session: Session } | { type: 'order'; order: Order } | null>(null);
   const { fmt } = useCurrency();
@@ -98,7 +101,50 @@ export function BillsPage() {
     }
   }
 
-  const openSessions  = sessions.filter((s) => s.status === 'open');
+  async function handleMerge(target: Session) {
+    if (!mergeSource || merging) return;
+    setMerging(true);
+    try {
+      const updatedPrimary = await sessionService.merge(mergeSource.id, target.id);
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id === updatedPrimary.id) return updatedPrimary;
+          if (s.id === mergeSource.id) return { ...s, mergedIntoSessionId: target.id };
+          return s;
+        }),
+      );
+      toast.success(`Table ${mergeSource.tableNumber} merged into Table ${target.tableNumber}`);
+      setMergeSource(null);
+    } catch {
+      toast.error('Failed to merge tables');
+    } finally {
+      setMerging(false);
+    }
+  }
+
+  async function handleUnmerge(secondary: { id: string; tableNumber: number }, primaryId: string) {
+    setUnmerging(secondary.id);
+    try {
+      const standalone = await sessionService.unmerge(secondary.id);
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id === standalone.id) return standalone;
+          if (s.id === primaryId) {
+            return { ...s, mergedSessions: (s.mergedSessions ?? []).filter((m) => m.id !== secondary.id) };
+          }
+          return s;
+        }),
+      );
+      toast.success(`Table ${secondary.tableNumber} unmerged`);
+    } catch {
+      toast.error('Failed to unmerge');
+    } finally {
+      setUnmerging(null);
+    }
+  }
+
+  // Secondaries are hidden from the main list — they appear under their primary
+  const openSessions  = sessions.filter((s) => s.status === 'open' && !s.mergedIntoSessionId);
   const paidToday     = sessions.filter(
     (s) => s.status === 'paid' && s.closedAt && new Date(s.closedAt).toDateString() === todayStr()
   );
@@ -160,7 +206,17 @@ export function BillsPage() {
                 <h2 className="font-semibold text-gray-700 text-sm">Open Bills ({openSessions.length})</h2>
               </div>
 
-              {openSessions.length === 0 ? (
+              {mergeSource && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+                  <GitMerge size={18} className="text-blue-500 shrink-0" />
+                  <p className="text-sm text-blue-700 flex-1">
+                    <span className="font-semibold">Table {mergeSource.tableNumber} selected.</span> Click any other open table to merge into it.
+                  </p>
+                  <button onClick={() => setMergeSource(null)} className="text-blue-400 hover:text-blue-600 text-xs font-medium">Cancel</button>
+                </div>
+              )}
+
+            {openSessions.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
                   <Receipt size={32} className="mx-auto mb-2 text-gray-300" />
                   No open table sessions right now
@@ -169,13 +225,30 @@ export function BillsPage() {
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
                   {openSessions.map((session) => (
                     <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className="flex items-center justify-between px-5 py-3 bg-orange-50 border-b border-orange-100">
+                      <div className={`flex items-center justify-between px-5 py-3 border-b ${mergeSource && mergeSource.id !== session.id ? 'bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100' : 'bg-orange-50 border-orange-100'}`}
+                        onClick={() => mergeSource && mergeSource.id !== session.id && handleMerge(session)}
+                      >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-lg">
+                          <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-bold text-lg ${mergeSource && mergeSource.id !== session.id ? 'bg-blue-500' : 'bg-orange-500'}`}>
                             {session.tableNumber}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-900">Table {session.tableNumber}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-semibold text-gray-900">Table {session.tableNumber}</p>
+                              {(session.mergedSessions ?? []).map((m) => (
+                                <span key={m.id} className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 font-semibold px-2 py-0.5 rounded-full">
+                                  +{m.tableNumber}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleUnmerge(m, session.id); }}
+                                    disabled={unmerging === m.id}
+                                    className="ml-0.5 text-orange-400 hover:text-red-500 transition-colors"
+                                    title={`Unmerge Table ${m.tableNumber}`}
+                                  >
+                                    {unmerging === m.id ? <Loader2 size={10} className="animate-spin" /> : <Unlink size={10} />}
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
                             <p className="text-xs text-gray-500 flex items-center gap-1">
                               <Clock size={11} /> Opened {elapsed(session.createdAt)} ago
                             </p>
@@ -188,6 +261,11 @@ export function BillsPage() {
                           </p>
                         </div>
                       </div>
+                      {mergeSource && mergeSource.id !== session.id && (
+                        <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 text-center">
+                          <p className="text-xs text-blue-600 font-medium">Click to merge Table {mergeSource.tableNumber} into this table</p>
+                        </div>
+                      )}
 
                       {(session.billItems ?? []).length > 0 && (
                         <div className="px-5 py-3 border-b border-gray-100">
@@ -247,7 +325,7 @@ export function BillsPage() {
                       )}
 
                       <div className="px-5 py-4 space-y-2">
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <button
                             onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
                             disabled={(session.billItems ?? []).length === 0}
@@ -261,6 +339,17 @@ export function BillsPage() {
                             className="flex items-center justify-center gap-1.5 border border-orange-200 text-orange-600 bg-orange-50 font-semibold py-2.5 px-3 rounded-2xl hover:bg-orange-100 transition-colors disabled:opacity-40 text-sm"
                           >
                             <Users size={15} /> Split
+                          </button>
+                          <button
+                            onClick={() => setMergeSource(mergeSource?.id === session.id ? null : session)}
+                            className={`flex items-center justify-center gap-1.5 border font-semibold py-2.5 px-3 rounded-2xl transition-colors text-sm ${
+                              mergeSource?.id === session.id
+                                ? 'bg-blue-500 border-blue-500 text-white'
+                                : 'border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100'
+                            }`}
+                            title={mergeSource?.id === session.id ? 'Cancel merge' : 'Merge with another table'}
+                          >
+                            <GitMerge size={15} /> {mergeSource?.id === session.id ? 'Cancel' : 'Merge'}
                           </button>
                           <button
                             onClick={() => setPaymentTarget({ type: 'session', session })}

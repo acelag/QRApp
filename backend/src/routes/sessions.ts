@@ -12,6 +12,7 @@ const rowToSession = (row: Record<string, unknown>) => ({
   tableNumber: row.table_number, status: row.status as 'open' | 'paid',
   createdAt: row.created_at, closedAt: row.closed_at ?? null,
   paymentMethod: (row.payment_method as string | null) ?? null,
+  mergedIntoSessionId: (row.merged_into_session_id as string | null) ?? null,
 });
 
 const ORDER_ITEMS_SQL = `
@@ -31,7 +32,19 @@ const ORDER_ITEMS_SQL = `
 
 async function buildSessionDetail(row: Record<string, unknown>) {
   const sessionId = row.id as string;
-  const ordersRes = await pool.query('SELECT * FROM orders WHERE session_id = $1 ORDER BY created_at ASC', [sessionId]);
+
+  // Include orders from any sessions merged into this one
+  const mergedRes = await pool.query(
+    "SELECT id, table_number FROM table_sessions WHERE merged_into_session_id = $1",
+    [sessionId],
+  );
+  const mergedRows = mergedRes.rows as { id: string; table_number: number }[];
+  const allSessionIds = [sessionId, ...mergedRows.map((r) => r.id)];
+
+  const ordersRes = await pool.query(
+    `SELECT * FROM orders WHERE session_id = ANY($1::varchar[]) ORDER BY created_at ASC`,
+    [allSessionIds],
+  );
   const orders = await Promise.all(ordersRes.rows.map(async (o: Record<string, unknown>) => {
     const itemsRes = await pool.query(ORDER_ITEMS_SQL, [o.id as string]);
     return {
@@ -74,7 +87,11 @@ async function buildSessionDetail(row: Record<string, unknown>) {
     };
   });
   const totalAmount = Number(billItems.reduce((s, i) => s + i.total, 0).toFixed(2));
-  return { ...rowToSession(row), orders, billItems, totalAmount };
+  return {
+    ...rowToSession(row),
+    orders, billItems, totalAmount,
+    mergedSessions: mergedRows.map((r) => ({ id: r.id, tableNumber: r.table_number })),
+  };
 }
 
 router.post('/', async (req, res) => {
@@ -113,6 +130,47 @@ router.patch('/:id/pay', authenticate, requireRole('admin'), async (req: AuthReq
     `UPDATE table_sessions SET status='paid', closed_at=$1, payment_method=$2 WHERE id=$3 AND restaurant_id=$4 AND status='open'`,
     [now, paymentMethod ?? null, req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(400).json({ error: 'Session not found or already closed' }); return; }
+  // Close any sessions that were merged into this one
+  await pool.query(
+    `UPDATE table_sessions SET status='paid', closed_at=$1, payment_method=$2, merged_into_session_id=NULL WHERE merged_into_session_id=$3 AND status='open'`,
+    [now, paymentMethod ?? null, req.params.id],
+  );
+  const updated = await pool.query('SELECT * FROM table_sessions WHERE id = $1', [req.params.id]);
+  res.json(await buildSessionDetail(updated.rows[0] as Record<string, unknown>));
+});
+
+// ── Merge: link session into another (secondary → primary) ────────────────────
+router.patch('/:id/merge', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { intoSessionId } = req.body as { intoSessionId: string };
+  if (!intoSessionId) { res.status(400).json({ error: 'intoSessionId is required' }); return; }
+  const rid = req.user!.restaurantId;
+
+  // Validate both sessions are open and belong to this restaurant
+  const [srcRes, dstRes] = await Promise.all([
+    pool.query("SELECT * FROM table_sessions WHERE id=$1 AND restaurant_id=$2 AND status='open'", [req.params.id, rid]),
+    pool.query("SELECT * FROM table_sessions WHERE id=$1 AND restaurant_id=$2 AND status='open'", [intoSessionId, rid]),
+  ]);
+  if (!srcRes.rows.length) { res.status(404).json({ error: 'Source session not found or already closed' }); return; }
+  if (!dstRes.rows.length) { res.status(404).json({ error: 'Target session not found or already closed' }); return; }
+  if (req.params.id === intoSessionId) { res.status(400).json({ error: 'Cannot merge a session into itself' }); return; }
+
+  await pool.query(
+    'UPDATE table_sessions SET merged_into_session_id=$1 WHERE id=$2',
+    [intoSessionId, req.params.id],
+  );
+
+  // Return the updated primary session with combined bill
+  const updated = await pool.query('SELECT * FROM table_sessions WHERE id = $1', [intoSessionId]);
+  res.json(await buildSessionDetail(updated.rows[0] as Record<string, unknown>));
+});
+
+// ── Unmerge: detach a secondary session from its primary ──────────────────────
+router.patch('/:id/unmerge', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const rid = req.user!.restaurantId;
+  const sessRes = await pool.query('SELECT * FROM table_sessions WHERE id=$1 AND restaurant_id=$2', [req.params.id, rid]);
+  if (!sessRes.rows.length) { res.status(404).json({ error: 'Session not found' }); return; }
+
+  await pool.query('UPDATE table_sessions SET merged_into_session_id=NULL WHERE id=$1', [req.params.id]);
   const updated = await pool.query('SELECT * FROM table_sessions WHERE id = $1', [req.params.id]);
   res.json(await buildSessionDetail(updated.rows[0] as Record<string, unknown>));
 });

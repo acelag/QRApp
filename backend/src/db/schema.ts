@@ -209,6 +209,8 @@ export async function createSchema(): Promise<void> {
   await addCol('orders', 'served_at',            'VARCHAR(50) NULL'); // stamped when status → served
 
 
+  await addCol('table_sessions', 'merged_into_session_id', 'VARCHAR(36) NULL');
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS reservations (
       id             VARCHAR(36)   NOT NULL PRIMARY KEY,
