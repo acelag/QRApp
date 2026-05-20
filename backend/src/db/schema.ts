@@ -165,6 +165,7 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'theme_color',           "VARCHAR(20) NOT NULL DEFAULT '#f97316'");
   await addCol('restaurants', 'order_number_prefix',   "VARCHAR(20) NOT NULL DEFAULT 'ORD'");
   await addCol('restaurants', 'next_order_seq',        'INTEGER NOT NULL DEFAULT 0');
+  await addCol('menu_items',  'sort_order',              'INTEGER NOT NULL DEFAULT 0');
   await addCol('menu_items',  'discount_pct',           'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('menu_items',  'large_price',            'DECIMAL(10,2) NULL');
   await addCol('menu_items',  'large_discount_pct',     'DECIMAL(5,2) NOT NULL DEFAULT 0');

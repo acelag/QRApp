@@ -18,6 +18,7 @@ export interface MenuItem {
   available: boolean;
   trackStock?: boolean;
   stock?: number | null;
+  sortOrder?: number;
   toppings?: Topping[];
 }
 

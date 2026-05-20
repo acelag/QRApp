@@ -29,6 +29,9 @@ export const menuService = {
   setStock: (id: string, stock: number | null) =>
     axios.patch<MenuItem>(`${BASE}/menu-items/${id}/stock`, { stock }).then((r) => r.data),
 
+  reorderItems: (items: { id: string; sortOrder: number }[]) =>
+    axios.patch(`${BASE}/menu-items/reorder`, { items }).then((r) => r.data),
+
   createCategory: (name: string) =>
     axios.post<Category>(`${BASE}/categories`, { name }).then((r) => r.data),
 

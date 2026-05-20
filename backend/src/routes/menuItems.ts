@@ -72,6 +72,7 @@ const toItem = (row: Record<string, unknown>) => ({
   available:        row.available === true,
   trackStock:       row.track_stock === true,
   stock:            row.stock != null ? Number(row.stock) : null,
+  sortOrder:        Number(row.sort_order ?? 0),
   toppings:         (row.toppings as { id: string; name: string; price: number; available: boolean }[] | null) ?? [],
 });
 
@@ -173,14 +174,38 @@ router.get('/', optionalAuthenticate, async (req, res) => {
   const { categoryId } = req.query as { categoryId?: string };
   const result = categoryId
     ? await pool.query(
-        `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.restaurant_id = $1 AND mi.category_id = $2 GROUP BY mi.id ORDER BY mi.name`,
+        `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.restaurant_id = $1 AND mi.category_id = $2 GROUP BY mi.id ORDER BY mi.sort_order ASC, mi.name ASC`,
         [restaurantId, categoryId],
       )
     : await pool.query(
-        `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.restaurant_id = $1 GROUP BY mi.id ORDER BY mi.name`,
+        `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.restaurant_id = $1 GROUP BY mi.id ORDER BY mi.sort_order ASC, mi.name ASC`,
         [restaurantId],
       );
   res.json((result.rows as Record<string, unknown>[]).map(toItem));
+});
+
+// ── Bulk reorder ──────────────────────────────────────────────────────────────
+router.patch('/reorder', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { items } = req.body as { items: { id: string; sortOrder: number }[] };
+  if (!Array.isArray(items) || items.length === 0) { res.status(400).json({ error: 'items array required' }); return; }
+  const rid = req.user!.restaurantId;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const { id, sortOrder } of items) {
+      await client.query(
+        'UPDATE menu_items SET sort_order = $1 WHERE id = $2 AND restaurant_id = $3',
+        [sortOrder, id, rid],
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+  res.json({ ok: true });
 });
 
 router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
@@ -191,10 +216,16 @@ router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, re
   const safeLargePrice = largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null;
   const safeLargeDiscount = Math.min(100, Math.max(0, Number(largeDiscountPct) || 0));
   const safeStock = trackStock && stock != null ? Math.max(0, Math.round(Number(stock))) : null;
+  // Place new item at the end of its category
+  const seqRes = await pool.query(
+    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM menu_items WHERE restaurant_id = $1 AND category_id = $2',
+    [req.user!.restaurantId, category],
+  );
+  const nextOrder = Number((seqRes.rows[0] as Record<string, unknown>).next_order ?? 0);
   const id = uuid();
   await pool.query(
-    `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available, track_stock, stock) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-    [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock],
+    `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available, track_stock, stock, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+    [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock, nextOrder],
   );
   const created = await pool.query(`${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`, [id]);
   res.status(201).json(toItem(created.rows[0] as Record<string, unknown>));

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -8,6 +8,22 @@ import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const EMPTY: Omit<MenuItem, 'id'> = {
   name: '',
@@ -41,8 +57,30 @@ export function MenuItemsPage() {
   const [preview, setPreview] = useState<string>('');
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [reorderMode, setReorderMode] = useState(false);
   const fileRef      = useRef<HTMLInputElement>(null);
   const importRef    = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 150, tolerance: 5 } }),
+  );
+
+  function handleDragEnd(event: DragEndEvent, catId: string) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setItems((prev) => {
+      const catItems = prev.filter((i) => i.category === catId);
+      const others   = prev.filter((i) => i.category !== catId);
+      const oldIdx   = catItems.findIndex((i) => i.id === active.id);
+      const newIdx   = catItems.findIndex((i) => i.id === over.id);
+      const reordered = arrayMove(catItems, oldIdx, newIdx).map((item, idx) => ({ ...item, sortOrder: idx }));
+      menuService
+        .reorderItems(reordered.map((i) => ({ id: i.id, sortOrder: i.sortOrder ?? 0 })))
+        .catch(() => toast.error('Failed to save order'));
+      return [...others, ...reordered];
+    });
+  }
 
   const load = () =>
     Promise.all([menuService.getItems(), menuService.getCategories()]).then(([i, c]) => {
@@ -273,6 +311,13 @@ export function MenuItemsPage() {
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Menu Items</h1>
+          <button
+            onClick={() => setReorderMode((m) => !m)}
+            title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
+            className={`p-2 rounded-xl transition-colors ${reorderMode ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
+          >
+            <GripVertical size={17} />
+          </button>
           <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
             <Download size={17} />
           </button>
@@ -346,7 +391,62 @@ export function MenuItemsPage() {
           </div>
         </div>
 
-        {/* Item grid */}
+        {/* ── Reorder mode: categorised sortable list ─────────────────────── */}
+        {reorderMode && (
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500 text-center">Drag <GripVertical size={12} className="inline" /> to reorder items within each category. Changes save automatically.</p>
+            {categories.map((cat) => {
+              const catItems = items
+                .filter((i) => i.category === cat.id)
+                .slice()
+                .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+              if (catItems.length === 0) return null;
+              return (
+                <div key={cat.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-orange-50 border-b border-orange-100">
+                    <p className="text-sm font-semibold text-orange-700">{cat.name} <span className="font-normal text-orange-400">({catItems.length})</span></p>
+                  </div>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, cat.id)}>
+                    <SortableContext items={catItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                      <div className="divide-y divide-gray-50">
+                        {catItems.map((item) => (
+                          <SortableItemRow key={item.id} item={item} fmt={fmt} />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              );
+            })}
+            {/* Uncategorised */}
+            {(() => {
+              const uncatItems = items
+                .filter((i) => !categories.find((c) => c.id === i.category))
+                .slice()
+                .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+              if (uncatItems.length === 0) return null;
+              return (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-500">Uncategorised</p>
+                  </div>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, uncatItems[0]?.category ?? '')}>
+                    <SortableContext items={uncatItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                      <div className="divide-y divide-gray-50">
+                        {uncatItems.map((item) => (
+                          <SortableItemRow key={item.id} item={item} fmt={fmt} />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── Normal grid view ────────────────────────────────────────────── */}
+        {!reorderMode && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
           {items.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
@@ -556,6 +656,7 @@ export function MenuItemsPage() {
             </div>
           ))}
         </div>
+        )}
       </main>
 
       {/* Form modal */}
@@ -774,6 +875,52 @@ export function MenuItemsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Sortable row for reorder mode ─────────────────────────────────────────────
+
+function SortableItemRow({ item, fmt }: { item: MenuItem; fmt: (n: number) => string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors ${isDragging ? 'shadow-lg rounded-xl' : ''}`}
+    >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing shrink-0 touch-none"
+        tabIndex={-1}
+      >
+        <GripVertical size={18} />
+      </button>
+
+      {/* Thumbnail */}
+      <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center text-lg">
+        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : '🍽️'}
+      </div>
+
+      {/* Name */}
+      <p className="flex-1 text-sm font-medium text-gray-800 truncate">{item.name}</p>
+
+      {/* Price */}
+      <p className="text-sm font-semibold text-orange-600 shrink-0">{fmt(item.price)}</p>
+
+      {/* Available badge */}
+      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${item.available ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+        {item.available ? 'On' : 'Off'}
+      </span>
     </div>
   );
 }
