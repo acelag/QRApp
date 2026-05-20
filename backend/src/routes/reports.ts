@@ -5,6 +5,59 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 const router = Router();
 router.use(authenticate, requireRole('admin'));
 
+// Lightweight today-only snapshot for the dashboard card
+router.get('/today', async (req: AuthRequest, res) => {
+  const rid   = req.user!.restaurantId;
+  const today = new Date().toISOString().slice(0, 10);
+  const from  = `${today}T00:00:00.000Z`;
+  const to    = `${today}T23:59:59.999Z`;
+
+  const [summaryRes, itemsRes] = await Promise.all([
+    pool.query<{
+      total_orders: number; total_revenue: number;
+      dine_in: number; takeaway: number; room_service: number;
+    }>(
+      `SELECT
+         COUNT(*)::int                                              AS total_orders,
+         COALESCE(SUM(total_amount), 0)::float                     AS total_revenue,
+         COUNT(*) FILTER (WHERE order_type = 'dine-in')::int       AS dine_in,
+         COUNT(*) FILTER (WHERE order_type = 'takeaway')::int      AS takeaway,
+         COUNT(*) FILTER (WHERE order_type = 'room-service')::int  AS room_service
+       FROM orders
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3`,
+      [rid, from, to],
+    ),
+    pool.query<{ name: string; quantity: number; revenue: number }>(
+      `SELECT
+         oi.name,
+         SUM(oi.quantity)::int                                                         AS quantity,
+         COALESCE(SUM((oi.price + COALESCE(t.tip, 0)) * oi.quantity), 0)::float       AS revenue
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       LEFT JOIN (
+         SELECT order_item_id, SUM(price)::float AS tip
+         FROM order_item_toppings GROUP BY order_item_id
+       ) t ON t.order_item_id = oi.id
+       WHERE o.restaurant_id = $1 AND o.created_at >= $2 AND o.created_at <= $3
+       GROUP BY oi.name
+       ORDER BY quantity DESC
+       LIMIT 5`,
+      [rid, from, to],
+    ),
+  ]);
+
+  const s = summaryRes.rows[0];
+  res.json({
+    revenue:       s.total_revenue,
+    orderCount:    s.total_orders,
+    avgOrderValue: s.total_orders > 0 ? s.total_revenue / s.total_orders : 0,
+    dineIn:        s.dine_in,
+    takeaway:      s.takeaway,
+    roomService:   s.room_service,
+    topItems:      itemsRes.rows.map((r) => ({ name: r.name, quantity: r.quantity, revenue: r.revenue })),
+  });
+});
+
 router.get('/', async (req: AuthRequest, res) => {
   const { from, to } = req.query as { from?: string; to?: string };
   if (!from || !to) { res.status(400).json({ error: 'from and to date params required (YYYY-MM-DD)' }); return; }

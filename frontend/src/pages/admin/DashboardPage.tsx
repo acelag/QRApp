@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble, Tag, CreditCard, UserCheck, CalendarDays, Trophy } from 'lucide-react';
+import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble, Tag, CreditCard, UserCheck, CalendarDays, Trophy, ShoppingBag, MapPin, Medal } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
+import { reportService, type TodaySummary } from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 
@@ -11,6 +12,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { fmt } = useCurrency();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [today, setToday]   = useState<TodaySummary | null>(null);
   const [gridView, setGridView] = useState(() => localStorage.getItem('dash-view') === 'grid');
 
   function handleLogout() { logout(); navigate('/login', { replace: true }); }
@@ -20,6 +22,11 @@ export function DashboardPage() {
     fetch();
     const id = setInterval(fetch, 5000);
     return () => clearInterval(id);
+  }, []);
+
+  // Fetch today's summary once on mount (no poll needed — data is historical)
+  useEffect(() => {
+    reportService.getToday().then(setToday).catch(() => {});
   }, []);
 
   const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
@@ -102,6 +109,65 @@ export function DashboardPage() {
               <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Today's sales summary card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Medal size={16} className="text-orange-500" />
+              <h2 className="font-bold text-gray-900 text-sm">Today's Breakdown</h2>
+            </div>
+            <Link to="/admin/reports" className="text-xs text-orange-500 font-medium hover:underline">
+              Full Report →
+            </Link>
+          </div>
+
+          {/* Order-type split */}
+          <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
+            {[
+              { label: 'Dine-in', value: today?.dineIn ?? '—', icon: MapPin, color: 'text-orange-500' },
+              { label: 'Takeaway', value: today?.takeaway ?? '—', icon: ShoppingBag, color: 'text-purple-500' },
+              { label: 'Room Svc', value: today?.roomService ?? '—', icon: BedDouble, color: 'text-blue-500' },
+            ].map((t) => (
+              <div key={t.label} className="flex flex-col items-center py-3 gap-0.5">
+                <t.icon size={13} className={t.color} />
+                <span className="text-lg font-bold text-gray-900">{t.value}</span>
+                <span className="text-xs text-gray-400">{t.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Avg order value */}
+          <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100 text-sm">
+            <span className="text-gray-500">Avg. order value</span>
+            <span className="font-semibold text-gray-900">
+              {today ? fmt(today.avgOrderValue) : '—'}
+            </span>
+          </div>
+
+          {/* Top items */}
+          <div className="px-5 py-3">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Top Items Today</p>
+            {!today || today.topItems.length === 0 ? (
+              <p className="text-xs text-gray-300 py-2 text-center">No orders yet today</p>
+            ) : (
+              <ol className="space-y-1.5">
+                {today.topItems.map((item, i) => (
+                  <li key={item.name} className="flex items-center gap-2.5 text-sm">
+                    <span className={`text-xs font-bold w-5 text-center shrink-0 ${
+                      i === 0 ? 'text-amber-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-orange-400' : 'text-gray-300'
+                    }`}>{i + 1}</span>
+                    <span className="flex-1 text-gray-700 truncate">{item.name}</span>
+                    <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full shrink-0">
+                      ×{item.quantity}
+                    </span>
+                    <span className="text-xs text-gray-400 tabular-nums shrink-0 w-20 text-right">{fmt(item.revenue)}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </div>
 
         {gridView ? (

@@ -55,7 +55,19 @@ export interface Report {
   heatmap: HeatmapCell[];
 }
 
+export interface TodaySummary {
+  revenue: number;
+  orderCount: number;
+  avgOrderValue: number;
+  dineIn: number;
+  takeaway: number;
+  roomService: number;
+  topItems: { name: string; quantity: number; revenue: number }[];
+}
+
 export const reportService = {
   get: (from: string, to: string) =>
     axios.get<Report>(BASE, { params: { from, to } }).then((r) => r.data),
+  getToday: () =>
+    axios.get<TodaySummary>(`${BASE}/today`).then((r) => r.data),
 };
