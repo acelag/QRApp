@@ -533,8 +533,8 @@ export function SettingsPage() {
         {restaurant && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
-                <Clock size={15} className="text-amber-500" />
+              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
+                <Clock size={15} className="text-orange-500" />
               </div>
               <div>
                 <h2 className="font-semibold text-gray-800">Estimated Wait Time</h2>
@@ -552,8 +552,8 @@ export function SettingsPage() {
                     disabled={waitTimeSaving}
                     className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
                       waitTimeMin === val
-                        ? 'bg-amber-500 text-white border-amber-500'
-                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-amber-300 hover:bg-amber-50'
+                        ? 'bg-orange-500 text-white border-orange-500'
+                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-orange-200 hover:bg-orange-50'
                     }`}
                   >
                     {val == null ? 'Off' : `${val} min`}
@@ -571,13 +571,13 @@ export function SettingsPage() {
                   onChange={(e) => setWaitTimeMin(e.target.value ? Number(e.target.value) : null)}
                   onBlur={() => saveWaitTime(waitTimeMin)}
                   placeholder="e.g. 35"
-                  className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-amber-300 bg-gray-50 focus:bg-white"
+                  className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-gray-50 focus:bg-white"
                 />
                 <span className="text-xs text-gray-400">min</span>
               </div>
 
               <div className={`rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2 ${
-                waitTimeMin ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-gray-50 text-gray-400'
+                waitTimeMin ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-gray-50 text-gray-400'
               }`}>
                 <Clock size={14} />
                 {waitTimeMin
@@ -592,8 +592,8 @@ export function SettingsPage() {
         {restaurant && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Clock size={15} className="text-blue-500" />
+              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
+                <Clock size={15} className="text-orange-500" />
               </div>
               <div className="flex-1">
                 <h2 className="font-semibold text-gray-800">Room Service Hours</h2>
@@ -613,7 +613,7 @@ export function SettingsPage() {
               <label className="flex items-center gap-3 cursor-pointer">
                 <div
                   onClick={() => setRsEnabled((p) => !p)}
-                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${rsEnabled ? 'bg-blue-500' : 'bg-gray-200'}`}
+                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${rsEnabled ? 'bg-orange-500' : 'bg-gray-200'}`}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${rsEnabled ? 'translate-x-5' : ''}`} />
                 </div>
@@ -644,7 +644,7 @@ export function SettingsPage() {
               )}
 
               {rsEnabled && rsOpen && rsClose && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700 flex items-center gap-2">
+                <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 text-sm text-orange-600 flex items-center gap-2">
                   <Clock size={14} />
                   Room service available {rsOpen} – {rsClose}
                   {rsOpen > rsClose ? ' (wraps midnight)' : ''}
@@ -654,7 +654,7 @@ export function SettingsPage() {
               <button
                 onClick={saveRoomServiceHours}
                 disabled={rsSaving || (rsEnabled && (!rsOpen || !rsClose))}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
               >
                 {rsSaving && <Loader2 size={15} className="animate-spin" />}
                 {rsSaving ? 'Saving…' : 'Save Room Service Hours'}
