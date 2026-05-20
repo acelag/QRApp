@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Flame } from 'lucide-react';
 import type { MenuItem } from '../types';
 import type { SelectedTopping } from '../types/Order';
-import { effectivePrice } from '../types/MenuItem';
+import { effectivePrice, ITEM_TAGS } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { ToppingSelectionModal } from './ToppingSelectionModal';
@@ -72,6 +72,18 @@ export function MenuCard({ item }: Props) {
         </div>
         <div className="p-3 flex flex-col flex-1">
           <h3 className="font-semibold text-gray-900 leading-tight">{item.name}</h3>
+          {(item.tags ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {(item.tags!).map((tagId) => {
+                const tag = ITEM_TAGS.find((t) => t.id === tagId);
+                return tag ? (
+                  <span key={tagId} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                    {tag.emoji} {tag.label}
+                  </span>
+                ) : null;
+              })}
+            </div>
+          )}
           {item.description && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">{item.description}</p>
           )}

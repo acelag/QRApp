@@ -1,3 +1,15 @@
+export const ITEM_TAGS = [
+  { id: 'spicy',       label: 'Spicy',       emoji: '🌶' },
+  { id: 'vegan',       label: 'Vegan',       emoji: '🌱' },
+  { id: 'popular',     label: 'Popular',     emoji: '⭐' },
+  { id: 'new',         label: 'New',         emoji: '🆕' },
+  { id: 'vegetarian',  label: 'Vegetarian',  emoji: '🥦' },
+  { id: 'gluten-free', label: 'Gluten-Free', emoji: '🌾' },
+  { id: 'halal',       label: 'Halal',       emoji: '✅' },
+] as const;
+
+export type ItemTagId = (typeof ITEM_TAGS)[number]['id'];
+
 export interface Topping {
   id: string;
   name: string;
@@ -19,6 +31,7 @@ export interface MenuItem {
   trackStock?: boolean;
   stock?: number | null;
   sortOrder?: number;
+  tags?: string[];
   toppings?: Topping[];
 }
 

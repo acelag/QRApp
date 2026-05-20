@@ -194,6 +194,7 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants',     'room_service_close',    'VARCHAR(5) NULL');
   await addCol('menu_items',      'track_stock',           'BOOLEAN NOT NULL DEFAULT FALSE');
   await addCol('menu_items',      'stock',                 'INTEGER NULL');
+  await addCol('menu_items',      'tags',                  "VARCHAR(500) NOT NULL DEFAULT '[]'");
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS waiters (

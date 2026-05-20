@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
+import { ITEM_TAGS } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -37,6 +38,7 @@ const EMPTY: Omit<MenuItem, 'id'> = {
   available: true,
   trackStock: false,
   stock: null,
+  tags: [],
 };
 
 export function MenuItemsPage() {
@@ -100,7 +102,7 @@ export function MenuItemsPage() {
 
   function openEdit(item: MenuItem) {
     setEditing(item);
-    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null });
+    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null, tags: item.tags ?? [] });
     setPreview(item.image ?? '');
     setShowForm(true);
   }
@@ -549,6 +551,20 @@ export function MenuItemsPage() {
                   {categories.find((c) => c.id === item.category)?.name ?? item.category}
                 </span>
 
+                {/* Tags */}
+                {(item.tags ?? []).length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {(item.tags!).map((tagId) => {
+                      const tag = ITEM_TAGS.find((t) => t.id === tagId);
+                      return tag ? (
+                        <span key={tagId} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                          {tag.emoji} {tag.label}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+
                 {/* Price */}
                 <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs">
                   {item.discountPct > 0 ? (
@@ -909,6 +925,37 @@ export function MenuItemsPage() {
                   <p className="text-xs text-gray-400 mt-1">Auto-marks unavailable when stock reaches 0. Leave blank to track without a limit.</p>
                 </div>
               )}
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="text-sm text-gray-600 mb-2 block">Tags</label>
+              <div className="flex flex-wrap gap-2">
+                {ITEM_TAGS.map((tag) => {
+                  const active = (form.tags ?? []).includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          tags: active
+                            ? (f.tags ?? []).filter((t) => t !== tag.id)
+                            : [...(f.tags ?? []), tag.id],
+                        }))
+                      }
+                      className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors ${
+                        active
+                          ? 'bg-orange-500 text-white border-orange-500'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'
+                      }`}
+                    >
+                      {tag.emoji} {tag.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Available toggle */}

@@ -4,7 +4,7 @@ import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import type { CartItem } from '../../types/Order';
-import { effectivePrice } from '../../types/MenuItem';
+import { effectivePrice, ITEM_TAGS } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { restaurantService } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
@@ -62,6 +62,7 @@ export function RoomMenuPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems]           = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [activeTag, setActiveTag]   = useState<string | null>(null);
   const [loading, setLoading]       = useState(true);
   const [loadError, setLoadError]   = useState(false);
   const [roomInfo, setRoomInfo]     = useState<{ number: number; name?: string | null; restaurantId: string } | null>(null);
@@ -118,7 +119,10 @@ export function RoomMenuPage() {
 
   useEffect(() => { loadMenu(); }, [roomId]);
 
-  const filtered  = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
+  const catFiltered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
+  const filtered  = activeTag ? catFiltered.filter((i) => (i.tags ?? []).includes(activeTag)) : catFiltered;
+  const presentTagIds = new Set(items.flatMap((i) => i.tags ?? []));
+  const visibleTags = ITEM_TAGS.filter((t) => presentTagIds.has(t.id));
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
   const subtotal  = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
   const discount  = promoResult?.valid ? (promoResult.discountAmount ?? 0) : 0;
@@ -238,6 +242,21 @@ export function RoomMenuPage() {
         <div className="max-w-lg mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
+        {visibleTags.length > 0 && (
+          <div className="max-w-lg mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
+            {visibleTags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => setActiveTag(activeTag === tag.id ? null : tag.id)}
+                className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                  activeTag === tag.id ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {tag.emoji} {tag.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Room service closed banner */}

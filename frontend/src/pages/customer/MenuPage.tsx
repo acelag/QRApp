@@ -12,6 +12,7 @@ import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { UtensilsCrossed, ClipboardList, RefreshCw, Clock } from 'lucide-react';
+import { ITEM_TAGS } from '../../types/MenuItem';
 export function MenuPage() {
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
   const { setTable, setSession, setRestaurant, tableNumber, tableId } = useCart();
@@ -20,6 +21,7 @@ export function MenuPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null; waitTimeMin: number | null } | null>(null);
@@ -53,7 +55,11 @@ export function MenuPage() {
 
   useEffect(() => { loadMenu(); }, [tableIdParam]);
 
-  const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
+  const catFiltered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
+  const filtered = activeTag ? catFiltered.filter((i) => (i.tags ?? []).includes(activeTag)) : catFiltered;
+  // Only show tag chips for tags that exist in the currently visible items
+  const presentTagIds = new Set(items.flatMap((i) => i.tags ?? []));
+  const visibleTags = ITEM_TAGS.filter((t) => presentTagIds.has(t.id));
 
   if (loading) {
     return (
@@ -112,6 +118,23 @@ export function MenuPage() {
         <div className="max-w-lg mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
+        {visibleTags.length > 0 && (
+          <div className="max-w-lg mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
+            {visibleTags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => setActiveTag(activeTag === tag.id ? null : tag.id)}
+                className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                  activeTag === tag.id
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {tag.emoji} {tag.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       <main className="max-w-lg mx-auto px-4 pt-4">
