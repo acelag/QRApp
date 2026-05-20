@@ -16,6 +16,8 @@ export interface SessionOrder {
   status: string;
   totalAmount: number;
   createdAt: string;
+  rating?: number | null;
+  feedbackNote?: string | null;
   items: { menuItemId: string; name: string; price: number; quantity: number; notes?: string; size?: 'regular' | 'large'; toppings?: { id: string; name: string; price: number }[] }[];
 }
 

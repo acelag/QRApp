@@ -211,6 +211,8 @@ export async function createSchema(): Promise<void> {
 
 
   await addCol('table_sessions', 'merged_into_session_id', 'VARCHAR(36) NULL');
+  await addCol('orders', 'rating',        'SMALLINT NULL');
+  await addCol('orders', 'feedback_note', 'VARCHAR(500) NULL');
 
   // ── Dynamic tags table ──────────────────────────────────────────────────────
   await pool.query(`

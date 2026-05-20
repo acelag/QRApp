@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
@@ -221,6 +221,20 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
           </select>
+        </div>
+      )}
+
+      {/* Customer rating */}
+      {order.rating != null && (
+        <div className="px-4 py-2 border-t border-gray-100 flex items-center gap-2">
+          <div className="flex gap-0.5">
+            {[1,2,3,4,5].map((s) => (
+              <Star key={s} size={13} className={order.rating! >= s ? 'fill-amber-400 text-amber-400' : 'text-gray-200'} />
+            ))}
+          </div>
+          {order.feedbackNote && (
+            <span className="text-xs text-gray-500 italic truncate">"{order.feedbackNote}"</span>
+          )}
         </div>
       )}
 

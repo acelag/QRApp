@@ -50,6 +50,8 @@ async function buildOrder(orderId: string) {
     customerPhone: (o.customer_phone as string | null) ?? null,
     assignedWaiterId: (o.assigned_waiter_id as string | null) ?? null,
     assignedWaiterName: (o.assigned_waiter_name as string | null) ?? null,
+    rating: o.rating != null ? Number(o.rating) : null,
+    feedbackNote: (o.feedback_note as string | null) ?? null,
     createdAt: o.created_at, updatedAt: o.updated_at,
     items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
@@ -297,6 +299,32 @@ router.patch('/:id/payment-method', authenticate, requireRole('admin'), async (r
     : await pool.query('UPDATE orders SET payment_method=$1, updated_at=$2 WHERE id=$3', [paymentMethod.trim(), now, req.params.id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(await buildOrder(String(req.params.id)));
+});
+
+// POST /:id/feedback  — public, no auth (customer rates their own order)
+router.post('/:id/feedback', async (req, res) => {
+  const { rating, note } = req.body as { rating?: number; note?: string };
+  if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+    res.status(400).json({ error: 'rating must be an integer 1–5' });
+    return;
+  }
+  const orderRes = await pool.query('SELECT status, rating FROM orders WHERE id = $1', [req.params.id]);
+  if (!orderRes.rows.length) { res.status(404).json({ error: 'Order not found' }); return; }
+  const row = orderRes.rows[0] as { status: string; rating: number | null };
+  if (!['ready', 'served'].includes(row.status)) {
+    res.status(400).json({ error: 'Feedback can only be submitted for served orders' });
+    return;
+  }
+  if (row.rating != null) {
+    res.status(409).json({ error: 'Feedback already submitted for this order' });
+    return;
+  }
+  const now = new Date().toISOString();
+  await pool.query(
+    'UPDATE orders SET rating=$1, feedback_note=$2, updated_at=$3 WHERE id=$4',
+    [rating, note?.trim() || null, now, req.params.id],
+  );
+  res.json({ ok: true, rating, note: note?.trim() || null });
 });
 
 export default router;

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ClipboardList, UtensilsCrossed, CheckCircle2, RefreshCw } from 'lucide-react';
-import type { Session } from '../../services/sessionService';
+import { ClipboardList, UtensilsCrossed, CheckCircle2, RefreshCw, Star } from 'lucide-react';
+import type { Session, SessionOrder } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
+import { orderService } from '../../services/orderService';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useCurrency } from '../../context/CurrencyContext';
 import type { OrderStatus } from '../../types';
+import toast from 'react-hot-toast';
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -15,11 +17,76 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
+function FeedbackRow({ order, onDone }: { order: SessionOrder; onDone: (orderId: string, rating: number) => void }) {
+  const [hovered, setHovered] = useState(0);
+  const [selected, setSelected] = useState(0);
+  const [note, setNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit() {
+    if (!selected) return;
+    setSubmitting(true);
+    try {
+      await orderService.submitFeedback(order.id, selected, note.trim() || undefined);
+      onDone(order.id, selected);
+      toast.success('Thanks for your feedback!');
+    } catch {
+      toast.error('Could not submit feedback');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const display = hovered || selected;
+
+  return (
+    <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-orange-50/40">
+      <p className="text-xs font-semibold text-gray-500 mb-2 text-center">How was your order?</p>
+      <div className="flex justify-center gap-1 mb-2">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            onMouseEnter={() => setHovered(star)}
+            onMouseLeave={() => setHovered(0)}
+            onClick={() => setSelected(star)}
+            className="transition-transform hover:scale-110"
+          >
+            <Star
+              size={28}
+              className={`transition-colors ${display >= star ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+            />
+          </button>
+        ))}
+      </div>
+      {selected > 0 && (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Add a comment (optional)"
+            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-orange-300 bg-white"
+          />
+          <button
+            onClick={submit}
+            disabled={submitting}
+            className="w-full bg-orange-500 text-white py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60"
+          >
+            {submitting ? 'Submitting…' : 'Submit Feedback'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function OrderHistoryPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // track ratings submitted this session (optimistic, before next poll refreshes)
+  const [localRatings, setLocalRatings] = useState<Record<string, number>>({});
 
   const sessionId = tableId ? localStorage.getItem(`qra_session_${tableId}`) : null;
   const { fmt } = useCurrency();
@@ -41,6 +108,10 @@ export function OrderHistoryPage() {
 
   const orders = session?.orders ?? [];
   const tableNumber = session?.tableNumber ?? '—';
+
+  function handleFeedbackDone(orderId: string, rating: number) {
+    setLocalRatings((prev) => ({ ...prev, [orderId]: rating }));
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
@@ -149,6 +220,20 @@ export function OrderHistoryPage() {
                   <span className="text-xs text-gray-400">Subtotal</span>
                   <span className="font-semibold text-gray-800 text-sm">{fmt(order.totalAmount)}</span>
                 </div>
+
+                {/* Feedback */}
+                {order.status === 'served' && (
+                  localRatings[order.id] != null || order.rating != null ? (
+                    <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-center gap-2">
+                      {[1,2,3,4,5].map((s) => (
+                        <Star key={s} size={16} className={`${(localRatings[order.id] ?? order.rating ?? 0) >= s ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
+                      ))}
+                      <span className="text-xs text-gray-400 ml-1">Thanks for your feedback!</span>
+                    </div>
+                  ) : (
+                    <FeedbackRow order={order} onDone={handleFeedbackDone} />
+                  )
+                )}
               </div>
             ))}
 

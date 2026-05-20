@@ -47,6 +47,8 @@ export interface Order {
   customerPhone?: string | null;
   assignedWaiterId?: string | null;
   assignedWaiterName?: string | null;
+  rating?: number | null;
+  feedbackNote?: string | null;
   createdAt: string;
   updatedAt: string;
 }
