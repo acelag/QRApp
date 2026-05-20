@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -8,6 +8,7 @@ import { tagService } from '../../services/tagService';
 import type { Tag } from '../../services/tagService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import {
@@ -45,6 +46,7 @@ const EMPTY: Omit<MenuItem, 'id'> = {
 
 export function MenuItemsPage() {
   const { fmt } = useCurrency();
+  const { user } = useAuth();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [expandedToppings, setExpandedToppings] = useState<string | null>(null);
   const [newTopping, setNewTopping] = useState<Record<string, { name: string; price: string }>>({});
@@ -69,6 +71,11 @@ export function MenuItemsPage() {
   const [newTagEmoji, setNewTagEmoji] = useState('🏷️');
   const [editingTag, setEditingTag] = useState<{ id: string; label: string; emoji: string } | null>(null);
   const [savingTag, setSavingTag] = useState(false);
+  // Search / filter state
+  const [searchQ,     setSearchQ]     = useState('');
+  const [catFilter,   setCatFilter]   = useState<string>('all');
+  const [availFilter, setAvailFilter] = useState<'all' | 'available' | 'unavailable'>('all');
+
   const fileRef      = useRef<HTMLInputElement>(null);
   const importRef    = useRef<HTMLInputElement>(null);
 
@@ -395,12 +402,37 @@ export function MenuItemsPage() {
     }
   }
 
+  // Derived filtered list (used in grid view only; reorder mode shows all)
+  const q = searchQ.trim().toLowerCase();
+  const filteredItems = items.filter((item) => {
+    const catName = (categories.find((c) => c.id === item.category)?.name ?? '').toLowerCase();
+    const matchQ    = !q || item.name.toLowerCase().includes(q) || catName.includes(q);
+    const matchCat  = catFilter === 'all' || item.category === catFilter;
+    const matchAvail = availFilter === 'all'
+      || (availFilter === 'available'   &&  item.available)
+      || (availFilter === 'unavailable' && !item.available);
+    return matchQ && matchCat && matchAvail;
+  });
+
+  const isFiltered = !!q || catFilter !== 'all' || availFilter !== 'all';
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Menu Items</h1>
+          {user?.restaurantId && (
+            <a
+              href={`/takeaway/${user.restaurantId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Preview menu as customer"
+              className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
+            >
+              <ExternalLink size={17} />
+            </a>
+          )}
           <button
             onClick={() => setReorderMode((m) => !m)}
             title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
@@ -423,6 +455,63 @@ export function MenuItemsPage() {
       </header>
 
       <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+
+        {/* ── Search & filter bar ──────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 flex flex-wrap gap-2 items-center">
+          {/* Text search */}
+          <div className="relative flex-1 min-w-[160px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              placeholder="Search by name or category…"
+              className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-300"
+            />
+            {searchQ && (
+              <button onClick={() => setSearchQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* Category filter */}
+          <select
+            value={catFilter}
+            onChange={(e) => setCatFilter(e.target.value)}
+            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
+          >
+            <option value="all">All categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+
+          {/* Availability filter */}
+          <select
+            value={availFilter}
+            onChange={(e) => setAvailFilter(e.target.value as typeof availFilter)}
+            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
+          >
+            <option value="all">All availability</option>
+            <option value="available">Available</option>
+            <option value="unavailable">Unavailable</option>
+          </select>
+
+          {/* Active filter summary */}
+          {isFiltered && (
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-gray-400">{filteredItems.length} of {items.length} items</span>
+              <button
+                onClick={() => { setSearchQ(''); setCatFilter('all'); setAvailFilter('all'); }}
+                className="text-xs text-orange-500 hover:text-orange-600 font-medium"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Categories */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h2 className="font-semibold text-gray-700 mb-3 text-sm">Categories</h2>
@@ -640,9 +729,20 @@ export function MenuItemsPage() {
         )}
 
         {/* ── Normal grid view ────────────────────────────────────────────── */}
-        {!reorderMode && (
+        {!reorderMode && filteredItems.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+            <Search size={32} className="text-gray-200" />
+            <p className="text-sm">{isFiltered ? 'No items match your filters' : 'No menu items yet'}</p>
+            {isFiltered && (
+              <button onClick={() => { setSearchQ(''); setCatFilter('all'); setAvailFilter('all'); }} className="text-sm text-orange-500 hover:underline">
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+        {!reorderMode && filteredItems.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
               {/* Tile top — image */}
               <div className="relative">

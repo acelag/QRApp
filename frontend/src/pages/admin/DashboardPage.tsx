@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble, Tag, CreditCard, UserCheck, CalendarDays, Trophy, ShoppingBag, MapPin, Medal, LayoutDashboard } from 'lucide-react';
+import { ClipboardList, UtensilsCrossed, Table2, TrendingUp, ChefHat, LogOut, Settings, Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay, BedDouble, Tag, CreditCard, UserCheck, CalendarDays, Trophy, ShoppingBag, MapPin, Medal, LayoutDashboard, Eye } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { reportService, type TodaySummary } from '../../services/reportService';
@@ -42,7 +42,7 @@ export function DashboardPage() {
     { label: "Today's Revenue", value: fmt(todayRevenue), icon: TrendingUp, color: 'bg-orange-50 text-orange-600' },
   ];
 
-  const navItems = [
+  const navItems: { to: string; href?: string; label: string; icon: React.ElementType; desc: string }[] = [
     { to: '/admin/new-order', label: 'New Order',       icon: PlusCircle,     desc: 'Place takeaway or dine-in order' },
     { to: '/admin/orders',  label: 'Live Orders',      icon: ClipboardList,  desc: 'Manage incoming orders' },
     { to: '/admin/bills',   label: 'Bills',            icon: Receipt,        desc: 'Table bills & takeaway receipts' },
@@ -58,6 +58,13 @@ export function DashboardPage() {
     { to: '/admin/waiters',       label: 'Waiters',         icon: UserCheck,      desc: 'Manage waiter staff list' },
     { to: '/admin/reservations',   label: 'Reservations',    icon: CalendarDays,   desc: 'Table bookings by date' },
     { to: '/admin/staff-performance', label: 'Staff Performance', icon: Trophy,      desc: 'Waiter leaderboard & stats' },
+    ...(user?.restaurantId ? [{
+      to: '#',
+      href: `/takeaway/${user.restaurantId}`,
+      label: 'Preview Menu',
+      icon: Eye,
+      desc: 'Open live menu as a customer',
+    }] : []),
   ];
 
   return (
@@ -173,39 +180,39 @@ export function DashboardPage() {
 
         {gridView ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center gap-3 hover:border-orange-200 transition-colors"
-              >
-                <div className="bg-orange-50 p-3 rounded-xl text-orange-600">
-                  <item.icon size={24} />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm leading-tight">{item.label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 leading-tight">{item.desc}</p>
-                </div>
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const cls = "bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center gap-3 hover:border-orange-200 transition-colors";
+              const inner = (
+                <>
+                  <div className="bg-orange-50 p-3 rounded-xl text-orange-600"><item.icon size={24} /></div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm leading-tight">{item.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 leading-tight">{item.desc}</p>
+                  </div>
+                </>
+              );
+              return item.href
+                ? <a key={item.to} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
+                : <Link key={item.to} to={item.to} className={cls}>{inner}</Link>;
+            })}
           </div>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:border-orange-200 transition-colors"
-              >
-                <div className="bg-orange-50 p-3 rounded-xl text-orange-600">
-                  <item.icon size={22} />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{item.label}</p>
-                  <p className="text-sm text-gray-500">{item.desc}</p>
-                </div>
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const cls = "bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:border-orange-200 transition-colors";
+              const inner = (
+                <>
+                  <div className="bg-orange-50 p-3 rounded-xl text-orange-600"><item.icon size={22} /></div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{item.label}</p>
+                    <p className="text-sm text-gray-500">{item.desc}</p>
+                  </div>
+                </>
+              );
+              return item.href
+                ? <a key={item.to} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
+                : <Link key={item.to} to={item.to} className={cls}>{inner}</Link>;
+            })}
           </div>
         )}
       </main>
