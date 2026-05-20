@@ -17,6 +17,7 @@ import { MenuPage } from './pages/customer/MenuPage';
 import { CartPage } from './pages/customer/CartPage';
 import { OrderSuccessPage } from './pages/customer/OrderSuccessPage';
 import { OrderHistoryPage } from './pages/customer/OrderHistoryPage';
+import { PhoneLookupPage } from './pages/customer/PhoneLookupPage';
 import { TakeawayMenuPage } from './pages/customer/TakeawayMenuPage';
 import { RoomMenuPage } from './pages/customer/RoomMenuPage';
 import { DashboardPage } from './pages/admin/DashboardPage';
@@ -71,6 +72,7 @@ export default function App() {
             <Route path="/cart" element={<CartPage />} />
             <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
             <Route path="/order-history/:tableId" element={<OrderHistoryPage />} />
+            <Route path="/my-orders" element={<PhoneLookupPage />} />
             <Route path="/takeaway/:restaurantId" element={<TakeawayMenuPage />} />
             <Route path="/room/:roomId" element={<RoomMenuPage />} />
 

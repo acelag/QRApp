@@ -293,14 +293,12 @@ export function OrderSuccessPage() {
           <RotateCcw size={16} /> Order Again
         </button>
 
-        {order.tableId && (
-          <Link
-            to={`/order-history/${order.tableId}`}
-            className="block text-center text-sm text-orange-500 font-medium hover:underline py-1"
-          >
-            View all my orders →
-          </Link>
-        )}
+        <Link
+          to="/my-orders"
+          className="block text-center text-sm text-orange-500 font-medium hover:underline py-1"
+        >
+          View past orders →
+        </Link>
 
         <p className="text-center text-xs text-gray-300 pb-2">
           Updates automatically every 5 seconds

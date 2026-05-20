@@ -68,6 +68,34 @@ router.get('/', authenticate, requireRole('admin', 'kitchen'), async (req: AuthR
   res.json(orders.filter(Boolean));
 });
 
+// Public: look up a customer's recent orders by phone number (last 30 days, max 20)
+router.get('/by-phone', async (req, res) => {
+  const rawPhone = String(req.query.phone ?? '').trim();
+  const digits   = rawPhone.replace(/\D/g, '');
+  if (digits.length < 7) { res.status(400).json({ error: 'Enter a valid phone number' }); return; }
+
+  // Match on last 9 digits so local (07xxxxxxxx) and international (+947xxxxxxxx) both resolve
+  const suffix = digits.slice(-9);
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  let ids: { id: string }[];
+  try {
+    const result = await pool.query<{ id: string }>(
+      `SELECT id FROM orders
+       WHERE customer_phone IS NOT NULL
+         AND RIGHT(REGEXP_REPLACE(customer_phone, '[^0-9]', '', 'g'), 9) = $1
+         AND created_at >= $2
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [suffix, cutoff],
+    );
+    ids = result.rows;
+  } catch { res.status(500).json({ error: 'Lookup failed' }); return; }
+
+  const orders = await Promise.all(ids.map((r) => buildOrder(r.id)));
+  res.json(orders.filter(Boolean));
+});
+
 router.get('/:id', async (req, res) => {
   const order = await buildOrder(req.params.id);
   if (!order) { res.status(404).json({ error: 'Not found' }); return; }
