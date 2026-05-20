@@ -94,101 +94,368 @@ function buildCsv(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
   toast.success('CSV downloaded');
 }
 
-// ── PDF / Print helper ───────────────────────────────────────────────────────
+// ── PDF / Print helpers ───────────────────────────────────────────────────────
 const PDF_STYLES = `
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 20px; }
-  h1 { font-size: 18px; margin-bottom: 4px; }
-  h2 { font-size: 13px; margin: 16px 0 6px; color: #ea580c; border-bottom: 1px solid #fed7aa; padding-bottom: 3px; }
-  p  { font-size: 11px; color: #666; margin-bottom: 10px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  th { background: #fff7ed; color: #9a3412; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px; text-align: left; border-bottom: 1px solid #fed7aa; }
-  td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; }
-  tr:last-child td { border-bottom: none; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #111; background: #fff; }
+  /* page header */
+  .doc-header { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid #ea580c; margin-bottom: 16px; }
+  .doc-header h1 { font-size: 20px; font-weight: 800; color: #ea580c; letter-spacing: -.3px; }
+  .doc-header .meta { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .doc-header .range { text-align: right; }
+  .doc-header .range .dates { font-size: 13px; font-weight: 700; color: #111; }
+  /* section headings */
+  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #ea580c; border-bottom: 1px solid #fed7aa; padding-bottom: 4px; margin: 18px 0 8px; }
+  h2:first-of-type { margin-top: 0; }
+  /* summary grid */
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
+  .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; background: #fafafa; }
+  .card .val { font-size: 17px; font-weight: 800; color: #ea580c; }
+  .card .lbl { font-size: 9px; color: #6b7280; margin-top: 3px; text-transform: uppercase; letter-spacing: .05em; }
+  .card .sub { font-size: 9px; color: #9ca3af; margin-top: 1px; }
+  /* tables */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10.5px; }
+  thead th { background: #fff7ed; color: #92400e; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; padding: 6px 8px; text-align: left; border-bottom: 2px solid #fed7aa; white-space: nowrap; }
+  tbody td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) td { background: #fffbf5; }
+  tfoot td { padding: 6px 8px; font-weight: 700; background: #fff7ed; border-top: 2px solid #fed7aa; color: #92400e; }
   .right { text-align: right; }
-  .total td { font-weight: bold; background: #fff7ed; border-top: 2px solid #fed7aa; }
-  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-  .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
-  .card .val { font-size: 18px; font-weight: bold; color: #ea580c; }
-  .card .lbl { font-size: 10px; color: #6b7280; margin-top: 2px; }
-  @page { size: A4; margin: 15mm; }
-  @media print { body { padding: 0; } }
+  .center { text-align: center; }
+  /* inline bar */
+  .bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .bar-bg { flex: 1; height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 6px; border-radius: 3px; background: #ea580c; }
+  .bar-fill.blue   { background: #3b82f6; }
+  .bar-fill.green  { background: #22c55e; }
+  .bar-fill.purple { background: #a855f7; }
+  .bar-fill.gray   { background: #9ca3af; }
+  /* revenue trend sparkline area */
+  .trend-bars { display: flex; align-items: flex-end; gap: 2px; height: 40px; margin-bottom: 6px; }
+  .trend-bar  { flex: 1; border-radius: 2px 2px 0 0; background: #fed7aa; min-width: 4px; }
+  .trend-bar.peak { background: #ea580c; }
+  .trend-labels { display: flex; gap: 2px; }
+  .trend-label { flex: 1; text-align: center; font-size: 7px; color: #9ca3af; white-space: nowrap; overflow: hidden; min-width: 4px; }
+  /* page footer */
+  .doc-footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #9ca3af; display: flex; justify-content: space-between; }
+  @page { size: A4; margin: 14mm 12mm; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-break { page-break-inside: avoid; }
+  }
 `;
 
-function buildPdf(report: Report, from: string, to: string, fmt: (n: number) => string) {
-  const s = report.summary;
-  const totalCatRev = report.categories.reduce((sum, r) => sum + r.revenue, 0);
+function openPrintWindow(title: string, body: string) {
+  const win = window.open('', '_blank', 'width=820,height=750');
+  if (!win) { toast.error('Pop-up blocked — allow pop-ups and try again'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${PDF_STYLES}</style></head><body>${body}</body></html>`);
+  win.document.close();
+  // Auto-trigger print then close the helper window
+  win.addEventListener('afterprint', () => win.close());
+  win.onload = () => { win.focus(); win.print(); };
+  setTimeout(() => { try { win.focus(); win.print(); } catch { /* already triggered */ } }, 600);
+  toast.success('Print / Save as PDF dialog opened');
+}
 
-  const summaryHtml = `
+function pdfHeader(title: string, from: string, to: string) {
+  const dateRange = from === to ? from : `${from} – ${to}`;
+  return `
+    <div class="doc-header">
+      <div>
+        <h1>${title}</h1>
+        <div class="meta">Generated ${new Date().toLocaleString()}</div>
+      </div>
+      <div class="range">
+        <div class="dates">${dateRange}</div>
+        <div class="meta">Sales Report</div>
+      </div>
+    </div>`;
+}
+
+function pdfFooter() {
+  return `<div class="doc-footer"><span>QRA — Restaurant Management</span><span>Printed ${new Date().toLocaleDateString()}</span></div>`;
+}
+
+function pdfSummaryCards(s: Report['summary'], fmt: (n: number) => string) {
+  return `
     <div class="summary">
-      <div class="card"><div class="val">${fmt(s.totalRevenue)}</div><div class="lbl">Total Revenue</div></div>
+      <div class="card"><div class="val">${fmt(s.totalRevenue)}</div><div class="lbl">Total Revenue</div><div class="sub">avg ${fmt(s.avgOrderValue)} / order</div></div>
       <div class="card"><div class="val">${s.totalOrders}</div><div class="lbl">Total Orders</div></div>
       <div class="card"><div class="val">${s.dineInOrders}</div><div class="lbl">Dine-in</div></div>
       <div class="card"><div class="val">${s.takeawayOrders}</div><div class="lbl">Takeaway</div></div>
     </div>`;
+}
 
-  const dailyHtml = report.daily.length ? `
+function pdfDailySection(report: Report, fmt: (n: number) => string) {
+  if (!report.daily.length) return '<p style="color:#9ca3af;font-style:italic">No orders in this period.</p>';
+  const s = report.summary;
+  const maxRev = Math.max(...report.daily.map((r) => r.revenue), 1);
+
+  // Revenue sparkline
+  const sparkBars = report.daily.slice().reverse().map((r) => {
+    const pct = Math.round((r.revenue / maxRev) * 100);
+    const isPeak = r.revenue === maxRev;
+    return `<div class="trend-bar${isPeak ? ' peak' : ''}" style="height:${Math.max(4, pct)}%"></div>`;
+  }).join('');
+  const sparkLabels = report.daily.slice().reverse().map((r) => {
+    const d = new Date(r.date + 'T12:00:00');
+    return `<div class="trend-label">${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</div>`;
+  }).join('');
+
+  const rows = report.daily.slice().reverse().map((r) => {
+    const pct = maxRev > 0 ? (r.revenue / maxRev) * 100 : 0;
+    const d = new Date(r.date + 'T12:00:00');
+    const label = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    return `<tr>
+      <td>${label}</td>
+      <td class="right">${r.orderCount}</td>
+      <td class="right">${r.dineInCount}</td>
+      <td class="right">${r.takeawayCount}</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+          <span style="min-width:52px;text-align:right;font-weight:600">${fmt(r.revenue)}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <h2>Revenue Trend</h2>
+    <div class="no-break">
+      <div class="trend-bars">${sparkBars}</div>
+      <div class="trend-labels">${sparkLabels}</div>
+    </div>
     <h2>Sales by Day</h2>
-    <table>
-      <thead><tr><th>Date</th><th class="right">Orders</th><th class="right">Dine-in</th><th class="right">Takeaway</th><th class="right">Revenue</th></tr></thead>
-      <tbody>
-        ${report.daily.map((r) => `<tr><td>${r.date}</td><td class="right">${r.orderCount}</td><td class="right">${r.dineInCount}</td><td class="right">${r.takeawayCount}</td><td class="right">${fmt(r.revenue)}</td></tr>`).join('')}
-      </tbody>
-      <tfoot><tr class="total"><td>Total</td><td class="right">${s.totalOrders}</td><td class="right">${s.dineInOrders}</td><td class="right">${s.takeawayOrders}</td><td class="right">${fmt(s.totalRevenue)}</td></tr></tfoot>
-    </table>` : '';
+    <div class="no-break">
+      <table>
+        <thead><tr><th>Date</th><th class="right">Orders</th><th class="right">Dine-in</th><th class="right">Takeaway</th><th>Revenue</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td class="right">${s.totalOrders}</td><td class="right">${s.dineInOrders}</td><td class="right">${s.takeawayOrders}</td><td class="right">${fmt(s.totalRevenue)}</td></tr></tfoot>
+      </table>
+    </div>`;
+}
 
-  const catHtml = report.categories.length ? `
+function pdfCategoriesSection(report: Report, fmt: (n: number) => string) {
+  if (!report.categories.length) return '';
+  const totalRev = report.categories.reduce((s, r) => s + r.revenue, 0);
+  const totalQty = report.categories.reduce((s, r) => s + r.quantity, 0);
+  const rows = report.categories.map((r) => {
+    const pct = totalRev > 0 ? (r.revenue / totalRev) * 100 : 0;
+    return `<tr>
+      <td>${r.name}</td>
+      <td class="right">${r.quantity}</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill blue" style="width:${pct.toFixed(1)}%"></div></div>
+          <span style="min-width:52px;text-align:right;font-weight:600">${fmt(r.revenue)}</span>
+        </div>
+      </td>
+      <td class="right">${pct.toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+  return `
     <h2>Sales by Category</h2>
-    <table>
-      <thead><tr><th>Category</th><th class="right">Items Sold</th><th class="right">Revenue</th><th class="right">Share</th></tr></thead>
-      <tbody>
-        ${report.categories.map((r) => `<tr><td>${r.name}</td><td class="right">${r.quantity}</td><td class="right">${fmt(r.revenue)}</td><td class="right">${((r.revenue / (totalCatRev || 1)) * 100).toFixed(1)}%</td></tr>`).join('')}
-      </tbody>
-      <tfoot><tr class="total"><td>Total</td><td class="right">${report.categories.reduce((s, r) => s + r.quantity, 0)}</td><td class="right">${fmt(totalCatRev)}</td><td class="right">100%</td></tr></tfoot>
-    </table>` : '';
+    <div class="no-break">
+      <table>
+        <thead><tr><th>Category</th><th class="right">Items Sold</th><th>Revenue</th><th class="right">Share</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td class="right">${totalQty}</td><td class="right">${fmt(totalRev)}</td><td class="right">100%</td></tr></tfoot>
+      </table>
+    </div>`;
+}
 
-  const itemsHtml = report.items.length ? `
+function pdfItemsSection(report: Report, fmt: (n: number) => string) {
+  if (!report.items.length) return '';
+  const s = report.summary;
+  const maxRev = Math.max(...report.items.map((r) => r.totalRevenue), 1);
+  const rows = report.items.map((r) => {
+    const pct = (r.totalRevenue / maxRev) * 100;
+    const sizeTag = r.size ? `<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:${r.size === 'large' ? '#dbeafe' : '#f3f4f6'};color:${r.size === 'large' ? '#1d4ed8' : '#4b5563'};margin-left:4px">${r.size === 'large' ? 'L' : 'R'}</span>` : '';
+    return `<tr>
+      <td>${r.name}${sizeTag}</td>
+      <td class="right">${r.quantity}</td>
+      <td class="right">${fmt(r.baseRevenue)}</td>
+      <td class="right">${r.toppingRevenue > 0 ? '+' + fmt(r.toppingRevenue) : '—'}</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill green" style="width:${pct.toFixed(1)}%"></div></div>
+          <span style="min-width:52px;text-align:right;font-weight:600">${fmt(r.totalRevenue)}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  return `
     <h2>Item Performance</h2>
-    <table>
-      <thead><tr><th>Item</th><th>Size</th><th class="right">Qty</th><th class="right">Base</th><th class="right">Extras</th><th class="right">Total</th></tr></thead>
-      <tbody>
-        ${report.items.map((r) => `<tr><td>${r.name}</td><td>${r.size ?? '—'}</td><td class="right">${r.quantity}</td><td class="right">${fmt(r.baseRevenue)}</td><td class="right">${r.toppingRevenue > 0 ? '+' + fmt(r.toppingRevenue) : '—'}</td><td class="right">${fmt(r.totalRevenue)}</td></tr>`).join('')}
-      </tbody>
-      <tfoot><tr class="total"><td>Total</td><td></td><td class="right">${report.items.reduce((s, r) => s + r.quantity, 0)}</td><td class="right">${fmt(report.items.reduce((s, r) => s + r.baseRevenue, 0))}</td><td class="right">${fmt(report.items.reduce((s, r) => s + r.toppingRevenue, 0))}</td><td class="right">${fmt(s.totalRevenue)}</td></tr></tfoot>
-    </table>` : '';
+    <div class="no-break">
+      <table>
+        <thead><tr><th>Item</th><th class="right">Qty</th><th class="right">Base</th><th class="right">Extras</th><th>Total Revenue</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td class="right">${report.items.reduce((s, r) => s + r.quantity, 0)}</td><td class="right">${fmt(report.items.reduce((s, r) => s + r.baseRevenue, 0))}</td><td class="right">${fmt(report.items.reduce((s, r) => s + r.toppingRevenue, 0))}</td><td class="right">${fmt(s.totalRevenue)}</td></tr></tfoot>
+      </table>
+    </div>`;
+}
 
-  const extrasHtml = report.toppings.length ? `
-    <h2>Extras / Toppings</h2>
-    <table>
-      <thead><tr><th>Extra</th><th class="right">Times Ordered</th><th class="right">Revenue</th></tr></thead>
-      <tbody>${report.toppings.map((r) => `<tr><td>${r.name}</td><td class="right">${r.timesOrdered}</td><td class="right">${fmt(r.revenue)}</td></tr>`).join('')}</tbody>
-    </table>` : '';
+function pdfExtrasSection(report: Report, fmt: (n: number) => string) {
+  if (!report.toppings.length) return '';
+  const maxRev = Math.max(...report.toppings.map((r) => r.revenue), 1);
+  const rows = report.toppings.map((r) => {
+    const pct = (r.revenue / maxRev) * 100;
+    return `<tr>
+      <td>${r.name}</td>
+      <td class="right">${r.timesOrdered}</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill purple" style="width:${pct.toFixed(1)}%"></div></div>
+          <span style="min-width:52px;text-align:right;font-weight:600">${fmt(r.revenue)}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  return `
+    <h2>Extras &amp; Toppings</h2>
+    <div class="no-break">
+      <table>
+        <thead><tr><th>Extra / Topping</th><th class="right">Times Ordered</th><th>Revenue</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
 
-  const pmTotalRev = report.paymentMethods.reduce((sum, r) => sum + r.revenue, 0);
-  const paymentHtml = report.paymentMethods.length ? `
+function pdfPaymentSection(report: Report, fmt: (n: number) => string) {
+  if (!report.paymentMethods.length) return '';
+  const totalRev = report.paymentMethods.reduce((s, r) => s + r.revenue, 0);
+  const totalOrd = report.paymentMethods.reduce((s, r) => s + r.orderCount, 0);
+  const colors: Record<string, string> = { cash: 'green', card: 'blue', qr: 'purple' };
+  const rows = report.paymentMethods.map((r) => {
+    const pct = totalRev > 0 ? (r.revenue / totalRev) * 100 : 0;
+    const cls = colors[r.method] ?? '';
+    const label = r.method.charAt(0).toUpperCase() + r.method.slice(1);
+    return `<tr>
+      <td>${label}</td>
+      <td class="right">${r.orderCount}</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct.toFixed(1)}%"></div></div>
+          <span style="min-width:52px;text-align:right;font-weight:600">${fmt(r.revenue)}</span>
+        </div>
+      </td>
+      <td class="right">${pct.toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+  return `
     <h2>Revenue by Payment Method</h2>
-    <table>
-      <thead><tr><th>Method</th><th class="right">Orders</th><th class="right">Revenue</th><th class="right">Share</th></tr></thead>
-      <tbody>
-        ${report.paymentMethods.map((r) => `<tr><td style="text-transform:capitalize">${r.method}</td><td class="right">${r.orderCount}</td><td class="right">${fmt(r.revenue)}</td><td class="right">${((r.revenue / (pmTotalRev || 1)) * 100).toFixed(1)}%</td></tr>`).join('')}
-      </tbody>
-      <tfoot><tr class="total"><td>Total</td><td class="right">${report.paymentMethods.reduce((s, r) => s + r.orderCount, 0)}</td><td class="right">${fmt(pmTotalRev)}</td><td class="right">100%</td></tr></tfoot>
-    </table>` : '';
+    <div class="no-break">
+      <table>
+        <thead><tr><th>Method</th><th class="right">Orders</th><th>Revenue</th><th class="right">Share</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td class="right">${totalOrd}</td><td class="right">${fmt(totalRev)}</td><td class="right">100%</td></tr></tfoot>
+      </table>
+    </div>`;
+}
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sales Report ${from} – ${to}</title><style>${PDF_STYLES}</style></head>
-    <body>
-      <h1>Sales Report</h1>
-      <p>${from === to ? from : `${from} – ${to}`} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</p>
-      ${summaryHtml}${dailyHtml}${catHtml}${itemsHtml}${extrasHtml}${paymentHtml}
-    </body></html>`;
+function pdfPromosSection(report: Report, fmt: (n: number) => string) {
+  if (!report.promos.length) return '';
+  const totalDiscount = report.promos.reduce((s, r) => s + r.totalDiscount, 0);
+  const totalUses = report.promos.reduce((s, r) => s + r.orderCount, 0);
+  const rows = report.promos.map((r) => {
+    const disc = r.type === 'percentage' ? `${r.value}% off` : `${fmt(r.value)} off`;
+    return `<tr>
+      <td><strong>${r.code}</strong>${!r.active ? ' <span style="font-size:9px;color:#9ca3af">(inactive)</span>' : ''}</td>
+      <td>${disc}</td>
+      <td class="right">${r.orderCount || '—'}</td>
+      <td class="right">${r.totalDiscount > 0 ? fmt(r.totalDiscount) : '—'}</td>
+      <td class="right">${r.avgDiscount > 0 ? fmt(r.avgDiscount) : '—'}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <h2>Promo Code Usage</h2>
+    <div class="no-break">
+      <table>
+        <thead><tr><th>Code</th><th>Discount</th><th class="right">Uses</th><th class="right">Total Saved</th><th class="right">Avg / Use</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td></td><td class="right">${totalUses}</td><td class="right">${fmt(totalDiscount)}</td><td></td></tr></tfoot>
+      </table>
+    </div>`;
+}
 
-  const win = window.open('', '_blank', 'width=800,height=700');
-  if (!win) { toast.error('Pop-up blocked — allow pop-ups and try again'); return; }
-  win.document.write(html);
-  win.document.close();
-  win.onload = () => { win.focus(); win.print(); };
-  setTimeout(() => { try { win.focus(); win.print(); } catch { /* already triggered */ } }, 500);
-  toast.success('Print / Save as PDF dialog opened');
+/** Tab-specific focused PDF */
+function buildPdf(report: Report, tab: Tab, from: string, to: string, fmt: (n: number) => string) {
+  const TAB_TITLES: Record<Tab, string> = {
+    sales:      'Sales by Day',
+    heatmap:    'Order Heatmap',
+    categories: 'Sales by Category',
+    items:      'Item Performance',
+    extras:     'Extras & Toppings',
+    promos:     'Promo Code Usage',
+    payment:    'Revenue by Payment Method',
+  };
+  const title = TAB_TITLES[tab];
+  const header = pdfHeader(title, from, to);
+  const summary = pdfSummaryCards(report.summary, fmt);
+  const footer = pdfFooter();
+
+  let body = '';
+  switch (tab) {
+    case 'sales':
+      body = pdfDailySection(report, fmt);
+      break;
+    case 'categories':
+      body = pdfCategoriesSection(report, fmt);
+      break;
+    case 'items':
+      body = pdfItemsSection(report, fmt);
+      break;
+    case 'extras':
+      body = pdfExtrasSection(report, fmt);
+      break;
+    case 'payment':
+      body = pdfPaymentSection(report, fmt);
+      break;
+    case 'promos':
+      body = pdfPromosSection(report, fmt);
+      break;
+    case 'heatmap': {
+      const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const HOUR = Array.from({ length: 24 }, (_, h) => h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h-12}pm`);
+      const peak = report.heatmap.reduce((b, c) => c.orderCount > b.orderCount ? c : b, { dayOfWeek: 0, hour: 0, orderCount: 0, revenue: 0 });
+      const hourTotals = Array(24).fill(0) as number[];
+      report.heatmap.forEach((c) => { hourTotals[c.hour] += c.orderCount; });
+      const peakHour = hourTotals.indexOf(Math.max(...hourTotals));
+      body = `
+        <h2>Peak Hours Summary</h2>
+        <div class="summary" style="grid-template-columns:repeat(3,1fr)">
+          <div class="card"><div class="val">${HOUR[peakHour]}</div><div class="lbl">Busiest Hour</div><div class="sub">${hourTotals[peakHour]} orders</div></div>
+          <div class="card"><div class="val">${DAY[peak.dayOfWeek]}</div><div class="lbl">Peak Day/Slot</div><div class="sub">${HOUR[peak.hour]} · ${peak.orderCount} orders</div></div>
+          <div class="card"><div class="val">${report.heatmap.reduce((s,c)=>s+c.orderCount,0)}</div><div class="lbl">Total Orders</div></div>
+        </div>
+        <h2>Hourly Order Totals</h2>
+        <table>
+          <thead><tr><th>Hour</th><th class="right">Orders</th><th>Share</th></tr></thead>
+          <tbody>${hourTotals.map((cnt,h)=>{
+            const total = hourTotals.reduce((a,b)=>a+b,0)||1;
+            const pct = (cnt/total*100).toFixed(1);
+            return `<tr><td>${HOUR[h]}</td><td class="right">${cnt||'—'}</td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill${h===peakHour?' peak':''}" style="background:${h===peakHour?'#ea580c':'#fed7aa'};width:${cnt>0?(cnt/Math.max(...hourTotals)*100).toFixed(0):0}%"></div></div><span style="min-width:30px;text-align:right">${cnt>0?pct+'%':''}</span></div></td></tr>`;
+          }).join('')}</tbody>
+        </table>`;
+      break;
+    }
+  }
+
+  openPrintWindow(`${title} — ${from === to ? from : `${from} – ${to}`}`, header + summary + body + footer);
+}
+
+/** Full comprehensive report PDF (all sections) */
+function buildFullPdf(report: Report, from: string, to: string, fmt: (n: number) => string) {
+  const header  = pdfHeader('Full Sales Report', from, to);
+  const summary = pdfSummaryCards(report.summary, fmt);
+  const body    = pdfDailySection(report, fmt)
+                + pdfCategoriesSection(report, fmt)
+                + pdfItemsSection(report, fmt)
+                + pdfExtrasSection(report, fmt)
+                + pdfPaymentSection(report, fmt)
+                + pdfPromosSection(report, fmt);
+  openPrintWindow(`Full Report — ${from === to ? from : `${from} – ${to}`}`, header + summary + body + pdfFooter());
 }
 
 type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap' | 'promos' | 'payment';
@@ -414,7 +681,7 @@ export function ReportsPage() {
               ))}
             </div>
             {/* Export buttons */}
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 shrink-0 flex-wrap">
               <button
                 onClick={() => buildCsv(report, tab, from, to, fmt)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
@@ -422,10 +689,18 @@ export function ReportsPage() {
                 <Download size={14} /> CSV
               </button>
               <button
-                onClick={() => buildPdf(report, from, to, fmt)}
+                onClick={() => buildPdf(report, tab, from, to, fmt)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors"
+                title="Print / save current tab as PDF"
               >
                 <Printer size={14} /> PDF
+              </button>
+              <button
+                onClick={() => buildFullPdf(report, from, to, fmt)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-orange-300 text-orange-600 text-sm font-medium hover:bg-orange-50 transition-colors"
+                title="Print / save full report (all sections)"
+              >
+                <Printer size={14} /> Full Report
               </button>
             </div>
             </div>
