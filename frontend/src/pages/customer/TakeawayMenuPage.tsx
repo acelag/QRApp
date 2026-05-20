@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw, Clock } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
-import { effectivePrice, ITEM_TAGS } from '../../types/MenuItem';
+import { effectivePrice } from '../../types/MenuItem';
 import type { CartItem } from '../../types/Order';
 import { menuService } from '../../services/menuService';
 import { restaurantService } from '../../services/restaurantService';
@@ -13,6 +13,7 @@ import { CategoryTabs } from '../../components/CategoryTabs';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useTags } from '../../context/TagsContext';
 import toast from 'react-hot-toast';
 
 type Size = 'regular' | 'large';
@@ -78,6 +79,7 @@ export function TakeawayMenuPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const { fmt, loadCurrency } = useCurrency();
   const { loadTheme } = useTheme();
+  const { tags: allTags, loadTags } = useTags();
 
   function loadMenu() {
     if (!restaurantId) return;
@@ -90,7 +92,7 @@ export function TakeawayMenuPage() {
     ]).then(([cats, menuItems]) => {
       setCategories(cats);
       setItems(menuItems.filter((i) => i.available));
-      if (restaurantId) { loadCurrency(restaurantId); loadTheme(restaurantId); }
+      if (restaurantId) { loadCurrency(restaurantId); loadTheme(restaurantId); loadTags(restaurantId); }
       const reorderItems = (location.state as { reorderItems?: CartItem[] } | null)?.reorderItems;
       if (reorderItems?.length) {
         dispatch({ type: 'INIT', items: reorderItems });
@@ -105,8 +107,8 @@ export function TakeawayMenuPage() {
 
   const catFiltered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
   const filtered = activeTag ? catFiltered.filter((i) => (i.tags ?? []).includes(activeTag)) : catFiltered;
-  const presentTagIds = new Set(items.flatMap((i) => i.tags ?? []));
-  const visibleTags = ITEM_TAGS.filter((t) => presentTagIds.has(t.id));
+  const presentSlugs = new Set(items.flatMap((i) => i.tags ?? []));
+  const visibleTags = allTags.filter((t) => presentSlugs.has(t.slug));
 
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
   const subtotal  = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
@@ -216,10 +218,10 @@ export function TakeawayMenuPage() {
           <div className="max-w-lg mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
             {visibleTags.map((tag) => (
               <button
-                key={tag.id}
-                onClick={() => setActiveTag(activeTag === tag.id ? null : tag.id)}
+                key={tag.slug}
+                onClick={() => setActiveTag(activeTag === tag.slug ? null : tag.slug)}
                 className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                  activeTag === tag.id ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  activeTag === tag.slug ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {tag.emoji} {tag.label}

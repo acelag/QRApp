@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
-import { ITEM_TAGS } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
+import { tagService } from '../../services/tagService';
+import type { Tag } from '../../services/tagService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import axios from 'axios';
@@ -61,6 +62,12 @@ export function MenuItemsPage() {
   const [importing, setImporting] = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
   const [bulkToggling, setBulkToggling] = useState<Set<string>>(new Set());
+  // Tags
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [newTagLabel, setNewTagLabel] = useState('');
+  const [newTagEmoji, setNewTagEmoji] = useState('🏷️');
+  const [editingTag, setEditingTag] = useState<{ id: string; label: string; emoji: string } | null>(null);
+  const [savingTag, setSavingTag] = useState(false);
   const fileRef      = useRef<HTMLInputElement>(null);
   const importRef    = useRef<HTMLInputElement>(null);
 
@@ -86,9 +93,10 @@ export function MenuItemsPage() {
   }
 
   const load = () =>
-    Promise.all([menuService.getItems(), menuService.getCategories()]).then(([i, c]) => {
+    Promise.all([menuService.getItems(), menuService.getCategories(), tagService.getTagsAdmin()]).then(([i, c, t]) => {
       setItems(i);
       setCategories(c);
+      setTags(t);
     });
 
   useEffect(() => { load(); }, []);
@@ -232,6 +240,53 @@ export function MenuItemsPage() {
       toast.error('Failed to update availability');
     } finally {
       setBulkToggling((s) => { const n = new Set(s); n.delete(cat.id); return n; });
+    }
+  }
+
+  async function addTag() {
+    if (!newTagLabel.trim()) return;
+    setSavingTag(true);
+    try {
+      const t = await tagService.createTag(newTagLabel.trim(), newTagEmoji.trim() || '🏷️');
+      setTags((prev) => [...prev, t]);
+      setNewTagLabel('');
+      setNewTagEmoji('🏷️');
+      toast.success('Tag added');
+    } catch {
+      toast.error('Failed to add tag');
+    } finally {
+      setSavingTag(false);
+    }
+  }
+
+  async function saveEditTag() {
+    if (!editingTag || !editingTag.label.trim()) return;
+    setSavingTag(true);
+    try {
+      const t = await tagService.updateTag(editingTag.id, editingTag.label.trim(), editingTag.emoji.trim() || '🏷️');
+      setTags((prev) => prev.map((tg) => tg.id === t.id ? t : tg));
+      setEditingTag(null);
+      toast.success('Tag updated');
+    } catch {
+      toast.error('Failed to update tag');
+    } finally {
+      setSavingTag(false);
+    }
+  }
+
+  async function deleteTag(tag: Tag) {
+    if (!confirm(`Delete tag "${tag.label}"? It will be removed from all menu items.`)) return;
+    try {
+      await tagService.deleteTag(tag.id);
+      setTags((prev) => prev.filter((t) => t.id !== tag.id));
+      // Also strip from local items state
+      setItems((prev) => prev.map((i) => ({
+        ...i,
+        tags: (i.tags ?? []).filter((s) => s !== tag.slug),
+      })));
+      toast.success(`"${tag.label}" deleted`);
+    } catch {
+      toast.error('Failed to delete tag');
     }
   }
 
@@ -450,6 +505,83 @@ export function MenuItemsPage() {
           </div>
         </div>
 
+        {/* ── Tags management ─────────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <h2 className="font-semibold text-gray-700 mb-3 text-sm">Tags</h2>
+          <div className="flex gap-2 flex-wrap mb-3">
+            {tags.map((tag) => (
+              <div key={tag.id} className="flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
+                {editingTag?.id === tag.id ? (
+                  <>
+                    <input
+                      value={editingTag.emoji}
+                      onChange={(e) => setEditingTag({ ...editingTag, emoji: e.target.value })}
+                      className="w-8 text-center text-sm bg-transparent outline-none"
+                      maxLength={4}
+                      title="Emoji"
+                    />
+                    <input
+                      autoFocus
+                      value={editingTag.label}
+                      onChange={(e) => setEditingTag({ ...editingTag, label: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveEditTag(); if (e.key === 'Escape') setEditingTag(null); }}
+                      className="text-sm text-blue-700 bg-transparent outline-none w-24"
+                    />
+                    <button onClick={saveEditTag} disabled={savingTag} className="text-green-500 hover:text-green-600 shrink-0">
+                      <Check size={13} />
+                    </button>
+                    <button onClick={() => setEditingTag(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
+                      <X size={13} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-blue-700 text-sm px-1">{tag.emoji} {tag.label}</span>
+                    <button
+                      onClick={() => setEditingTag({ id: tag.id, label: tag.label, emoji: tag.emoji })}
+                      className="text-blue-400 hover:text-blue-600 transition-colors shrink-0"
+                      title="Rename"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      onClick={() => deleteTag(tag)}
+                      className="text-blue-300 hover:text-red-500 transition-colors shrink-0"
+                      title="Delete"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={newTagEmoji}
+              onChange={(e) => setNewTagEmoji(e.target.value)}
+              placeholder="🏷️"
+              maxLength={4}
+              className="w-12 text-center border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-300"
+              title="Emoji"
+            />
+            <input
+              value={newTagLabel}
+              onChange={(e) => setNewTagLabel(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addTag()}
+              placeholder="New tag name"
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-300"
+            />
+            <button
+              onClick={addTag}
+              disabled={savingTag || !newTagLabel.trim()}
+              className="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
         {/* ── Reorder mode: categorised sortable list ─────────────────────── */}
         {reorderMode && (
           <div className="space-y-4">
@@ -554,10 +686,10 @@ export function MenuItemsPage() {
                 {/* Tags */}
                 {(item.tags ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-1">
-                    {(item.tags!).map((tagId) => {
-                      const tag = ITEM_TAGS.find((t) => t.id === tagId);
+                    {(item.tags!).map((slug) => {
+                      const tag = tags.find((t) => t.slug === slug);
                       return tag ? (
-                        <span key={tagId} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                        <span key={slug} className="inline-flex items-center gap-0.5 text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">
                           {tag.emoji} {tag.label}
                         </span>
                       ) : null;
@@ -928,35 +1060,37 @@ export function MenuItemsPage() {
             </div>
 
             {/* Tags */}
-            <div>
-              <label className="text-sm text-gray-600 mb-2 block">Tags</label>
-              <div className="flex flex-wrap gap-2">
-                {ITEM_TAGS.map((tag) => {
-                  const active = (form.tags ?? []).includes(tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() =>
-                        setForm((f) => ({
-                          ...f,
-                          tags: active
-                            ? (f.tags ?? []).filter((t) => t !== tag.id)
-                            : [...(f.tags ?? []), tag.id],
-                        }))
-                      }
-                      className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                        active
-                          ? 'bg-orange-500 text-white border-orange-500'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'
-                      }`}
-                    >
-                      {tag.emoji} {tag.label}
-                    </button>
-                  );
-                })}
+            {tags.length > 0 && (
+              <div>
+                <label className="text-sm text-gray-600 mb-2 block">Tags</label>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => {
+                    const active = (form.tags ?? []).includes(tag.slug);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            tags: active
+                              ? (f.tags ?? []).filter((t) => t !== tag.slug)
+                              : [...(f.tags ?? []), tag.slug],
+                          }))
+                        }
+                        className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors ${
+                          active
+                            ? 'bg-orange-500 text-white border-orange-500'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'
+                        }`}
+                      >
+                        {tag.emoji} {tag.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Available toggle */}
             <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Plus, Flame } from 'lucide-react';
 import type { MenuItem } from '../types';
 import type { SelectedTopping } from '../types/Order';
-import { effectivePrice, ITEM_TAGS } from '../types/MenuItem';
+import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
+import { useTags } from '../context/TagsContext';
 import { ToppingSelectionModal } from './ToppingSelectionModal';
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -16,6 +17,7 @@ interface Props {
 export function MenuCard({ item }: Props) {
   const { addItem, items } = useCart();
   const { fmt } = useCurrency();
+  const { tags: allTags } = useTags();
   const hasLarge = item.largePrice != null && item.largePrice > 0;
   const hasToppings = (item.toppings ?? []).some((t) => t.available);
   const isLowStock = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= LOW_STOCK_THRESHOLD;
@@ -74,10 +76,10 @@ export function MenuCard({ item }: Props) {
           <h3 className="font-semibold text-gray-900 leading-tight">{item.name}</h3>
           {(item.tags ?? []).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
-              {(item.tags!).map((tagId) => {
-                const tag = ITEM_TAGS.find((t) => t.id === tagId);
+              {(item.tags!).map((slug) => {
+                const tag = allTags.find((t) => t.slug === slug);
                 return tag ? (
-                  <span key={tagId} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                  <span key={slug} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
                     {tag.emoji} {tag.label}
                   </span>
                 ) : null;

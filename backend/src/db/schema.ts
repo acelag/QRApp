@@ -212,6 +212,46 @@ export async function createSchema(): Promise<void> {
 
   await addCol('table_sessions', 'merged_into_session_id', 'VARCHAR(36) NULL');
 
+  // ── Dynamic tags table ──────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tags (
+      id            VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id VARCHAR(36)  NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+      slug          VARCHAR(50)  NOT NULL,
+      label         VARCHAR(100) NOT NULL,
+      emoji         VARCHAR(10)  NOT NULL DEFAULT '🏷️',
+      sort_order    INTEGER      NOT NULL DEFAULT 0,
+      UNIQUE(restaurant_id, slug)
+    );
+  `);
+
+  // Seed default tags for any restaurant that currently has none
+  {
+    const DEFAULT_TAGS = [
+      { slug: 'spicy',        label: 'Spicy',       emoji: '🌶' },
+      { slug: 'vegan',        label: 'Vegan',       emoji: '🌱' },
+      { slug: 'popular',      label: 'Popular',     emoji: '⭐' },
+      { slug: 'new',          label: 'New',         emoji: '🆕' },
+      { slug: 'vegetarian',   label: 'Vegetarian',  emoji: '🥦' },
+      { slug: 'gluten-free',  label: 'Gluten-Free', emoji: '🌾' },
+      { slug: 'halal',        label: 'Halal',       emoji: '✅' },
+    ];
+    const restRes = await pool.query(
+      `SELECT r.id FROM restaurants r
+       WHERE NOT EXISTS (SELECT 1 FROM tags t WHERE t.restaurant_id = r.id)`
+    );
+    for (const rest of restRes.rows as { id: string }[]) {
+      for (let i = 0; i < DEFAULT_TAGS.length; i++) {
+        const t = DEFAULT_TAGS[i];
+        await pool.query(
+          `INSERT INTO tags (id, restaurant_id, slug, label, emoji, sort_order)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
+          [rest.id, t.slug, t.label, t.emoji, i],
+        );
+      }
+    }
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS reservations (
       id             VARCHAR(36)   NOT NULL PRIMARY KEY,

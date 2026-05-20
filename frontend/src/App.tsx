@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { TagsProvider } from './context/TagsContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InstallPrompt } from './components/InstallPrompt';
 
@@ -58,6 +59,7 @@ export default function App() {
       <AuthProvider>
         <CurrencyProvider>
         <ThemeProvider>
+        <TagsProvider>
         <CartProvider>
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
           <InstallPrompt />
@@ -106,6 +108,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </CartProvider>
+        </TagsProvider>
         </ThemeProvider>
         </CurrencyProvider>
       </AuthProvider>
