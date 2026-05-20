@@ -11,6 +11,15 @@ interface WaiterStat {
   servedCount: number;
   totalRevenue: number;
   avgOrderValue: number;
+  avgServeMins: number;  // 0 = no served orders yet
+}
+
+function fmtMins(m: number): string {
+  if (m <= 0) return '—';
+  if (m < 60) return `${Math.round(m)} min`;
+  const h = Math.floor(m / 60);
+  const rem = Math.round(m % 60);
+  return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
 }
 
 interface StaffData {
@@ -178,6 +187,9 @@ export function StaffPerformancePage() {
                             <p className="text-xs text-gray-400">
                               {Math.round((w.servedCount / w.orderCount) * 100)}% completion
                             </p>
+                          )}
+                          {w.avgServeMins > 0 && (
+                            <p className="text-xs text-gray-400">avg serve {fmtMins(w.avgServeMins)}</p>
                           )}
                         </div>
                       </div>

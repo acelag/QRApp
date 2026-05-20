@@ -241,13 +241,21 @@ router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async
   if (!['pending', 'preparing', 'ready', 'served'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
   const now = new Date().toISOString();
   const rid = req.user!.restaurantId;
+  // Stamp served_at the first time an order reaches 'served'
+  const servedAt = status === 'served' ? now : null;
   const result = rid
     ? await pool.query(
-        'UPDATE orders SET status=$1, updated_at=$2, payment_method=COALESCE($3, payment_method) WHERE id=$4 AND restaurant_id=$5',
-        [status, now, paymentMethod ?? null, req.params.id, rid])
+        `UPDATE orders
+         SET status=$1, updated_at=$2, payment_method=COALESCE($3, payment_method),
+             served_at=COALESCE(served_at, $6)
+         WHERE id=$4 AND restaurant_id=$5`,
+        [status, now, paymentMethod ?? null, req.params.id, rid, servedAt])
     : await pool.query(
-        'UPDATE orders SET status=$1, updated_at=$2, payment_method=COALESCE($3, payment_method) WHERE id=$4',
-        [status, now, paymentMethod ?? null, req.params.id]);
+        `UPDATE orders
+         SET status=$1, updated_at=$2, payment_method=COALESCE($3, payment_method),
+             served_at=COALESCE(served_at, $5)
+         WHERE id=$4`,
+        [status, now, paymentMethod ?? null, req.params.id, servedAt]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   sendPushToOrder(String(req.params.id), status).catch(() => {});
   res.json(await buildOrder(String(req.params.id)));

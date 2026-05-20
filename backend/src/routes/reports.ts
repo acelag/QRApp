@@ -259,6 +259,7 @@ router.get('/staff', async (req: AuthRequest, res) => {
       waiter_name: string; waiter_id: string | null;
       order_count: number; served_count: number;
       total_revenue: number; avg_order_value: number;
+      avg_serve_mins: number;
     }>(
       `SELECT
          COALESCE(assigned_waiter_name, 'Unassigned') AS waiter_name,
@@ -266,7 +267,13 @@ router.get('/staff', async (req: AuthRequest, res) => {
          COUNT(*)::int                                AS order_count,
          COUNT(*) FILTER (WHERE status = 'served')::int AS served_count,
          COALESCE(SUM(total_amount), 0)::float        AS total_revenue,
-         COALESCE(AVG(total_amount), 0)::float        AS avg_order_value
+         COALESCE(AVG(total_amount), 0)::float        AS avg_order_value,
+         COALESCE(
+           AVG(
+             EXTRACT(EPOCH FROM (served_at::timestamptz - created_at::timestamptz)) / 60.0
+           ) FILTER (WHERE served_at IS NOT NULL),
+           0
+         )::float                                    AS avg_serve_mins
        FROM orders
        WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
        GROUP BY assigned_waiter_name, assigned_waiter_id
@@ -297,6 +304,7 @@ router.get('/staff', async (req: AuthRequest, res) => {
       servedCount:   r.served_count,
       totalRevenue:  r.total_revenue,
       avgOrderValue: r.avg_order_value,
+      avgServeMins:  r.avg_serve_mins,
     })),
     daily: dailyRes.rows.map((r) => ({
       date:       r.date,

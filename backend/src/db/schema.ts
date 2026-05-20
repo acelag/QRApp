@@ -205,6 +205,7 @@ export async function createSchema(): Promise<void> {
   `);
   await addCol('orders', 'assigned_waiter_id',   'VARCHAR(36) NULL');
   await addCol('orders', 'assigned_waiter_name', 'VARCHAR(255) NULL');
+  await addCol('orders', 'served_at',            'VARCHAR(50) NULL'); // stamped when status → served
 
 
   await pool.query(`
