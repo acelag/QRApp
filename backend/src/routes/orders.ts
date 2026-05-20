@@ -301,6 +301,65 @@ router.patch('/:id/payment-method', authenticate, requireRole('admin'), async (r
   res.json(await buildOrder(String(req.params.id)));
 });
 
+// PATCH /:id/items  — admin only: add items to a pending/preparing order
+router.patch('/:id/items', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { items } = req.body as { items: CartItem[] };
+  if (!items?.length) { res.status(400).json({ error: 'items are required' }); return; }
+
+  const rid = req.user!.restaurantId;
+  const orderRes = await pool.query(
+    'SELECT id, status, total_amount, restaurant_id FROM orders WHERE id = $1',
+    [req.params.id],
+  );
+  if (!orderRes.rows.length) { res.status(404).json({ error: 'Order not found' }); return; }
+  const order = orderRes.rows[0] as { id: string; status: string; total_amount: string; restaurant_id: string };
+  if (rid && order.restaurant_id !== rid) { res.status(403).json({ error: 'Forbidden' }); return; }
+  if (!['pending', 'preparing'].includes(order.status)) {
+    res.status(400).json({ error: 'Can only add items to pending or preparing orders' }); return;
+  }
+
+  const addedAmount = items.reduce((s, i) => {
+    const toppingsTotal = (i.toppings ?? []).reduce((t, tp) => t + tp.price, 0);
+    return s + (i.price + toppingsTotal) * i.quantity;
+  }, 0);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const item of items) {
+      const orderItemId = uuid();
+      await client.query(
+        `INSERT INTO order_items (id,order_id,menu_item_id,name,price,quantity,notes,size) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [orderItemId, req.params.id, item.menuItemId, item.name, item.price, item.quantity, item.notes ?? null, item.size ?? null],
+      );
+      for (const topping of (item.toppings ?? [])) {
+        await client.query(
+          `INSERT INTO order_item_toppings (id,order_item_id,topping_id,name,price) VALUES ($1,$2,$3,$4,$5)`,
+          [uuid(), orderItemId, topping.id, topping.name, topping.price],
+        );
+      }
+      await client.query(
+        `UPDATE menu_items
+         SET stock     = GREATEST(0, stock - $1),
+             available = CASE WHEN stock - $1 <= 0 THEN false ELSE available END
+         WHERE id = $2 AND track_stock = true AND stock IS NOT NULL`,
+        [item.quantity, item.menuItemId],
+      );
+    }
+    const newTotal = Number(order.total_amount) + addedAmount;
+    const now = new Date().toISOString();
+    await client.query('UPDATE orders SET total_amount=$1, updated_at=$2 WHERE id=$3', [newTotal, now, req.params.id]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.json(await buildOrder(String(req.params.id)));
+});
+
 // POST /:id/feedback  — public, no auth (customer rates their own order)
 router.post('/:id/feedback', async (req, res) => {
   const { rating, note } = req.body as { rating?: number; note?: string };

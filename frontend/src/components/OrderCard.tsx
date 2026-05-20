@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
@@ -12,6 +12,7 @@ interface Props {
   order: Order;
   onStatusChange?: (id: string, status: OrderStatus) => void;
   onAssignWaiter?: (id: string, waiterId: string | null) => void;
+  onAddItems?: (order: Order) => void;
   waiters?: Waiter[];
   showActions?: boolean;
   showPrint?: boolean;
@@ -21,7 +22,7 @@ interface Props {
   hidePrices?: boolean;
 }
 
-export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
   const { fmt } = useCurrency();
@@ -280,6 +281,15 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
             >
               <MessageCircle size={13} /> Send Bill
             </a>
+          )}
+          {showActions && onAddItems && ['pending', 'preparing'].includes(order.status) && (
+            <button
+              onClick={() => onAddItems(order)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-orange-300 text-orange-600 text-sm rounded-full font-medium hover:bg-orange-50 transition-colors whitespace-nowrap"
+              title="Add items to this order"
+            >
+              <PlusCircle size={13} /> Add Items
+            </button>
           )}
           {showActions && onStatusChange && nextStatus && (
             <button

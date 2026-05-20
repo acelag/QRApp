@@ -32,6 +32,9 @@ export const orderService = {
   assignWaiter: (id: string, waiterId: string | null) =>
     axios.patch<Order>(`${BASE}/orders/${id}/waiter`, { waiterId }).then((r) => r.data),
 
+  addItems: (id: string, items: CartItem[]) =>
+    axios.patch<Order>(`${BASE}/orders/${id}/items`, { items }).then((r) => r.data),
+
   submitFeedback: (orderId: string, rating: number, note?: string) =>
     axios
       .post<{ ok: boolean; rating: number; note: string | null }>(`${BASE}/orders/${orderId}/feedback`, { rating, note })

@@ -8,6 +8,7 @@ import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
+import { AddItemsModal } from '../../components/AddItemsModal';
 import toast from 'react-hot-toast';
 
 const STATUS_TABS: { label: string; value: OrderStatus | 'all' | 'takeaway' }[] = [
@@ -24,6 +25,7 @@ export function OrdersPage() {
   const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [tab, setTab] = useState<OrderStatus | 'all' | 'takeaway'>('all');
   const [loading, setLoading] = useState(true);
+  const [addItemsOrder, setAddItemsOrder] = useState<Order | null>(null);
 
   useOrderSoundAlert(orders);
 
@@ -64,6 +66,10 @@ export function OrdersPage() {
     }
   }
 
+  function handleAddItemsDone(updated: Order) {
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    setAddItemsOrder(null);
+  }
 
   const filtered = tab === 'all'
     ? orders
@@ -129,15 +135,22 @@ export function OrdersPage() {
                   order={order}
                   onStatusChange={handleStatusChange}
                   onAssignWaiter={handleAssignWaiter}
+                  onAddItems={setAddItemsOrder}
                   waiters={waiters}
                   showActions
-
                 />
               </div>
             ))}
           </div>
         )}
       </main>
+      {addItemsOrder && (
+        <AddItemsModal
+          order={addItemsOrder}
+          onClose={() => setAddItemsOrder(null)}
+          onDone={handleAddItemsDone}
+        />
+      )}
     </div>
   );
 }
