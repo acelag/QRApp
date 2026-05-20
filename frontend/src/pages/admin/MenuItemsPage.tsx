@@ -93,13 +93,15 @@ export function MenuItemsPage() {
   }
 
   const load = () =>
-    Promise.all([menuService.getItems(), menuService.getCategories(), tagService.getTagsAdmin()]).then(([i, c, t]) => {
+    Promise.all([menuService.getItems(), menuService.getCategories()]).then(([i, c]) => {
       setItems(i);
       setCategories(c);
-      setTags(t);
     });
 
-  useEffect(() => { load(); }, []);
+  const loadTags = () =>
+    tagService.getTagsAdmin().then(setTags).catch(() => {});
+
+  useEffect(() => { load(); loadTags(); }, []);
 
   function openNew() {
     setEditing(null);

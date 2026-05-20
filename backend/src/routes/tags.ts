@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db/database';
-import { authenticate, requireRole } from '../middleware/auth';
+import { authenticate, optionalAuthenticate, requireRole } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -29,7 +29,7 @@ function rowToTag(row: Record<string, unknown>) {
 
 // GET /api/tags?restaurantId=xxx  (public — used by customer menus)
 // GET /api/tags                   (authenticated admin — uses token restaurantId)
-router.get('/', async (req, res) => {
+router.get('/', optionalAuthenticate, async (req, res) => {
   try {
     const restaurantId =
       (req.query.restaurantId as string | undefined) ||
