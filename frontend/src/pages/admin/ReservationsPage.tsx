@@ -36,6 +36,16 @@ function fmt(date: Date) {
   return date.toLocaleDateString('en-CA'); // YYYY-MM-DD
 }
 
+// 30-minute slots from 10:00 to 22:30
+const TIME_SLOTS: string[] = (() => {
+  const slots: string[] = [];
+  for (let h = 10; h <= 22; h++) {
+    slots.push(`${String(h).padStart(2, '0')}:00`);
+    if (h < 23) slots.push(`${String(h).padStart(2, '0')}:30`);
+  }
+  return slots;
+})();
+
 const EMPTY_FORM: ReservationInput = {
   customerName: '', customerPhone: '', partySize: 2,
   date: fmt(new Date()), time: '19:00', tableNumber: null, notes: '',
@@ -298,12 +308,15 @@ export function ReservationsPage() {
 
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Time *</label>
-                <input
-                  type="time"
-                  value={form.time}
+                <select
+                  value={TIME_SLOTS.includes(form.time) ? form.time : TIME_SLOTS[0]}
                   onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300"
-                />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+                >
+                  {TIME_SLOTS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
