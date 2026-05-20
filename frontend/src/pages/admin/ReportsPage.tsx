@@ -1072,10 +1072,13 @@ export function ReportsPage() {
                               />
                               <Tooltip
                                 cursor={{ fill: '#fff7ed' }}
-                                formatter={(value: number) => [
-                                  itemMetric === 'revenue' ? fmt(value) : `${value} sold`,
-                                  itemMetric === 'revenue' ? 'Revenue' : 'Quantity',
-                                ]}
+                                formatter={(value) => {
+                                  const v = Number(value);
+                                  return [
+                                    itemMetric === 'revenue' ? fmt(v) : `${v} sold`,
+                                    itemMetric === 'revenue' ? 'Revenue' : 'Quantity',
+                                  ] as [string, string];
+                                }}
                                 contentStyle={{
                                   fontSize: 12,
                                   borderRadius: 10,
@@ -1092,7 +1095,7 @@ export function ReportsPage() {
                                   position: 'right',
                                   fontSize: 10,
                                   fill: '#6b7280',
-                                  formatter: (v: number) => itemMetric === 'revenue' ? fmt(v) : v,
+                                  formatter: (v: unknown) => itemMetric === 'revenue' ? fmt(Number(v)) : Number(v),
                                 }}
                               >
                                 {chartData.map((_, i) => {
