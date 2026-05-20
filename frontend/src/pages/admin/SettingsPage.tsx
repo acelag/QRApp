@@ -208,7 +208,7 @@ export function SettingsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Top nav */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
           <Link to="/admin" className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-600">
             <ArrowLeft size={18} />
           </Link>
@@ -216,7 +216,7 @@ export function SettingsPage() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
 
         {/* ── Hero profile card ─────────────────────────────────────────── */}
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
@@ -266,6 +266,12 @@ export function SettingsPage() {
             </p>
           )}
         </div>
+
+        {/* ── Two-column grid on lg+ ───────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+
+          {/* ══ LEFT COLUMN — Account + links ═══════════════════════════ */}
+          <div className="space-y-4">
 
         {/* ── Account credentials ───────────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -368,6 +374,11 @@ export function SettingsPage() {
             </button>
           </form>
         </div>
+
+          </div>{/* end LEFT column */}
+
+          {/* ══ RIGHT COLUMN — Billing + config cards ═══════════════════ */}
+          <div className="space-y-4">
 
         {/* ── Billing configuration ─────────────────────────────────────── */}
         {restaurant && (
@@ -700,7 +711,10 @@ export function SettingsPage() {
           </div>
         )}
 
-        {/* ── Quick links ───────────────────────────────────────────────── */}
+          </div>{/* end RIGHT column */}
+        </div>{/* end two-column grid */}
+
+        {/* ── Quick links (full width below grid) ──────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
           <Link
             to="/admin/users"
