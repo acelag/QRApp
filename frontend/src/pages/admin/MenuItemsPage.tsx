@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -58,6 +58,7 @@ export function MenuItemsPage() {
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   const [importing, setImporting] = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
+  const [bulkToggling, setBulkToggling] = useState<Set<string>>(new Set());
   const fileRef      = useRef<HTMLInputElement>(null);
   const importRef    = useRef<HTMLInputElement>(null);
 
@@ -213,6 +214,25 @@ export function MenuItemsPage() {
     }
   }
 
+  async function handleBulkToggle(cat: Category, available: boolean) {
+    if (bulkToggling.has(cat.id)) return;
+    const count = items.filter((i) => i.category === cat.id).length;
+    if (count === 0) return;
+    setBulkToggling((s) => new Set(s).add(cat.id));
+    // Optimistic update
+    setItems((prev) => prev.map((i) => i.category === cat.id ? { ...i, available } : i));
+    try {
+      await menuService.bulkSetAvailability(cat.id, available);
+      toast.success(`${count} item${count !== 1 ? 's' : ''} in "${cat.name}" marked ${available ? 'available' : 'unavailable'}`);
+    } catch {
+      // Revert
+      setItems((prev) => prev.map((i) => i.category === cat.id ? { ...i, available: !available } : i));
+      toast.error('Failed to update availability');
+    } finally {
+      setBulkToggling((s) => { const n = new Set(s); n.delete(cat.id); return n; });
+    }
+  }
+
   async function addCategory() {
     if (!newCatName.trim()) return;
     try {
@@ -347,45 +367,72 @@ export function MenuItemsPage() {
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h2 className="font-semibold text-gray-700 mb-3 text-sm">Categories</h2>
           <div className="flex gap-2 flex-wrap mb-3">
-            {categories.map((cat) => (
-              <div key={cat.id} className="flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-full px-2 py-0.5">
-                {editingCat?.id === cat.id ? (
-                  <>
-                    <input
-                      autoFocus
-                      value={editingCatName}
-                      onChange={(e) => setEditingCatName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') saveEditCat(); if (e.key === 'Escape') setEditingCat(null); }}
-                      className="text-sm text-orange-700 bg-transparent outline-none w-24"
-                    />
-                    <button onClick={saveEditCat} className="text-green-500 hover:text-green-600 shrink-0">
-                      <Check size={13} />
-                    </button>
-                    <button onClick={() => setEditingCat(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
-                      <X size={13} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-orange-700 text-sm px-1">{cat.name}</span>
-                    <button
-                      onClick={() => startEditCat(cat)}
-                      className="text-orange-400 hover:text-orange-600 transition-colors shrink-0"
-                      title="Rename"
-                    >
-                      <Pencil size={12} />
-                    </button>
-                    <button
-                      onClick={() => deleteCategory(cat)}
-                      className="text-orange-300 hover:text-red-500 transition-colors shrink-0"
-                      title="Delete"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </>
-                )}
-              </div>
-            ))}
+            {categories.map((cat) => {
+              const catItems  = items.filter((i) => i.category === cat.id);
+              const allOn     = catItems.length > 0 && catItems.every((i) => i.available);
+              const allOff    = catItems.length > 0 && catItems.every((i) => !i.available);
+              const isBusy    = bulkToggling.has(cat.id);
+              return (
+                <div key={cat.id} className="flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-full px-2 py-0.5">
+                  {editingCat?.id === cat.id ? (
+                    <>
+                      <input
+                        autoFocus
+                        value={editingCatName}
+                        onChange={(e) => setEditingCatName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') saveEditCat(); if (e.key === 'Escape') setEditingCat(null); }}
+                        className="text-sm text-orange-700 bg-transparent outline-none w-24"
+                      />
+                      <button onClick={saveEditCat} className="text-green-500 hover:text-green-600 shrink-0">
+                        <Check size={13} />
+                      </button>
+                      <button onClick={() => setEditingCat(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
+                        <X size={13} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-orange-700 text-sm px-1">{cat.name}</span>
+                      {/* Bulk availability buttons */}
+                      {catItems.length > 0 && (
+                        <>
+                          <button
+                            onClick={() => handleBulkToggle(cat, true)}
+                            disabled={isBusy || allOn}
+                            title="Mark all available"
+                            className="text-green-400 hover:text-green-600 transition-colors shrink-0 disabled:opacity-30"
+                          >
+                            {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
+                          </button>
+                          <button
+                            onClick={() => handleBulkToggle(cat, false)}
+                            disabled={isBusy || allOff}
+                            title="Mark all unavailable"
+                            className="text-gray-400 hover:text-red-500 transition-colors shrink-0 disabled:opacity-30"
+                          >
+                            <EyeOff size={12} />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => startEditCat(cat)}
+                        className="text-orange-400 hover:text-orange-600 transition-colors shrink-0"
+                        title="Rename"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        onClick={() => deleteCategory(cat)}
+                        className="text-orange-300 hover:text-red-500 transition-colors shrink-0"
+                        title="Delete"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div className="flex gap-2">
             <input

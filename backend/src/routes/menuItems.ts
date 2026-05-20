@@ -208,6 +208,20 @@ router.patch('/reorder', authenticate, requireRole('admin'), async (req: AuthReq
   res.json({ ok: true });
 });
 
+// ── Bulk availability toggle ──────────────────────────────────────────────────
+router.patch('/bulk-availability', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { categoryId, available } = req.body as { categoryId: string; available: boolean };
+  if (!categoryId || typeof available !== 'boolean') {
+    res.status(400).json({ error: 'categoryId and available (boolean) are required' }); return;
+  }
+  const rid = req.user!.restaurantId;
+  const result = await pool.query(
+    'UPDATE menu_items SET available = $1 WHERE restaurant_id = $2 AND category_id = $3 RETURNING id, available',
+    [available, rid, categoryId],
+  );
+  res.json({ updated: result.rowCount ?? 0, available });
+});
+
 router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock } =
     req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null };

@@ -32,6 +32,9 @@ export const menuService = {
   reorderItems: (items: { id: string; sortOrder: number }[]) =>
     axios.patch(`${BASE}/menu-items/reorder`, { items }).then((r) => r.data),
 
+  bulkSetAvailability: (categoryId: string, available: boolean) =>
+    axios.patch<{ updated: number; available: boolean }>(`${BASE}/menu-items/bulk-availability`, { categoryId, available }).then((r) => r.data),
+
   duplicateItem: (id: string) =>
     axios.post<MenuItem>(`${BASE}/menu-items/${id}/duplicate`).then((r) => r.data),
 
