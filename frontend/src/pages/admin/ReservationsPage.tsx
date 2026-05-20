@@ -37,11 +37,18 @@ function fmt(date: Date) {
 }
 
 // 30-minute slots from 10:00 to 22:30
-const TIME_SLOTS: string[] = (() => {
-  const slots: string[] = [];
+// value = "HH:MM" (24-h, stored in DB), label = "H:MM AM/PM" (display)
+const TIME_SLOTS: { value: string; label: string }[] = (() => {
+  const slots: { value: string; label: string }[] = [];
   for (let h = 10; h <= 22; h++) {
-    slots.push(`${String(h).padStart(2, '0')}:00`);
-    if (h < 23) slots.push(`${String(h).padStart(2, '0')}:30`);
+    for (const m of [0, 30]) {
+      if (h === 22 && m === 30) continue; // stop at 22:00 last slot is 22:00
+      const value = `${String(h).padStart(2, '0')}:${m === 0 ? '00' : '30'}`;
+      const period = h < 12 ? 'AM' : 'PM';
+      const h12   = h % 12 === 0 ? 12 : h % 12;
+      const label  = `${h12}:${m === 0 ? '00' : '30'} ${period}`;
+      slots.push({ value, label });
+    }
   }
   return slots;
 })();
@@ -210,7 +217,9 @@ export function ReservationsPage() {
               <div className="px-4 py-3 flex items-start gap-3">
                 {/* Time */}
                 <div className="shrink-0 text-center bg-orange-50 rounded-xl px-3 py-2">
-                  <p className="text-base font-bold text-orange-700 leading-none">{r.time}</p>
+                  <p className="text-base font-bold text-orange-700 leading-none">
+                    {TIME_SLOTS.find((s) => s.value === r.time)?.label ?? r.time}
+                  </p>
                 </div>
 
                 {/* Details */}
@@ -309,12 +318,12 @@ export function ReservationsPage() {
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Time *</label>
                 <select
-                  value={TIME_SLOTS.includes(form.time) ? form.time : TIME_SLOTS[0]}
+                  value={TIME_SLOTS.find((s) => s.value === form.time) ? form.time : TIME_SLOTS[0].value}
                   onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 bg-white"
                 >
-                  {TIME_SLOTS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  {TIME_SLOTS.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
               </div>
