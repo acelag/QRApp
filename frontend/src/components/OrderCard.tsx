@@ -2,10 +2,11 @@ import { useState } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
+const STALE_MINUTES = 30;
 
 interface Props {
   order: Order;
@@ -23,6 +24,9 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
   const { fmt } = useCurrency();
+
+  const ageMins = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60_000);
+  const isStale = order.status === 'pending' && ageMins >= STALE_MINUTES;
 
   const [cooked, setCooked] = useState<Set<number>>(new Set());
 
@@ -71,7 +75,9 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
     : 'bg-gray-500 text-white';
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-colors ${
+      isStale ? 'border-2 border-red-400' : 'border border-gray-100'
+    }`}>
       {/* Card header */}
       <div className={`px-4 py-3 flex items-center justify-between border-b border-gray-100 ${
         order.orderType === 'takeaway' ? 'bg-purple-50'
@@ -142,6 +148,11 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
         </span>
         {isNext && (
           <span className="text-xs font-bold text-red-500 uppercase tracking-wide ml-1">▶ Next up</span>
+        )}
+        {isStale && (
+          <span className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full ml-auto animate-pulse">
+            <AlertTriangle size={11} /> {ageMins}m — stalled
+          </span>
         )}
       </div>
 

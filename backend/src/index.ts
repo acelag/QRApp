@@ -27,6 +27,7 @@ import customerPushRouter from './routes/customerPush';
 import waitersRouter from './routes/waiters';
 import reservationsRouter from './routes/reservations';
 import './lib/vapid'; // initialise VAPID keys at startup
+import { startStaleOrderChecker } from './lib/staleOrderChecker';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -119,7 +120,10 @@ async function start() {
     await connectDb();
     await createSchema();
     await seedIfEmpty();
-    app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT} [${isProd ? 'production' : 'development'}]`));
+    app.listen(PORT, () => {
+      console.log(`Backend running on http://localhost:${PORT} [${isProd ? 'production' : 'development'}]`);
+      startStaleOrderChecker();
+    });
   } catch (err) {
     console.error('Failed to start server:', err);
     process.exit(1);
