@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, NotebookPen } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { QuantitySelector } from '../../components/QuantitySelector';
 import { orderService } from '../../services/orderService';
@@ -103,23 +103,33 @@ export function CartPage() {
                 <span className="font-bold text-gray-800">{fmt(lineUnit * item.quantity)}</span>
               </div>
 
+              {/* Per-item note */}
               <div className="mt-3">
                 {editingNotes === key ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={item.notes ?? ''}
-                    onChange={(e) => updateNotes(item.menuItemId, item.size, item.toppings, e.target.value)}
-                    onBlur={() => setEditingNotes(null)}
-                    placeholder="e.g. less spicy, no onion"
-                    className="w-full text-sm border border-orange-200 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-orange-300"
-                  />
+                  <div className="flex items-center gap-2">
+                    <NotebookPen size={13} className="text-orange-400 shrink-0" />
+                    <input
+                      autoFocus
+                      type="text"
+                      value={item.notes ?? ''}
+                      onChange={(e) => updateNotes(item.menuItemId, item.size, item.toppings, e.target.value)}
+                      onBlur={() => setEditingNotes(null)}
+                      onKeyDown={(e) => e.key === 'Enter' && setEditingNotes(null)}
+                      placeholder="e.g. no onions, less spicy, extra sauce…"
+                      className="flex-1 text-sm border border-orange-200 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-orange-300"
+                    />
+                  </div>
                 ) : (
                   <button
                     onClick={() => setEditingNotes(key)}
-                    className="text-xs text-orange-500 hover:underline"
+                    className={`flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 w-full text-left transition-colors ${
+                      item.notes
+                        ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                        : 'bg-gray-50 text-gray-400 border border-dashed border-gray-200 hover:border-orange-200 hover:text-orange-400'
+                    }`}
                   >
-                    {item.notes ? `Note: ${item.notes}` : '+ Add note'}
+                    <NotebookPen size={12} className="shrink-0" />
+                    {item.notes ? item.notes : 'Add note (e.g. no onions)'}
                   </button>
                 )}
               </div>

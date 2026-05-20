@@ -37,8 +37,8 @@ export function MenuCard({ item }: Props) {
     else { addItem(item, sz); }
   }
 
-  function handleToppingConfirm(toppings: SelectedTopping[], size?: 'regular' | 'large') {
-    addItem(item, size, undefined, toppings);
+  function handleToppingConfirm(toppings: SelectedTopping[], size?: 'regular' | 'large', notes?: string) {
+    addItem(item, size, notes, toppings);
     setShowModal(false);
   }
 
