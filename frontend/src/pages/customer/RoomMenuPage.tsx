@@ -66,6 +66,7 @@ export function RoomMenuPage() {
   const [loadError, setLoadError]   = useState(false);
   const [roomInfo, setRoomInfo]     = useState<{ number: number; name?: string | null; restaurantId: string } | null>(null);
   const [restaurantName, setRestaurantName] = useState<string>('');
+  const [waitTimeMin, setWaitTimeMin]       = useState<number | null>(null);
 
   const [cart, dispatch]            = useReducer(cartReducer, []);
   const [guestName, setGuestName]   = useState('');
@@ -99,6 +100,7 @@ export function RoomMenuPage() {
           menuService.getItems(room.restaurantId),
         ]);
         setRestaurantName(info?.name ?? '');
+        setWaitTimeMin(info?.waitTimeMin ?? null);
         setRsOpen(info?.roomServiceOpen ?? null);
         setRsClose(info?.roomServiceClose ?? null);
         setCategories(cats);
@@ -224,7 +226,14 @@ export function RoomMenuPage() {
               </p>
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-1">Browse the menu and tap Add to get started</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <p className="text-xs text-gray-400">Browse the menu and tap Add to get started</p>
+            {waitTimeMin && (
+              <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
+                <Clock size={11} /> ~{waitTimeMin} min wait
+              </span>
+            )}
+          </div>
         </div>
         <div className="max-w-lg mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />

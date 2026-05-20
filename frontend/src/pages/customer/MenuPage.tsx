@@ -11,7 +11,7 @@ import { useCart } from '../../context/CartContext';
 import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
-import { UtensilsCrossed, ClipboardList, RefreshCw } from 'lucide-react';
+import { UtensilsCrossed, ClipboardList, RefreshCw, Clock } from 'lucide-react';
 export function MenuPage() {
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
   const { setTable, setSession, setRestaurant, tableNumber, tableId } = useCart();
@@ -22,7 +22,7 @@ export function MenuPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null } | null>(null);
+  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null; waitTimeMin: number | null } | null>(null);
 
   function loadMenu() {
     if (!tableIdParam) return;
@@ -102,6 +102,11 @@ export function MenuPage() {
           </div>
           <div className="flex items-center justify-between mt-1">
             <p className="text-sm text-gray-500">Table {tableNumber}</p>
+            {restaurantInfo?.waitTimeMin && (
+              <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
+                <Clock size={11} /> ~{restaurantInfo.waitTimeMin} min wait
+              </span>
+            )}
           </div>
         </div>
         <div className="max-w-lg mx-auto px-4 pb-3">

@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw, Clock } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
@@ -63,7 +63,7 @@ export function TakeawayMenuPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading]         = useState(true);
   const [loadError, setLoadError]     = useState(false);
-  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null } | null>(null);
+  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null; waitTimeMin: number | null } | null>(null);
 
   const [cart, dispatch]              = useReducer(cartReducer, []);
   const [customerName, setCustomerName] = useState('');
@@ -196,7 +196,14 @@ export function TakeawayMenuPage() {
               : <ShoppingBag size={20} className="text-purple-500" />}
             <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? 'Takeaway Order'}</h1>
           </div>
-          <p className="text-sm text-gray-400">Browse the menu and tap Add to get started</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <p className="text-sm text-gray-400">Browse the menu and tap Add to get started</p>
+            {restaurantInfo?.waitTimeMin && (
+              <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
+                <Clock size={11} /> ~{restaurantInfo.waitTimeMin} min wait
+              </span>
+            )}
+          </div>
         </div>
         <div className="max-w-lg mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
