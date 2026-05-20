@@ -181,9 +181,6 @@ export function SplitBillModal({ session, settings, onClose }: Props) {
     });
   }
 
-  function isAssigned(itemIdx: number, guest: number) {
-    return (assignments[itemIdx] ?? new Set()).has(guest);
-  }
 
   // Cost share: each guest pays item.total / (number of guests assigned to it)
   function guestSubtotal(guest: number): number {
