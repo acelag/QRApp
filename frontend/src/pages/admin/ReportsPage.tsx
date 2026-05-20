@@ -4,6 +4,16 @@ import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+} from 'recharts';
 
 // ── CSV helpers ──────────────────────────────────────────────────────────────
 function csvCell(v: string | number): string {
@@ -507,8 +517,9 @@ export function ReportsPage() {
   const [to,   setTo]   = useState(initial.to);
   const [activePreset, setActivePreset] = useState<string>('today');
   const [loading, setLoading] = useState(false);
-  const [report, setReport]   = useState<Report | null>(null);
-  const [tab, setTab]         = useState<Tab>('sales');
+  const [report, setReport]       = useState<Report | null>(null);
+  const [tab, setTab]             = useState<Tab>('sales');
+  const [itemMetric, setItemMetric] = useState<'revenue' | 'quantity'>('revenue');
 
   useEffect(() => { fetchReport(initial.from, initial.to); }, []);
 
@@ -974,63 +985,187 @@ export function ReportsPage() {
               </div>
             )}
 
-            {/* Items table */}
+            {/* Items tab — chart + table */}
             {tab === 'items' && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="space-y-4">
                 {report.items.length === 0 ? (
-                  <p className="text-center text-gray-400 py-10">No items sold in this period.</p>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100 bg-gray-50">
-                        <th className="text-left px-4 py-3 font-semibold text-gray-600">Item</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-600">Qty</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Base</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Extras</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-600">Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {report.items.map((row, i) => (
-                        <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3">
-                            <span className="font-medium text-gray-900">{row.name}</span>
-                            {row.size && (
-                              <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
-                                row.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
-                              }`}>
-                                {row.size === 'large' ? 'Large' : 'Regular'}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold text-gray-700">{row.quantity}</td>
-                          <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">{fmt(row.baseRevenue)}</td>
-                          <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">
-                            {row.toppingRevenue > 0 ? (
-                              <span className="text-orange-500">+{fmt(row.toppingRevenue)}</span>
-                            ) : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-right font-bold text-gray-900">{fmt(row.totalRevenue)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-orange-50 border-t border-orange-100">
-                        <td className="px-4 py-3 font-bold text-orange-800">Total</td>
-                        <td className="px-4 py-3 text-right font-bold text-orange-800">
-                          {report.items.reduce((s, r) => s + r.quantity, 0)}
-                        </td>
-                        <td className="px-4 py-3 text-right hidden sm:table-cell font-semibold text-orange-700">
-                          {fmt(report.items.reduce((s, r) => s + r.baseRevenue, 0))}
-                        </td>
-                        <td className="px-4 py-3 text-right hidden sm:table-cell font-semibold text-orange-700">
-                          {fmt(report.items.reduce((s, r) => s + r.toppingRevenue, 0))}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-orange-800">{fmt(s!.totalRevenue)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                )}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
+                    <BarChart2 size={32} className="mx-auto mb-2 text-gray-200" />
+                    <p>No items sold in this period.</p>
+                  </div>
+                ) : (() => {
+                  // Merge same-name items across sizes for the chart, keep top 15
+                  const merged = Object.values(
+                    report.items.reduce<Record<string, { name: string; totalRevenue: number; quantity: number }>>((acc, r) => {
+                      if (!acc[r.name]) acc[r.name] = { name: r.name, totalRevenue: 0, quantity: 0 };
+                      acc[r.name].totalRevenue += r.totalRevenue;
+                      acc[r.name].quantity     += r.quantity;
+                      return acc;
+                    }, {})
+                  );
+                  const sorted = [...merged].sort((a, b) =>
+                    itemMetric === 'revenue' ? b.totalRevenue - a.totalRevenue : b.quantity - a.quantity
+                  );
+                  const chartData = sorted.slice(0, 15).reverse(); // reverse so #1 appears at top
+                  const barHeight = 36;
+                  const chartHeight = Math.max(180, chartData.length * barHeight + 40);
+
+                  // Gradient colours: top item = deepest orange, fade down
+                  const BARS = ['#c2410c','#ea580c','#f97316','#fb923c','#fdba74','#fed7aa','#ffedd5'];
+                  const topIdx = chartData.length - 1; // index of the highest bar (last = top item due to reverse)
+
+                  return (
+                    <>
+                      {/* Bar chart card */}
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        {/* Header + toggle */}
+                        <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-gray-100">
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">
+                              Top {chartData.length} Items
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              by {itemMetric === 'revenue' ? 'Revenue' : 'Quantity sold'}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+                            {(['revenue', 'quantity'] as const).map((m) => (
+                              <button
+                                key={m}
+                                onClick={() => setItemMetric(m)}
+                                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors capitalize ${
+                                  itemMetric === m
+                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                              >
+                                {m === 'revenue' ? 'Revenue' : 'Qty'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Recharts horizontal bar chart */}
+                        <div className="px-2 pt-3 pb-2">
+                          <ResponsiveContainer width="100%" height={chartHeight}>
+                            <BarChart
+                              layout="vertical"
+                              data={chartData}
+                              margin={{ top: 0, right: 60, left: 8, bottom: 0 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
+                              <XAxis
+                                type="number"
+                                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(v) => itemMetric === 'revenue' ? fmt(v) : String(v)}
+                              />
+                              <YAxis
+                                type="category"
+                                dataKey="name"
+                                width={130}
+                                tick={{ fontSize: 11, fill: '#374151', fontWeight: 500 }}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 17) + '…' : v}
+                              />
+                              <Tooltip
+                                cursor={{ fill: '#fff7ed' }}
+                                formatter={(value: number) => [
+                                  itemMetric === 'revenue' ? fmt(value) : `${value} sold`,
+                                  itemMetric === 'revenue' ? 'Revenue' : 'Quantity',
+                                ]}
+                                contentStyle={{
+                                  fontSize: 12,
+                                  borderRadius: 10,
+                                  border: '1px solid #e5e7eb',
+                                  boxShadow: '0 4px 12px rgba(0,0,0,.08)',
+                                }}
+                                labelStyle={{ fontWeight: 700, color: '#111' }}
+                              />
+                              <Bar
+                                dataKey={itemMetric === 'revenue' ? 'totalRevenue' : 'quantity'}
+                                radius={[0, 6, 6, 0]}
+                                maxBarSize={28}
+                                label={{
+                                  position: 'right',
+                                  fontSize: 10,
+                                  fill: '#6b7280',
+                                  formatter: (v: number) => itemMetric === 'revenue' ? fmt(v) : v,
+                                }}
+                              >
+                                {chartData.map((_, i) => {
+                                  // intensity: highest bar = deepest colour
+                                  const intensity = (i / Math.max(topIdx, 1));
+                                  const colorIdx = Math.round(intensity * (BARS.length - 1));
+                                  return <Cell key={i} fill={BARS[colorIdx]} />;
+                                })}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* Full detail table */}
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="px-5 py-3 border-b border-gray-100">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Full breakdown — all {report.items.length} item variants</p>
+                        </div>
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-100 bg-gray-50">
+                              <th className="text-left px-4 py-3 font-semibold text-gray-600">Item</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600">Qty</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Base</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Extras</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600">Revenue</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {report.items.map((row, i) => (
+                              <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                <td className="px-4 py-3">
+                                  <span className="font-medium text-gray-900">{row.name}</span>
+                                  {row.size && (
+                                    <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                                      row.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                      {row.size === 'large' ? 'Large' : 'Regular'}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-right font-semibold text-gray-700">{row.quantity}</td>
+                                <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">{fmt(row.baseRevenue)}</td>
+                                <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">
+                                  {row.toppingRevenue > 0 ? (
+                                    <span className="text-orange-500">+{fmt(row.toppingRevenue)}</span>
+                                  ) : '—'}
+                                </td>
+                                <td className="px-4 py-3 text-right font-bold text-gray-900">{fmt(row.totalRevenue)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-orange-50 border-t border-orange-100">
+                              <td className="px-4 py-3 font-bold text-orange-800">Total</td>
+                              <td className="px-4 py-3 text-right font-bold text-orange-800">
+                                {report.items.reduce((acc, r) => acc + r.quantity, 0)}
+                              </td>
+                              <td className="px-4 py-3 text-right hidden sm:table-cell font-semibold text-orange-700">
+                                {fmt(report.items.reduce((acc, r) => acc + r.baseRevenue, 0))}
+                              </td>
+                              <td className="px-4 py-3 text-right hidden sm:table-cell font-semibold text-orange-700">
+                                {fmt(report.items.reduce((acc, r) => acc + r.toppingRevenue, 0))}
+                              </td>
+                              <td className="px-4 py-3 text-right font-bold text-orange-800">{fmt(s!.totalRevenue)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
 
