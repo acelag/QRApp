@@ -32,14 +32,25 @@ export function newOrderPayload(tableNumber: number, itemCount: number, totalAmo
   };
 }
 
-const STATUS_PAYLOADS: Record<string, { title: string; body: string }> = {
-  preparing: { title: '👨‍🍳 Being Prepared',   body: 'Your order is being prepared now!' },
-  ready:     { title: '✅ Order Ready!',        body: 'Your order is ready — please collect it.' },
-  served:    { title: '😋 Enjoy your meal!',   body: 'Thank you for dining with us!' },
+const STATUS_TEMPLATES: Record<string, { title: string; suffix: string }> = {
+  preparing: { title: '👨‍🍳 Being Prepared',  suffix: 'Being prepared now' },
+  ready:     { title: '✅ Order Ready!',       suffix: 'Ready — please collect it' },
+  served:    { title: '😋 Enjoy your meal!',  suffix: 'Thank you for dining with us!' },
 };
 
+/** Build a concise item list: "Burger, Fries ×2" — truncated at 3 items */
+function summariseItems(items: { name: string; quantity: number }[]): string {
+  if (!items.length) return '';
+  const MAX = 3;
+  const shown = items.slice(0, MAX);
+  const rest  = items.length - MAX;
+  let s = shown.map((i) => i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name).join(', ');
+  if (rest > 0) s += ` +${rest} more`;
+  return s;
+}
+
 export async function sendPushToOrder(orderId: string, status: string): Promise<void> {
-  const template = STATUS_PAYLOADS[status];
+  const template = STATUS_TEMPLATES[status];
   if (!template) return;
 
   let subs: { endpoint: string; p256dh: string; auth: string }[];
@@ -52,9 +63,35 @@ export async function sendPushToOrder(orderId: string, status: string): Promise<
   } catch { return; }
   if (!subs.length) return;
 
+  // Enrich notification body with item names and (for 'preparing') estimated wait time
+  let body = template.suffix;
+  try {
+    const orderRes = await pool.query(
+      'SELECT items, restaurant_id FROM orders WHERE id = $1',
+      [orderId],
+    );
+    if (orderRes.rows.length) {
+      const { items, restaurant_id } = orderRes.rows[0] as { items: { name: string; quantity: number }[]; restaurant_id: string | null };
+      const itemStr = summariseItems(Array.isArray(items) ? items : []);
+
+      let waitNote = '';
+      if (status === 'preparing' && restaurant_id) {
+        const restRes = await pool.query(
+          'SELECT wait_time_min FROM restaurants WHERE id = $1',
+          [restaurant_id],
+        );
+        const wt = restRes.rows[0]?.wait_time_min as number | null;
+        if (wt) waitNote = ` · ~${wt} min`;
+      }
+
+      if (itemStr) body = `${itemStr}${waitNote} — ${template.suffix}`;
+      else if (waitNote) body = `${template.suffix}${waitNote}`;
+    }
+  } catch { /* non-fatal — fall back to generic body */ }
+
   const payload = JSON.stringify({
     title: template.title,
-    body:  template.body,
+    body,
     tag:   `order-${orderId}`,
     url:   `/order-success/${orderId}`,
   });
