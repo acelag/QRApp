@@ -17,6 +17,9 @@ export interface RestaurantSettings {
   waitTimeMin?: number | null;
   roomServiceOpen?: string | null;
   roomServiceClose?: string | null;
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  welcomeImageUrl?: string | null;
 }
 
 export interface BillingCharges {
@@ -85,9 +88,9 @@ export const restaurantService = {
   getRestaurantCurrency: (id: string): Promise<string> =>
     axios.get<{ currency: string }>(`${BASE}/restaurants/${id}/currency`).then((r) => r.data.currency),
 
-  /** Public — no auth required. Returns name, logo, themeColor, waitTimeMin and room-service hours for a restaurant. */
-  getRestaurantInfo: (id: string): Promise<{ name: string; logo: string | null; themeColor: string | null; waitTimeMin: number | null; roomServiceOpen: string | null; roomServiceClose: string | null }> =>
-    axios.get<{ name: string; logo: string | null; themeColor: string | null; waitTimeMin: number | null; roomServiceOpen: string | null; roomServiceClose: string | null }>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
+  /** Public — no auth required. Returns name, logo, themeColor, waitTimeMin, room-service hours, and social links for a restaurant. */
+  getRestaurantInfo: (id: string): Promise<{ name: string; logo: string | null; themeColor: string | null; waitTimeMin: number | null; roomServiceOpen: string | null; roomServiceClose: string | null; facebookUrl: string | null; instagramUrl: string | null; welcomeImageUrl: string | null }> =>
+    axios.get<{ name: string; logo: string | null; themeColor: string | null; waitTimeMin: number | null; roomServiceOpen: string | null; roomServiceClose: string | null; facebookUrl: string | null; instagramUrl: string | null; welcomeImageUrl: string | null }>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
 
   updateCharges: (id: string, charges: BillingCharges) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/charges`, charges).then((r) => r.data),
@@ -107,4 +110,6 @@ export const restaurantService = {
   updateRoomServiceHours: (id: string, roomServiceOpen: string | null, roomServiceClose: string | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/room-service-hours`, { roomServiceOpen, roomServiceClose }).then((r) => r.data),
 
+  updateSocial: (id: string, facebookUrl: string | null, instagramUrl: string | null, welcomeImageUrl: string | null) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/social`, { facebookUrl, instagramUrl, welcomeImageUrl }).then((r) => r.data),
 };

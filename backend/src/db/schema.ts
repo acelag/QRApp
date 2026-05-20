@@ -214,6 +214,9 @@ export async function createSchema(): Promise<void> {
   await addCol('orders', 'rating',        'SMALLINT NULL');
   await addCol('orders', 'feedback_note', 'VARCHAR(500) NULL');
   await addCol('menu_items', 'prep_time_mins', 'SMALLINT NULL');
+  await addCol('restaurants', 'facebook_url',  'VARCHAR(500) NULL');
+  await addCol('restaurants', 'instagram_url', 'VARCHAR(500) NULL');
+  await addCol('restaurants', 'welcome_image_url', 'VARCHAR(500) NULL');
 
   // ── Dynamic tags table ──────────────────────────────────────────────────────
   await pool.query(`
