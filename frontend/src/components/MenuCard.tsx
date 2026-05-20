@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Flame } from 'lucide-react';
 import type { MenuItem } from '../types';
 import type { SelectedTopping } from '../types/Order';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { ToppingSelectionModal } from './ToppingSelectionModal';
+
+const LOW_STOCK_THRESHOLD = 5;
 
 interface Props {
   item: MenuItem;
@@ -16,6 +18,7 @@ export function MenuCard({ item }: Props) {
   const { fmt } = useCurrency();
   const hasLarge = item.largePrice != null && item.largePrice > 0;
   const hasToppings = (item.toppings ?? []).some((t) => t.available);
+  const isLowStock = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= LOW_STOCK_THRESHOLD;
   const [showModal, setShowModal] = useState(false);
 
   const regPrice  = effectivePrice(item, 'regular');
@@ -56,6 +59,14 @@ export function MenuCard({ item }: Props) {
           {hasToppings && (
             <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
               + Extras
+            </span>
+          )}
+          {isLowStock && (
+            <span className={`absolute bottom-2 left-2 flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+              item.stock! <= 2 ? 'bg-red-500 text-white' : 'bg-amber-400 text-white'
+            }`}>
+              <Flame size={11} />
+              Only {item.stock} left
             </span>
           )}
         </div>
