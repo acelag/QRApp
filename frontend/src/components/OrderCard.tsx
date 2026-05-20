@@ -15,12 +15,13 @@ interface Props {
   waiters?: Waiter[];
   showActions?: boolean;
   showPrint?: boolean;
+  showKitchenPrint?: boolean;
   isNext?: boolean;
   priority?: number;
   hidePrices?: boolean;
 }
 
-export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, showActions = false, showPrint = false, isNext = false, priority, hidePrices = false }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status);
   const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
   const { fmt } = useCurrency();
@@ -239,6 +240,15 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, waiters, show
         )}
         {hidePrices && cooked.size === 0 && <span />}
         <div className="flex items-center gap-2 shrink-0">
+          {showKitchenPrint && (
+            <button
+              onClick={() => window.open(`/kitchen-ticket/${order.id}`, '_blank', 'width=400,height=600')}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-full font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
+              title="Print kitchen ticket"
+            >
+              <Printer size={13} /> Kitchen
+            </button>
+          )}
           {showPrint && (
             <button
               onClick={handlePrint}

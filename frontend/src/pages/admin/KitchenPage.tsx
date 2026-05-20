@@ -238,6 +238,7 @@ export function KitchenPage() {
                     order={order}
                     onStatusChange={handleStatusChange}
                     showActions
+                    showKitchenPrint
                     isNext={idx === 0}
                     priority={idx + 1}
                     hidePrices

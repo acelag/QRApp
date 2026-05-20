@@ -26,6 +26,7 @@ import { MenuItemsPage } from './pages/admin/MenuItemsPage';
 import { TablesPage } from './pages/admin/TablesPage';
 import { KitchenPage } from './pages/admin/KitchenPage';
 import { ReceiptPage } from './pages/admin/ReceiptPage';
+import { KitchenTicketPage } from './pages/admin/KitchenTicketPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { BillsPage } from './pages/admin/BillsPage';
@@ -82,6 +83,7 @@ export default function App() {
             <Route path="/admin/menu" element={<ProtectedRoute role="admin"><MenuItemsPage /></ProtectedRoute>} />
             <Route path="/admin/tables" element={<ProtectedRoute role="admin"><TablesPage /></ProtectedRoute>} />
             <Route path="/receipt/:orderId" element={<ProtectedRoute role="admin"><ReceiptPage /></ProtectedRoute>} />
+            <Route path="/kitchen-ticket/:orderId" element={<ProtectedRoute role="any"><KitchenTicketPage /></ProtectedRoute>} />
             <Route path="/session-receipt/:sessionId" element={<ProtectedRoute role="admin"><SessionReceiptPage /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute role="admin"><SettingsPage /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute role="admin"><UsersPage /></ProtectedRoute>} />
