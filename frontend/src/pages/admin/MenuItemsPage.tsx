@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -200,6 +200,16 @@ export function MenuItemsPage() {
       toast.success('Deleted');
     } catch {
       toast.error('Failed to delete');
+    }
+  }
+
+  async function duplicate(id: string) {
+    try {
+      const copy = await menuService.duplicateItem(id);
+      setItems((p) => [...p, copy]);
+      toast.success(`"${copy.name}" created`);
+    } catch {
+      toast.error('Failed to duplicate item');
     }
   }
 
@@ -482,8 +492,9 @@ export function MenuItemsPage() {
                 <div className="flex items-start justify-between gap-1 mb-1">
                   <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 flex-1">{item.name}</p>
                   <div className="flex items-center gap-0 shrink-0">
-                    <button onClick={() => openEdit(item)} className="text-gray-300 hover:text-blue-500 transition-colors p-1"><Pencil size={13} /></button>
-                    <button onClick={() => del(item.id)} className="text-gray-300 hover:text-red-500 transition-colors p-1"><Trash2 size={13} /></button>
+                    <button onClick={() => openEdit(item)} className="text-gray-300 hover:text-blue-500 transition-colors p-1" title="Edit"><Pencil size={13} /></button>
+                    <button onClick={() => duplicate(item.id)} className="text-gray-300 hover:text-orange-500 transition-colors p-1" title="Duplicate"><Copy size={13} /></button>
+                    <button onClick={() => del(item.id)} className="text-gray-300 hover:text-red-500 transition-colors p-1" title="Delete"><Trash2 size={13} /></button>
                   </div>
                 </div>
 

@@ -295,6 +295,49 @@ router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthReques
   res.status(204).send();
 });
 
+// ── Duplicate item ────────────────────────────────────────────────────────────
+router.post('/:id/duplicate', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const rid = req.user!.restaurantId;
+  const src = await pool.query('SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, rid]);
+  if (!src.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  const s = src.rows[0] as Record<string, unknown>;
+
+  // Place copy at end of same category
+  const seqRes = await pool.query(
+    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM menu_items WHERE restaurant_id = $1 AND category_id = $2',
+    [rid, s.category_id],
+  );
+  const nextOrder = Number((seqRes.rows[0] as Record<string, unknown>).next_order ?? 0);
+
+  const newId = uuid();
+  await pool.query(
+    `INSERT INTO menu_items
+       (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct,
+        category_id, image, available, track_stock, stock, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+    [
+      newId, rid,
+      `${s.name} (Copy)`,
+      s.description, s.price, s.discount_pct, s.large_price, s.large_discount_pct,
+      s.category_id, s.image, s.available, s.track_stock,
+      s.track_stock ? s.stock : null,
+      nextOrder,
+    ],
+  );
+
+  // Copy toppings
+  const toppings = await pool.query('SELECT * FROM menu_item_toppings WHERE menu_item_id = $1', [req.params.id]);
+  for (const t of toppings.rows as Record<string, unknown>[]) {
+    await pool.query(
+      'INSERT INTO menu_item_toppings (id, menu_item_id, name, price, available) VALUES ($1,$2,$3,$4,$5)',
+      [uuid(), newId, t.name, t.price, t.available],
+    );
+  }
+
+  const created = await pool.query(`${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`, [newId]);
+  res.status(201).json(toItem(created.rows[0] as Record<string, unknown>));
+});
+
 // ── Topping CRUD ──────────────────────────────────────────────────────────────
 
 router.get('/:itemId/toppings', optionalAuthenticate, async (req, res) => {
