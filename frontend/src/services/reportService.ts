@@ -46,6 +46,16 @@ export interface HeatmapCell {
   revenue: number;
 }
 
+export interface PromoReportRow {
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  active: boolean;
+  orderCount: number;    // times used in the selected date range
+  totalDiscount: number; // total discount given in the range
+  avgDiscount: number;   // average discount per redemption
+}
+
 export interface Report {
   summary: ReportSummary;
   daily: DailyRow[];
@@ -53,6 +63,7 @@ export interface Report {
   toppings: ToppingRow[];
   categories: CategoryRow[];
   heatmap: HeatmapCell[];
+  promos: PromoReportRow[];
 }
 
 export interface TodaySummary {

@@ -66,7 +66,7 @@ router.get('/', async (req: AuthRequest, res) => {
   const fromIso = `${from}T00:00:00.000Z`;
   const toIso   = `${to}T23:59:59.999Z`;
 
-  const [summaryRes, dailyRes, itemsRes, categoriesRes, toppingsRes, heatmapRes] = await Promise.all([
+  const [summaryRes, dailyRes, itemsRes, categoriesRes, toppingsRes, heatmapRes, promosRes] = await Promise.all([
     // Summary totals
     pool.query<{ total_orders: number; total_revenue: number; dine_in_orders: number; takeaway_orders: number }>(
       `SELECT
@@ -170,6 +170,28 @@ router.get('/', async (req: AuthRequest, res) => {
        ORDER BY day_of_week, hour`,
       [rid, fromIso, toIso],
     ),
+
+    // Promo code usage within the date range
+    pool.query<{ code: string; type: string; value: number; active: boolean; order_count: number; total_discount: number; avg_discount: number }>(
+      `SELECT
+         pc.code,
+         pc.type,
+         pc.value::float                                                                      AS value,
+         pc.active,
+         COUNT(o.id)::int                                                                     AS order_count,
+         COALESCE(SUM(o.discount_amount), 0)::float                                           AS total_discount,
+         COALESCE(AVG(o.discount_amount) FILTER (WHERE o.discount_amount > 0), 0)::float      AS avg_discount
+       FROM promo_codes pc
+       LEFT JOIN orders o
+         ON  o.promo_code       = pc.code
+         AND o.restaurant_id    = pc.restaurant_id
+         AND o.created_at      >= $2
+         AND o.created_at      <= $3
+       WHERE pc.restaurant_id = $1
+       GROUP BY pc.id, pc.code, pc.type, pc.value, pc.active
+       ORDER BY order_count DESC, total_discount DESC`,
+      [rid, fromIso, toIso],
+    ),
   ]);
 
   const s = summaryRes.rows[0];
@@ -211,6 +233,15 @@ router.get('/', async (req: AuthRequest, res) => {
       hour:       r.hour,
       orderCount: r.order_count,
       revenue:    r.revenue,
+    })),
+    promos: promosRes.rows.map((r) => ({
+      code:          r.code,
+      type:          r.type as 'percentage' | 'fixed',
+      value:         r.value,
+      active:        r.active,
+      orderCount:    r.order_count,
+      totalDiscount: r.total_discount,
+      avgDiscount:   r.avg_discount,
     })),
   });
 });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer } from 'lucide-react';
+import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
@@ -63,6 +63,21 @@ function buildCsv(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
       downloadCsv(`${prefix}-heatmap.csv`, [
         ['Day', 'Hour', 'Orders', 'Revenue'],
         ...report.heatmap.map((r) => [DAY_LABELS[r.dayOfWeek], HOUR_LABELS[r.hour], r.orderCount, r.revenue]),
+      ]);
+      break;
+    case 'promos':
+      downloadCsv(`${prefix}-promo-codes.csv`, [
+        ['Code', 'Type', 'Value', 'Status', 'Times Used', 'Total Discount', 'Avg Discount'],
+        ...report.promos.map((r) => [
+          r.code,
+          r.type,
+          r.type === 'percentage' ? `${r.value}%` : r.value,
+          r.active ? 'Active' : 'Inactive',
+          r.orderCount,
+          r.totalDiscount,
+          r.avgDiscount,
+        ]),
+        ['TOTAL', '', '', '', report.promos.reduce((s, r) => s + r.orderCount, 0), report.promos.reduce((s, r) => s + r.totalDiscount, 0), ''],
       ]);
       break;
   }
@@ -156,7 +171,7 @@ function buildPdf(report: Report, from: string, to: string, fmt: (n: number) => 
   toast.success('Print / Save as PDF dialog opened');
 }
 
-type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap';
+type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap' | 'promos';
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -364,6 +379,7 @@ export function ReportsPage() {
                 { key: 'categories', label: 'Categories' },
                 { key: 'items',      label: 'Items' },
                 ...(report.toppings.length > 0 ? [{ key: 'extras', label: 'Extras' }] : []),
+                { key: 'promos',     label: '🏷️ Promo Codes' },
               ] as { key: Tab; label: string }[]).map((t) => (
                 <button
                   key={t.key}
@@ -721,6 +737,99 @@ export function ReportsPage() {
                 )}
               </div>
             )}
+
+            {/* Promo codes usage tab */}
+            {tab === 'promos' && (() => {
+              const promos = report.promos;
+              const totalUses     = promos.reduce((s, r) => s + r.orderCount, 0);
+              const totalDiscount = promos.reduce((s, r) => s + r.totalDiscount, 0);
+              const usedCodes     = promos.filter((r) => r.orderCount > 0);
+              return (
+                <div className="space-y-4">
+                  {/* Summary chips */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-1"><Tag size={15} className="text-orange-500" /><span className="text-xs text-gray-500">Active codes</span></div>
+                      <p className="text-2xl font-bold text-gray-900">{promos.filter((r) => r.active).length}</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-1"><BarChart2 size={15} className="text-blue-500" /><span className="text-xs text-gray-500">Redemptions</span></div>
+                      <p className="text-2xl font-bold text-gray-900">{totalUses}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{usedCodes.length} of {promos.length} codes used</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-1"><TrendingUp size={15} className="text-red-400" /><span className="text-xs text-gray-500">Total Discount</span></div>
+                      <p className="text-2xl font-bold text-gray-900">{fmt(totalDiscount)}</p>
+                      {totalUses > 0 && <p className="text-xs text-gray-400 mt-0.5">avg {fmt(totalDiscount / totalUses)} / use</p>}
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    {promos.length === 0 ? (
+                      <div className="text-center py-10 text-gray-400">
+                        <Tag size={32} className="mx-auto mb-2 text-gray-200" />
+                        <p>No promo codes found for this restaurant.</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Code</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Discount</th>
+                            <th className="text-right px-4 py-3 font-semibold text-gray-600">Uses</th>
+                            <th className="text-right px-4 py-3 font-semibold text-gray-600">Total Saved</th>
+                            <th className="text-right px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Avg / Use</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {promos.map((row) => (
+                            <tr key={row.code} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-gray-900 tracking-wide">{row.code}</span>
+                                  {!row.active && (
+                                    <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">inactive</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 hidden sm:table-cell">
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                  row.type === 'percentage' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                                }`}>
+                                  {row.type === 'percentage' ? `${row.value}% off` : `${fmt(row.value)} off`}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {row.orderCount > 0 ? (
+                                  <span className="font-semibold text-gray-900">{row.orderCount}</span>
+                                ) : (
+                                  <span className="text-gray-300">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-right font-bold text-red-500">
+                                {row.totalDiscount > 0 ? `-${fmt(row.totalDiscount)}` : <span className="text-gray-300 font-normal">—</span>}
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">
+                                {row.avgDiscount > 0 ? fmt(row.avgDiscount) : <span className="text-gray-300">—</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-orange-50 border-t border-orange-100">
+                            <td className="px-4 py-3 font-bold text-orange-800" colSpan={2}>Total</td>
+                            <td className="px-4 py-3 text-right font-bold text-orange-800">{totalUses}</td>
+                            <td className="px-4 py-3 text-right font-bold text-red-600">-{fmt(totalDiscount)}</td>
+                            <td className="px-4 py-3 hidden sm:table-cell" />
+                          </tr>
+                        </tfoot>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Extras / toppings table */}
             {tab === 'extras' && (
