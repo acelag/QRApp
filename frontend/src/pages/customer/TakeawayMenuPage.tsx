@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw, Clock } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw, Clock, Search } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
@@ -63,6 +63,7 @@ export function TakeawayMenuPage() {
   const [items, setItems]             = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeTag, setActiveTag]     = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading]         = useState(true);
   const [loadError, setLoadError]     = useState(false);
   const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null; waitTimeMin: number | null } | null>(null);
@@ -105,8 +106,14 @@ export function TakeawayMenuPage() {
 
   useEffect(() => { loadMenu(); }, [restaurantId]);
 
+  const q = searchQuery.trim().toLowerCase();
   const catFiltered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
-  const filtered = activeTag ? catFiltered.filter((i) => (i.tags ?? []).includes(activeTag)) : catFiltered;
+  const tagFiltered = activeTag ? catFiltered.filter((i) => (i.tags ?? []).includes(activeTag)) : catFiltered;
+  const filtered = q
+    ? items
+        .filter((i) => i.name.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q))
+        .filter((i) => (activeTag ? (i.tags ?? []).includes(activeTag) : true))
+    : tagFiltered;
   const presentSlugs = new Set(items.flatMap((i) => i.tags ?? []));
   const visibleTags = allTags.filter((t) => presentSlugs.has(t.slug));
 
@@ -229,12 +236,32 @@ export function TakeawayMenuPage() {
             ))}
           </div>
         )}
+        {/* Search bar */}
+        <div className="max-w-lg mx-auto px-4 pb-3">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search menu…"
+              className="w-full bg-gray-100 rounded-full pl-9 pr-9 py-2 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-purple-300 transition-all placeholder:text-gray-400"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* Menu grid */}
       <main className="max-w-lg mx-auto px-4 pt-4">
         {filtered.length === 0 ? (
-          <p className="text-center text-gray-400 mt-12">No items in this category</p>
+          <p className="text-center text-gray-400 mt-12">
+            {q ? `No items match "${searchQuery}"` : 'No items in this category'}
+          </p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filtered.map((item) => {
