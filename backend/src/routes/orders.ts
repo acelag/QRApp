@@ -240,11 +240,11 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
 
 router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
   const { status, paymentMethod } = req.body as { status: OrderStatus; paymentMethod?: string };
-  if (!['pending', 'preparing', 'ready', 'served'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
+  if (!['pending', 'preparing', 'ready'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
   const now = new Date().toISOString();
   const rid = req.user!.restaurantId;
-  // Stamp served_at the first time an order reaches 'served'
-  const servedAt = status === 'served' ? now : null;
+  // Stamp served_at the first time an order reaches 'ready'
+  const servedAt = status === 'ready' ? now : null;
   const result = rid
     ? await pool.query(
         `UPDATE orders
@@ -370,8 +370,8 @@ router.post('/:id/feedback', async (req, res) => {
   const orderRes = await pool.query('SELECT status, rating FROM orders WHERE id = $1', [req.params.id]);
   if (!orderRes.rows.length) { res.status(404).json({ error: 'Order not found' }); return; }
   const row = orderRes.rows[0] as { status: string; rating: number | null };
-  if (!['ready', 'served'].includes(row.status)) {
-    res.status(400).json({ error: 'Feedback can only be submitted for served orders' });
+  if (row.status !== 'ready') {
+    res.status(400).json({ error: 'Feedback can only be submitted for ready orders' });
     return;
   }
   if (row.rating != null) {

@@ -222,7 +222,7 @@ export function OrderHistoryPage() {
                 </div>
 
                 {/* Feedback */}
-                {order.status === 'served' && (
+                {order.status === 'ready' && (
                   localRatings[order.id] != null || order.rating != null ? (
                     <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-center gap-2">
                       {[1,2,3,4,5].map((s) => (
