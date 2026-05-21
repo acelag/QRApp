@@ -51,9 +51,9 @@ export function DashboardPage() {
       label: 'Active Orders',
       value: activeOrders.length,
       icon: Activity,
-      iconCls: 'bg-amber-50 text-amber-500',
-      bar: 'bg-amber-400',
-      valueCls: 'text-amber-600',
+      iconCls: 'bg-red-50 text-red-500',
+      bar: 'bg-red-400',
+      valueCls: 'text-red-600',
     },
     {
       label: "Today's Revenue",
