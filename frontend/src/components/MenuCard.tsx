@@ -12,9 +12,10 @@ const LOW_STOCK_THRESHOLD = 5;
 
 interface Props {
   item: MenuItem;
+  view?: 'grid' | 'list';
 }
 
-export function MenuCard({ item }: Props) {
+export function MenuCard({ item, view = 'grid' }: Props) {
   const { addItem, items } = useCart();
   const { fmt } = useCurrency();
   const { tags: allTags } = useTags();
@@ -42,6 +43,80 @@ export function MenuCard({ item }: Props) {
     setShowModal(false);
   }
 
+  /* ── LIST VIEW ─────────────────────────────────────────────────────── */
+  if (view === 'list') {
+    return (
+      <>
+        <div
+          className={`bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 px-3 py-2.5 ${
+            !item.available ? 'opacity-60' : ''
+          }`}
+        >
+          {/* Thumbnail */}
+          <div className="relative shrink-0">
+            {item.image ? (
+              <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-xl" />
+            ) : (
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl flex items-center justify-center text-2xl">
+                🍽️
+              </div>
+            )}
+            {(regDisc || lrgDisc) && (
+              <span className="absolute -top-1 -left-1 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-full leading-none">
+                {regDisc ? item.discountPct : item.largeDiscountPct}%
+              </span>
+            )}
+          </div>
+
+          {/* Name + description */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-gray-900 text-sm leading-tight truncate">{item.name}</span>
+              {hasToppings && (
+                <span className="shrink-0 text-[10px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full">+Extras</span>
+              )}
+              {isLowStock && (
+                <span className={`shrink-0 flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  item.stock! <= 2 ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  <Flame size={9} /> {item.stock} left
+                </span>
+              )}
+            </div>
+            {item.description && (
+              <p className="text-xs text-gray-400 truncate mt-0.5">{item.description}</p>
+            )}
+            <div className="flex items-baseline gap-1 mt-0.5">
+              {regDisc && <span className="text-[11px] text-gray-400 line-through">{fmt(regBase)}</span>}
+              <span className={`text-sm font-bold ${regDisc ? 'text-green-600' : 'text-orange-600'}`}>{fmt(regPrice)}</span>
+              {hasLarge && <span className="text-[11px] text-gray-400">/ L {fmt(lrgPrice)}</span>}
+            </div>
+          </div>
+
+          {/* Add button */}
+          <button
+            onClick={() => handleAdd(undefined)}
+            disabled={!item.available}
+            className={`shrink-0 flex items-center justify-center gap-1 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+              !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : (inCartReg + inCartLrg) > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+              : 'bg-orange-500 text-white hover:bg-orange-600'
+            }`}
+          >
+            {(inCartReg + inCartLrg) > 0
+              ? <span className="font-bold text-sm w-5 text-center">{inCartReg + inCartLrg}</span>
+              : <Plus size={16} />}
+          </button>
+        </div>
+
+        {showModal && (
+          <ToppingSelectionModal item={item} onConfirm={handleToppingConfirm} onClose={() => setShowModal(false)} />
+        )}
+      </>
+    );
+  }
+
+  /* ── GRID VIEW (default) ────────────────────────────────────────────── */
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">

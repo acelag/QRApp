@@ -17,6 +17,7 @@ const STATUS_TABS: { label: string; value: OrderStatus | 'all' | 'takeaway' }[] 
   { label: 'Pending',   value: 'pending' },
   { label: 'Preparing', value: 'preparing' },
   { label: 'Ready',     value: 'ready' },
+  { label: 'Cancelled', value: 'cancelled' },
 ];
 
 export function OrdersPage() {
@@ -65,15 +66,25 @@ export function OrdersPage() {
     }
   }
 
+  async function handleCancel(id: string) {
+    try {
+      const updated = await orderService.cancelOrder(id);
+      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+      toast.success('Order voided');
+    } catch {
+      toast.error('Failed to cancel order');
+    }
+  }
+
   function handleAddItemsDone(updated: Order) {
     setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
     setAddItemsOrder(null);
   }
 
   const filtered = tab === 'all'
-    ? orders
+    ? orders.filter((o) => o.status !== 'cancelled')
     : tab === 'takeaway'
-    ? orders.filter((o) => o.orderType === 'takeaway')
+    ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled')
     : orders.filter((o) => o.status === tab);
 
   return (
@@ -107,7 +118,9 @@ export function OrdersPage() {
                 onClick={() => setTab(t.value)}
                 className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   tab === t.value
-                    ? t.value === 'takeaway' ? 'bg-purple-600 text-white' : 'bg-orange-500 text-white'
+                    ? t.value === 'takeaway' ? 'bg-purple-600 text-white'
+                      : t.value === 'cancelled' ? 'bg-red-500 text-white'
+                      : 'bg-orange-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -135,6 +148,7 @@ export function OrdersPage() {
                   onStatusChange={handleStatusChange}
                   onAssignWaiter={handleAssignWaiter}
                   onAddItems={setAddItemsOrder}
+                  onCancel={handleCancel}
                   waiters={waiters}
                   showActions
                 />

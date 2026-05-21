@@ -6,7 +6,7 @@ import { sendPushToAll, newOrderPayload, sendPushToOrder } from '../lib/pushNoti
 import { sendOrderConfirmation } from '../lib/smsNotifier';
 
 const router = Router();
-type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served';
+type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
 
 interface SelectedTopping { id: string; name: string; price: number; }
 interface CartItem {
@@ -297,6 +297,34 @@ router.patch('/:id/payment-method', authenticate, requireRole('admin'), async (r
   const result = rid
     ? await pool.query('UPDATE orders SET payment_method=$1, updated_at=$2 WHERE id=$3 AND restaurant_id=$4', [paymentMethod.trim(), now, req.params.id, rid])
     : await pool.query('UPDATE orders SET payment_method=$1, updated_at=$2 WHERE id=$3', [paymentMethod.trim(), now, req.params.id]);
+  if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json(await buildOrder(String(req.params.id)));
+});
+
+// PATCH /:id/cancel  — admin only: void/cancel an order (pending or preparing only)
+router.patch('/:id/cancel', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const rid = req.user!.restaurantId;
+  const now = new Date().toISOString();
+
+  // Fetch current order to validate it can be cancelled
+  const orderRes = await pool.query(
+    'SELECT id, status, restaurant_id FROM orders WHERE id = $1',
+    [req.params.id],
+  );
+  if (!orderRes.rows.length) { res.status(404).json({ error: 'Order not found' }); return; }
+  const order = orderRes.rows[0] as { id: string; status: string; restaurant_id: string };
+  if (rid && order.restaurant_id !== rid) { res.status(403).json({ error: 'Forbidden' }); return; }
+  if (order.status !== 'pending') {
+    res.status(400).json({ error: 'Only pending orders can be cancelled' }); return;
+  }
+
+  const result = rid
+    ? await pool.query(
+        'UPDATE orders SET status=$1, updated_at=$2 WHERE id=$3 AND restaurant_id=$4',
+        ['cancelled', now, req.params.id, rid])
+    : await pool.query(
+        'UPDATE orders SET status=$1, updated_at=$2 WHERE id=$3',
+        ['cancelled', now, req.params.id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(await buildOrder(String(req.params.id)));
 });

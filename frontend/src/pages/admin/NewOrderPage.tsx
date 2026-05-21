@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Tag, X } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Tag, X, LayoutGrid, List } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Table, Room } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
@@ -80,6 +80,9 @@ export function NewOrderPage() {
   const [appliedPromo, setAppliedPromo]   = useState<ValidateResult | null>(null);
   const [promoLoading, setPromoLoading]   = useState(false);
   const [promoError, setPromoError]       = useState('');
+  const [view, setView] = useState<'grid' | 'list'>(() =>
+    (localStorage.getItem('qra_neworder_view') as 'grid' | 'list' | null) ?? 'grid'
+  );
 
   useEffect(() => {
     Promise.all([
@@ -198,6 +201,23 @@ export function NewOrderPage() {
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">New Order</h1>
+          {/* Grid / List toggle */}
+          <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+            <button
+              onClick={() => { setView('grid'); localStorage.setItem('qra_neworder_view', 'grid'); }}
+              className={`p-1.5 rounded-full transition-colors ${view === 'grid' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Grid view"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              onClick={() => { setView('list'); localStorage.setItem('qra_neworder_view', 'list'); }}
+              className={`p-1.5 rounded-full transition-colors ${view === 'list' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+              title="List view"
+            >
+              <List size={15} />
+            </button>
+          </div>
         </div>
 
         {/* Mode tabs */}
@@ -259,7 +279,69 @@ export function NewOrderPage() {
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-center text-gray-400 pt-12">No items</p>
+          ) : view === 'list' ? (
+            /* ── LIST VIEW ── */
+            <div className="flex flex-col gap-2">
+              {filtered.map((item) => {
+                const hasLarge = (item.largePrice ?? 0) > 0;
+                const hasToppings = (item.toppings ?? []).some((t) => t.available);
+                const regPrice = effectivePrice(item, 'regular');
+                const lrgPrice = hasLarge ? effectivePrice(item, 'large') : 0;
+                const regDisc = item.discountPct > 0;
+                const totalInCart = cart.filter((c) => c.menuItemId === item.id).reduce((s, c) => s + c.quantity, 0);
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`bg-white rounded-2xl border shadow-sm flex items-center gap-3 px-3 py-2.5 transition-colors ${
+                      totalInCart > 0 ? 'border-orange-200' : 'border-gray-100'
+                    }`}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative shrink-0">
+                      {item.image
+                        ? <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-xl" />
+                        : <div className="w-14 h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl flex items-center justify-center text-2xl">🍽️</div>}
+                      {totalInCart > 0 && (
+                        <span className="absolute -top-1 -left-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                          {totalInCart}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-gray-800 text-sm leading-tight truncate">{item.name}</span>
+                        {(hasToppings || hasLarge) && (
+                          <span className="shrink-0 text-[10px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full">
+                            {hasToppings ? '+Extras' : 'R/L'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        {regDisc && <span className="text-[11px] text-gray-400 line-through">{fmt(item.price)}</span>}
+                        <span className={`text-sm font-bold ${regDisc ? 'text-green-600' : 'text-orange-600'}`}>{fmt(regPrice)}</span>
+                        {hasLarge && <span className="text-[11px] text-gray-400">/ L {fmt(lrgPrice)}</span>}
+                        {regDisc && <span className="text-[10px] bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full">{item.discountPct}% OFF</span>}
+                      </div>
+                    </div>
+
+                    {/* Add button */}
+                    <button
+                      onClick={() => handleAddItem(item)}
+                      className={`shrink-0 flex items-center justify-center gap-1 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                        totalInCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-orange-500 text-white hover:bg-orange-600'
+                      }`}
+                    >
+                      {totalInCart > 0 ? <span className="font-bold text-sm w-5 text-center">{totalInCart}</span> : <Plus size={16} />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
+            /* ── GRID VIEW ── */
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {filtered.map((item) => {
                 const hasLarge = (item.largePrice ?? 0) > 0;

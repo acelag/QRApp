@@ -32,6 +32,9 @@ export const orderService = {
   assignWaiter: (id: string, waiterId: string | null) =>
     axios.patch<Order>(`${BASE}/orders/${id}/waiter`, { waiterId }).then((r) => r.data),
 
+  cancelOrder: (id: string) =>
+    axios.patch<Order>(`${BASE}/orders/${id}/cancel`, {}).then((r) => r.data),
+
   addItems: (id: string, items: CartItem[]) =>
     axios.patch<Order>(`${BASE}/orders/${id}/items`, { items }).then((r) => r.data),
 
