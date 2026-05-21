@@ -39,7 +39,6 @@ export function WelcomePage() {
   const [instagramUrl, setInstagramUrl] = useState<string | null>(null);
   const [heroUrl, setHeroUrl] = useState(DEFAULT_HERO);
   const [tableNumber, setTableNumber] = useState<number | null>(null);
-  const [loaded, setLoaded] = useState(false);
   // Track whether background prefetch has finished so we can skip the loader
   const prefetchDone = useRef(false);
 
@@ -57,7 +56,6 @@ export function WelcomePage() {
         if (info.facebookUrl) setFacebookUrl(info.facebookUrl);
         if (info.instagramUrl) setInstagramUrl(info.instagramUrl);
         if (info.welcomeImageUrl) setHeroUrl(info.welcomeImageUrl);
-        setLoaded(true);
 
         // Kick off the heavy menu fetches in the background while the
         // user reads the welcome screen — result stored in the cache so
@@ -79,7 +77,7 @@ export function WelcomePage() {
           prefetchDone.current = true;
         }).catch(() => { /* MenuPage will fall back to its own fetch */ });
       });
-    }).catch(() => setLoaded(true));
+    }).catch(() => {});
   }, [tableId]);
 
   const hasSocial = facebookUrl || instagramUrl;
