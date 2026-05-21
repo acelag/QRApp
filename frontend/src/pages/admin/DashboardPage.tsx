@@ -65,36 +65,31 @@ export function DashboardPage() {
     },
   ];
 
-  const navItems: {
-    to: string;
-    href?: string;
-    label: string;
-    icon: React.ElementType;
-    desc: string;
-    primary?: boolean;
-    badge?: number;
-  }[] = [
-    { to: '/admin/new-order',          label: 'New Order',          icon: PlusCircle,     desc: 'Place takeaway or dine-in order',       primary: true },
-    { to: '/admin/orders',             label: 'Live Orders',        icon: ClipboardList,  desc: 'Manage incoming orders',                primary: true, badge: activeOrders.length },
-    { to: '/admin/bills',              label: 'Bills',              icon: Receipt,        desc: 'Table bills & takeaway receipts' },
-    { to: '/admin/reports',            label: 'Reports',            icon: BarChart2,      desc: 'Sales & item performance' },
-    { to: '/admin/menu',               label: 'Menu Items',         icon: UtensilsCrossed, desc: 'Add, edit, delete items' },
-    { to: '/admin/locations',          label: 'Tables & Rooms',     icon: QrCode,         desc: 'Manage tables, rooms & QR codes' },
-    { to: '/admin/table-status',       label: 'Table Status',       icon: LayoutDashboard, desc: 'Live grid — open / occupied / stale' },
-    { to: '/kitchen',                  label: 'Kitchen Display',    icon: ChefHat,        desc: 'Live kitchen order view' },
-    { to: '/admin/ready-display',      label: 'Ready Display',      icon: MonitorPlay,    desc: 'Show orders ready for pickup' },
-    { to: '/admin/promo-codes',        label: 'Promo Codes',        icon: Tag,            desc: 'Discount & promo codes' },
-    { to: '/admin/room-charges',       label: 'Room Charges',       icon: CreditCard,     desc: 'Pending charge-to-room bills' },
-    { to: '/admin/waiters',            label: 'Waiters',            icon: UserCheck,      desc: 'Manage waiter staff list' },
-    { to: '/admin/staff-performance',  label: 'Staff Performance',  icon: Trophy,         desc: 'Waiter leaderboard & stats' },
+  const navItems = [
+    { to: '/admin/new-order',          label: 'New Order',          icon: PlusCircle,     desc: 'Place takeaway or dine-in order',       primary: true,  badge: undefined, allowedRoles: ['admin','manager','cashier','waiter'] },
+    { to: '/admin/orders',             label: 'Live Orders',        icon: ClipboardList,  desc: 'Manage incoming orders',                primary: true,  badge: activeOrders.length, allowedRoles: ['admin','manager','cashier','waiter'] },
+    { to: '/admin/bills',              label: 'Bills',              icon: Receipt,        desc: 'Table bills & takeaway receipts',       primary: false, badge: undefined, allowedRoles: ['admin','manager','cashier'] },
+    { to: '/admin/reports',            label: 'Reports',            icon: BarChart2,      desc: 'Sales & item performance',              primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
+    { to: '/admin/menu',               label: 'Menu Items',         icon: UtensilsCrossed, desc: 'Add, edit, delete items',              primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
+    { to: '/admin/locations',          label: 'Tables & Rooms',     icon: QrCode,         desc: 'Manage tables, rooms & QR codes',       primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
+    { to: '/admin/table-status',       label: 'Table Status',       icon: LayoutDashboard, desc: 'Live grid — open / occupied / stale', primary: false, badge: undefined, allowedRoles: ['admin','manager','cashier','waiter'] },
+    { to: '/kitchen',                  label: 'Kitchen Display',    icon: ChefHat,        desc: 'Live kitchen order view',               primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
+    { to: '/admin/ready-display',      label: 'Ready Display',      icon: MonitorPlay,    desc: 'Show orders ready for pickup',          primary: false, badge: undefined, allowedRoles: ['admin','manager','cashier','waiter'] },
+    { to: '/admin/promo-codes',        label: 'Promo Codes',        icon: Tag,            desc: 'Discount & promo codes',                primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
+    { to: '/admin/room-charges',       label: 'Room Charges',       icon: CreditCard,     desc: 'Pending charge-to-room bills',          primary: false, badge: undefined, allowedRoles: ['admin','manager','cashier'] },
+    { to: '/admin/waiters',            label: 'Waiters',            icon: UserCheck,      desc: 'Manage waiter staff list',              primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
+    { to: '/admin/staff-performance',  label: 'Staff Performance',  icon: Trophy,         desc: 'Waiter leaderboard & stats',            primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
     ...(user?.restaurantId ? [{
       to: '#',
       href: `/takeaway/${user.restaurantId}`,
       label: 'Preview Menu',
       icon: Eye,
       desc: 'Open live menu as a customer',
+      primary: false,
+      badge: undefined,
+      allowedRoles: ['admin','manager'],
     }] : []),
-  ];
+  ].filter((item) => !item.allowedRoles || item.allowedRoles.includes(user?.role ?? ''));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,7 +97,7 @@ export function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-sm text-gray-500 mt-0.5">Welcome, {user?.name}</p>
             </div>
             <div className="flex items-center gap-1">
@@ -113,12 +108,14 @@ export function DashboardPage() {
               >
                 {gridView ? <LayoutList size={18} /> : <LayoutGrid size={18} />}
               </button>
-              <Link
-                to="/admin/settings"
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-orange-500 transition-colors px-3 py-1.5 rounded-xl hover:bg-orange-50"
-              >
-                <Settings size={16} />
-              </Link>
+              {user?.role === 'admin' && (
+                <Link
+                  to="/admin/settings"
+                  className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-orange-500 transition-colors px-3 py-1.5 rounded-xl hover:bg-orange-50"
+                >
+                  <Settings size={16} />
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 transition-colors px-3 py-1.5 rounded-xl hover:bg-red-50"

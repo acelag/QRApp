@@ -17,7 +17,7 @@ router.get('/', async (req: AuthRequest, res) => {
 router.post('/', async (req: AuthRequest, res) => {
   const { username, name, password, role } = req.body as { username: string; name: string; password: string; role: string; };
   if (!username?.trim() || !name?.trim() || !password || !role) { res.status(400).json({ error: 'username, name, password and role are required' }); return; }
-  if (!['admin', 'kitchen'].includes(role)) { res.status(400).json({ error: 'role must be admin or kitchen' }); return; }
+  if (!['admin', 'manager', 'cashier', 'waiter', 'kitchen'].includes(role)) { res.status(400).json({ error: 'role must be admin, manager, cashier, waiter or kitchen' }); return; }
   const taken = await pool.query('SELECT id FROM users WHERE username = $1', [username.trim()]);
   if (taken.rows.length) { res.status(409).json({ error: 'Username already taken' }); return; }
   const id = uuid(); const hash = await bcrypt.hash(password, 10);
@@ -31,7 +31,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   if (!existing.rows.length) { res.status(404).json({ error: 'User not found' }); return; }
   const user = existing.rows[0] as Record<string, unknown>;
   const { username, name, password, role } = req.body as { username?: string; name?: string; password?: string; role?: string; };
-  if (role && !['admin', 'kitchen'].includes(role)) { res.status(400).json({ error: 'role must be admin or kitchen' }); return; }
+  if (role && !['admin', 'manager', 'cashier', 'waiter', 'kitchen'].includes(role)) { res.status(400).json({ error: 'role must be admin, manager, cashier, waiter or kitchen' }); return; }
   const newUsername = username?.trim() || (user.username as string);
   if (newUsername !== user.username) {
     const taken = await pool.query('SELECT id FROM users WHERE username = $1', [newUsername]);

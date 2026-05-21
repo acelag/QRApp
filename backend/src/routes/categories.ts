@@ -12,7 +12,7 @@ router.get('/', optionalAuthenticate, async (req, res) => {
   res.json(result.rows);
 });
 
-router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { name } = req.body as { name?: string };
   if (!name?.trim()) { res.status(400).json({ error: 'name is required' }); return; }
   const id = uuid();
@@ -20,7 +20,7 @@ router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, re
   res.status(201).json({ id, name: name.trim() });
 });
 
-router.patch('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { name } = req.body as { name?: string };
   if (!name?.trim()) { res.status(400).json({ error: 'name is required' }); return; }
   const result = await pool.query('UPDATE categories SET name = $1 WHERE id = $2 AND restaurant_id = $3', [name.trim(), req.params.id, req.user!.restaurantId]);
@@ -28,7 +28,7 @@ router.patch('/:id', authenticate, requireRole('admin'), async (req: AuthRequest
   res.json({ id: req.params.id, name: name.trim() });
 });
 
-router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const result = await pool.query('DELETE FROM categories WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.status(204).send();

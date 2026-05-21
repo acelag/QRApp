@@ -80,7 +80,7 @@ const toItem = (row: Record<string, unknown>) => ({
 
 
 // ── Export ────────────────────────────────────────────────────────────────────
-router.get('/export', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.get('/export', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const result = await pool.query(
     `SELECT mi.name, mi.description, mi.price, c.name AS category_name,
@@ -104,7 +104,7 @@ router.get('/export', authenticate, requireRole('admin'), async (req: AuthReques
 });
 
 // ── Import ────────────────────────────────────────────────────────────────────
-router.post('/import', authenticate, requireRole('admin'), memUpload.single('file'), async (req: AuthRequest, res) => {
+router.post('/import', authenticate, requireRole('admin', 'manager'), memUpload.single('file'), async (req: AuthRequest, res) => {
   if (!req.file) { res.status(400).json({ error: 'CSV file required' }); return; }
   const rows = parseCSV(req.file.buffer.toString('utf-8'));
   if (!rows.length) { res.status(400).json({ error: 'No data rows found in CSV' }); return; }
@@ -187,7 +187,7 @@ router.get('/', optionalAuthenticate, async (req, res) => {
 });
 
 // ── Bulk reorder ──────────────────────────────────────────────────────────────
-router.patch('/reorder', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/reorder', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { items } = req.body as { items: { id: string; sortOrder: number }[] };
   if (!Array.isArray(items) || items.length === 0) { res.status(400).json({ error: 'items array required' }); return; }
   const rid = req.user!.restaurantId;
@@ -211,7 +211,7 @@ router.patch('/reorder', authenticate, requireRole('admin'), async (req: AuthReq
 });
 
 // ── Bulk availability toggle ──────────────────────────────────────────────────
-router.patch('/bulk-availability', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/bulk-availability', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { categoryId, available } = req.body as { categoryId: string; available: boolean };
   if (!categoryId || typeof available !== 'boolean') {
     res.status(400).json({ error: 'categoryId and available (boolean) are required' }); return;
@@ -224,7 +224,7 @@ router.patch('/bulk-availability', authenticate, requireRole('admin'), async (re
   res.json({ updated: result.rowCount ?? 0, available });
 });
 
-router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock, tags, prepTimeMins } =
     req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null };
   if (!name || !category) { res.status(400).json({ error: 'name and category are required' }); return; }
@@ -249,7 +249,7 @@ router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, re
   res.status(201).json(toItem(created.rows[0] as Record<string, unknown>));
 });
 
-router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const existing = await pool.query('SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if (!existing.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = existing.rows[0] as Record<string, unknown>;
@@ -282,7 +282,7 @@ router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, 
 });
 
 // ── Availability toggle (admin + kitchen) ─────────────────────────────────────
-router.patch('/:id/availability', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
+router.patch('/:id/availability', authenticate, requireRole('admin', 'manager', 'kitchen'), async (req: AuthRequest, res) => {
   const { available } = req.body as { available: boolean };
   if (typeof available !== 'boolean') { res.status(400).json({ error: 'available (boolean) is required' }); return; }
   const result = await pool.query(
@@ -295,7 +295,7 @@ router.patch('/:id/availability', authenticate, requireRole('admin', 'kitchen'),
 });
 
 // ── Quick stock update ────────────────────────────────────────────────────────
-router.patch('/:id/stock', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/stock', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { stock } = req.body as { stock: number | null };
   const safeStock = stock != null ? Math.max(0, Math.round(Number(stock))) : null;
   // Re-enable availability if restocking
@@ -311,14 +311,14 @@ router.patch('/:id/stock', authenticate, requireRole('admin'), async (req: AuthR
   res.json(toItem(updated.rows[0] as Record<string, unknown>));
 });
 
-router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const result = await pool.query('DELETE FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.status(204).send();
 });
 
 // ── Duplicate item ────────────────────────────────────────────────────────────
-router.post('/:id/duplicate', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.post('/:id/duplicate', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const src = await pool.query('SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, rid]);
   if (!src.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
@@ -372,7 +372,7 @@ router.get('/:itemId/toppings', optionalAuthenticate, async (req, res) => {
   })));
 });
 
-router.post('/:itemId/toppings', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.post('/:itemId/toppings', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { name, price = 0, available = true } = req.body as { name: string; price?: number; available?: boolean };
   if (!name) { res.status(400).json({ error: 'name is required' }); return; }
   // Verify item belongs to this restaurant
@@ -386,7 +386,7 @@ router.post('/:itemId/toppings', authenticate, requireRole('admin'), async (req:
   res.status(201).json({ id, name: name.trim(), price: Math.max(0, Number(price) || 0), available });
 });
 
-router.patch('/:itemId/toppings/:toppingId', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:itemId/toppings/:toppingId', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { name, price, available } = req.body as { name?: string; price?: number; available?: boolean };
   const existing = await pool.query(
     `SELECT t.* FROM menu_item_toppings t
@@ -410,7 +410,7 @@ router.patch('/:itemId/toppings/:toppingId', authenticate, requireRole('admin'),
   res.json({ id: r.id, name: r.name, price: Number(r.price), available: r.available });
 });
 
-router.delete('/:itemId/toppings/:toppingId', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.delete('/:itemId/toppings/:toppingId', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const result = await pool.query(
     `DELETE FROM menu_item_toppings t USING menu_items mi
      WHERE t.id = $1 AND t.menu_item_id = mi.id AND mi.restaurant_id = $2`,

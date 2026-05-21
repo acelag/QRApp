@@ -109,7 +109,7 @@ router.post('/', async (req, res) => {
   res.status(201).json({ id, restaurantId, tableId, tableNumber, status: 'open', createdAt: now, closedAt: null });
 });
 
-router.get('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin', 'manager', 'cashier'), async (req: AuthRequest, res) => {
   const status = req.query.status as string | undefined;
   const rid = req.user!.restaurantId;
   const result = status
@@ -125,7 +125,7 @@ router.get('/:id', async (req, res) => {
   res.json(await buildSessionDetail(result.rows[0] as Record<string, unknown>));
 });
 
-router.patch('/:id/pay', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/pay', authenticate, requireRole('admin', 'manager', 'cashier'), async (req: AuthRequest, res) => {
   const now = new Date().toISOString();
   const { paymentMethod } = req.body as { paymentMethod?: string };
   const result = await pool.query(
@@ -142,7 +142,7 @@ router.patch('/:id/pay', authenticate, requireRole('admin'), async (req: AuthReq
 });
 
 // ── Merge: link session into another (secondary → primary) ────────────────────
-router.patch('/:id/merge', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/merge', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { intoSessionId } = req.body as { intoSessionId: string };
   if (!intoSessionId) { res.status(400).json({ error: 'intoSessionId is required' }); return; }
   const rid = req.user!.restaurantId;
@@ -167,7 +167,7 @@ router.patch('/:id/merge', authenticate, requireRole('admin'), async (req: AuthR
 });
 
 // ── Unmerge: detach a secondary session from its primary ──────────────────────
-router.patch('/:id/unmerge', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/unmerge', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const sessRes = await pool.query('SELECT * FROM table_sessions WHERE id=$1 AND restaurant_id=$2', [req.params.id, rid]);
   if (!sessRes.rows.length) { res.status(404).json({ error: 'Session not found' }); return; }

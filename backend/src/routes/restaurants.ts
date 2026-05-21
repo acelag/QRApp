@@ -149,7 +149,7 @@ router.patch('/:id/order-prefix', authenticate, async (req: AuthRequest, res) =>
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
 
-router.patch('/:id/wait-time', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
+router.patch('/:id/wait-time', authenticate, requireRole('admin', 'manager', 'kitchen'), async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
   const { waitTimeMin } = req.body as { waitTimeMin: number | null };

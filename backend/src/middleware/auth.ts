@@ -7,7 +7,7 @@ export interface AuthPayload {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'kitchen' | 'super_admin';
+  role: 'super_admin' | 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
   restaurantId: string | null;  // null for super_admin
 }
 

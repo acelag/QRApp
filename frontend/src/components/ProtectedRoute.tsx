@@ -2,12 +2,14 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
+type UserRole = 'super_admin' | 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
+
 interface Props {
   children: React.ReactNode;
-  role?: 'admin' | 'kitchen' | 'super_admin' | 'any';
+  roles?: UserRole[]; // undefined = any authenticated user
 }
 
-export function ProtectedRoute({ children, role = 'any' }: Props) {
+export function ProtectedRoute({ children, roles }: Props) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -19,18 +21,10 @@ export function ProtectedRoute({ children, role = 'any' }: Props) {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-
-  // super_admin can access everything
   if (user.role === 'super_admin') return <>{children}</>;
+  if (!roles || roles.includes(user.role as UserRole)) return <>{children}</>;
 
-  // Kitchen staff can only access /kitchen
-  if (user.role === 'kitchen' && role === 'admin') {
-    return <Navigate to="/kitchen" replace />;
-  }
-
-  if (role !== 'any' && role !== user.role && !(user.role === 'admin')) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
+  // Redirect to appropriate home for their role
+  if (user.role === 'kitchen') return <Navigate to="/kitchen" replace />;
+  return <Navigate to="/admin" replace />;
 }

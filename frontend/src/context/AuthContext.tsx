@@ -5,7 +5,7 @@ export interface AuthUser {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'kitchen' | 'super_admin';
+  role: 'super_admin' | 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
   restaurantId: string | null;
 }
 

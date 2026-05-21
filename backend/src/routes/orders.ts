@@ -61,7 +61,7 @@ async function buildOrder(orderId: string) {
   };
 }
 
-router.get('/', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter', 'kitchen'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const ordersRes = rid
     ? await pool.query('SELECT * FROM orders WHERE restaurant_id = $1 ORDER BY created_at DESC', [rid])
@@ -238,7 +238,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   res.status(201).json(built);
 });
 
-router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
+router.patch('/:id/status', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter', 'kitchen'), async (req: AuthRequest, res) => {
   const { status, paymentMethod } = req.body as { status: OrderStatus; paymentMethod?: string };
   if (!['pending', 'preparing', 'ready'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
   const now = new Date().toISOString();
@@ -263,7 +263,7 @@ router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async
   res.json(await buildOrder(String(req.params.id)));
 });
 
-router.patch('/:id/waiter', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/waiter', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { waiterId } = req.body as { waiterId: string | null };
   const rid = req.user!.restaurantId;
   const now = new Date().toISOString();
@@ -289,7 +289,7 @@ router.patch('/:id/waiter', authenticate, requireRole('admin'), async (req: Auth
   res.json(await buildOrder(String(req.params.id)));
 });
 
-router.patch('/:id/payment-method', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/payment-method', authenticate, requireRole('admin', 'manager', 'cashier'), async (req: AuthRequest, res) => {
   const { paymentMethod } = req.body as { paymentMethod: string };
   if (!paymentMethod?.trim()) { res.status(400).json({ error: 'paymentMethod is required' }); return; }
   const rid = req.user!.restaurantId;
@@ -301,8 +301,8 @@ router.patch('/:id/payment-method', authenticate, requireRole('admin'), async (r
   res.json(await buildOrder(String(req.params.id)));
 });
 
-// PATCH /:id/cancel  — admin only: void/cancel an order (pending or preparing only)
-router.patch('/:id/cancel', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+// PATCH /:id/cancel  — admin/manager only: void/cancel an order (pending or preparing only)
+router.patch('/:id/cancel', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const now = new Date().toISOString();
 
@@ -329,8 +329,8 @@ router.patch('/:id/cancel', authenticate, requireRole('admin'), async (req: Auth
   res.json(await buildOrder(String(req.params.id)));
 });
 
-// PATCH /:id/items  — admin only: add items to a pending/preparing order
-router.patch('/:id/items', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+// PATCH /:id/items  — admin/manager/cashier/waiter: add items to a pending/preparing order
+router.patch('/:id/items', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
   const { items } = req.body as { items: CartItem[] };
   if (!items?.length) { res.status(400).json({ error: 'items are required' }); return; }
 

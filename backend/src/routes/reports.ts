@@ -3,7 +3,7 @@ import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 
 const router = Router();
-router.use(authenticate, requireRole('admin'));
+router.use(authenticate, requireRole('admin', 'manager'));
 
 // Lightweight today-only snapshot for the dashboard card
 router.get('/today', async (req: AuthRequest, res) => {

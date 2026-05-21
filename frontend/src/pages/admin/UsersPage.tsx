@@ -1,13 +1,40 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 
-interface User { id: string; username: string; name: string; role: 'admin' | 'kitchen'; }
+type UserRole = 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
 
-const EMPTY = { username: '', name: '', password: '', role: 'kitchen' as 'admin' | 'kitchen' };
+interface User { id: string; username: string; name: string; role: UserRole; }
+
+const EMPTY: { username: string; name: string; password: string; role: UserRole } = {
+  username: '', name: '', password: '', role: 'waiter',
+};
+
+const ROLE_CONFIG: {
+  role: UserRole;
+  label: string;
+  Icon: React.ElementType;
+  iconCls: string;
+  sectionLabel: string;
+  emptyLabel: string;
+}[] = [
+  { role: 'admin',   label: 'Admin',         Icon: ShieldCheck, iconCls: 'text-orange-500', sectionLabel: 'Admins',        emptyLabel: 'No admins yet' },
+  { role: 'manager', label: 'Manager',        Icon: Briefcase,   iconCls: 'text-purple-500', sectionLabel: 'Managers',      emptyLabel: 'No managers yet' },
+  { role: 'cashier', label: 'Cashier',        Icon: CreditCard,  iconCls: 'text-green-500',  sectionLabel: 'Cashiers',      emptyLabel: 'No cashiers yet' },
+  { role: 'waiter',  label: 'Waiter',         Icon: UserCheck,   iconCls: 'text-blue-500',   sectionLabel: 'Waiters',       emptyLabel: 'No waiters yet' },
+  { role: 'kitchen', label: 'Kitchen Staff',  Icon: ChefHat,     iconCls: 'text-rose-500',   sectionLabel: 'Kitchen Staff', emptyLabel: 'No kitchen staff yet' },
+];
+
+const BADGE_CLS: Record<UserRole, string> = {
+  admin:   'bg-orange-100 text-orange-700',
+  manager: 'bg-purple-100 text-purple-700',
+  cashier: 'bg-green-100 text-green-700',
+  waiter:  'bg-blue-100 text-blue-700',
+  kitchen: 'bg-rose-100 text-rose-700',
+};
 
 export function UsersPage() {
   const { user: me } = useAuth();
@@ -98,9 +125,6 @@ export function UsersPage() {
     }
   }
 
-  const admins  = users.filter((u) => u.role === 'admin');
-  const kitchen = users.filter((u) => u.role === 'kitchen');
-
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm sticky top-0 z-40">
@@ -123,21 +147,18 @@ export function UsersPage() {
           </div>
         ) : (
           <>
-            {/* Admins */}
-            <Section title="Admins" icon={<ShieldCheck size={16} className="text-orange-500" />}>
-              {admins.map((u) => (
-                <UserRow key={u.id} user={u} isMe={u.id === me?.id} onEdit={openEdit} onDelete={del} />
-              ))}
-            </Section>
-
-            {/* Kitchen */}
-            <Section title="Kitchen Staff" icon={<ChefHat size={16} className="text-blue-500" />}>
-              {kitchen.length === 0
-                ? <p className="text-sm text-gray-400 py-2 text-center">No kitchen staff yet</p>
-                : kitchen.map((u) => (
-                    <UserRow key={u.id} user={u} isMe={false} onEdit={openEdit} onDelete={del} />
-                  ))}
-            </Section>
+            {ROLE_CONFIG.map(({ role, sectionLabel, emptyLabel, Icon, iconCls }) => {
+              const group = users.filter((u) => u.role === role);
+              return (
+                <Section key={role} title={sectionLabel} icon={<Icon size={16} className={iconCls} />}>
+                  {group.length === 0
+                    ? <p className="text-sm text-gray-400 py-2 text-center">{emptyLabel}</p>
+                    : group.map((u) => (
+                        <UserRow key={u.id} user={u} isMe={u.id === me?.id} onEdit={openEdit} onDelete={del} />
+                      ))}
+                </Section>
+              );
+            })}
           </>
         )}
       </main>
@@ -178,7 +199,7 @@ export function UsersPage() {
                 type="text"
                 value={form.username}
                 onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-                placeholder="e.g. kitchen2"
+                placeholder="e.g. manager1"
                 autoComplete="off"
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
               />
@@ -209,20 +230,20 @@ export function UsersPage() {
             {/* Role */}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Role</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(['admin', 'kitchen'] as const).map((r) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {ROLE_CONFIG.map(({ role, label, Icon, iconCls }) => (
                   <button
-                    key={r}
+                    key={role}
                     type="button"
-                    onClick={() => setForm((f) => ({ ...f, role: r }))}
+                    onClick={() => setForm((f) => ({ ...f, role }))}
                     className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-colors ${
-                      form.role === r
+                      form.role === role
                         ? 'border-orange-500 bg-orange-50 text-orange-700'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    {r === 'admin' ? <ShieldCheck size={16} /> : <ChefHat size={16} />}
-                    {r === 'admin' ? 'Admin' : 'Kitchen'}
+                    <Icon size={16} className={form.role === role ? 'text-orange-600' : iconCls} />
+                    {label}
                   </button>
                 ))}
               </div>
@@ -271,6 +292,9 @@ function UserRow({ user, isMe, onEdit, onDelete }: {
         </p>
         <p className="text-xs text-gray-400">@{user.username}</p>
       </div>
+      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${BADGE_CLS[user.role]}`}>
+        {user.role}
+      </span>
       <div className="flex items-center gap-1 shrink-0">
         <button onClick={() => onEdit(user)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50">
           <Pencil size={15} />
