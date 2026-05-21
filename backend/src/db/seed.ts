@@ -28,6 +28,7 @@ export async function seedIfEmpty(): Promise<void> {
   const userCount = await pool.query('SELECT COUNT(*) AS n FROM users');
   if (parseInt(userCount.rows[0].n as string) === 0) await seedUsers(restaurantId);
 
+  // Ensure super_admin exists
   const saCheck = await pool.query("SELECT id FROM users WHERE role = 'super_admin'");
   if (saCheck.rows.length === 0) {
     const hash = await bcrypt.hash('super123', 10);
@@ -37,8 +38,30 @@ export async function seedIfEmpty(): Promise<void> {
     );
     console.log('✓ Super admin account created');
   }
+
+  // Ensure one sample user exists for each new role (idempotent — skips if username taken)
+  await ensureSampleUsers(restaurantId);
 }
 
+async function ensureSampleUsers(restaurantId: string): Promise<void> {
+  const samples: { username: string; password: string; name: string; role: string }[] = [
+    { username: 'manager',  password: 'manager123',  name: 'Restaurant Manager', role: 'manager'  },
+    { username: 'cashier',  password: 'cashier123',  name: 'Cashier Staff',      role: 'cashier'  },
+    { username: 'waiter',   password: 'waiter123',   name: 'Waiter Staff',       role: 'waiter'   },
+  ];
+
+  for (const s of samples) {
+    const exists = await pool.query('SELECT id FROM users WHERE username = $1', [s.username]);
+    if (exists.rows.length === 0) {
+      const hash = await bcrypt.hash(s.password, 10);
+      await pool.query(
+        `INSERT INTO users (id, restaurant_id, username, password_hash, name, role) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [uuid(), restaurantId, s.username, hash, s.name, s.role],
+      );
+      console.log(`✓ Sample ${s.role} user created  →  ${s.username} / ${s.password}`);
+    }
+  }
+}
 
 async function seedUsers(restaurantId: string): Promise<void> {
   const add = async (username: string, password: string, name: string, role: string, rid: string | null) => {

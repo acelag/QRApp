@@ -4,6 +4,24 @@ import { UtensilsCrossed, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
+const DEV_CREDENTIALS = [
+  { label: 'Super Admin', color: 'purple', u: 'superadmin', p: 'super123'   },
+  { label: 'Admin',       color: 'orange', u: 'admin',      p: 'admin123'   },
+  { label: 'Manager',     color: 'violet', u: 'manager',    p: 'manager123' },
+  { label: 'Cashier',     color: 'green',  u: 'cashier',    p: 'cashier123' },
+  { label: 'Waiter',      color: 'blue',   u: 'waiter',     p: 'waiter123'  },
+  { label: 'Kitchen',     color: 'rose',   u: 'kitchen',    p: 'kitchen123' },
+] as const;
+
+const COLOR_CLS: Record<string, { bg: string; border: string; hover: string; text: string; mono: string }> = {
+  purple: { bg: 'bg-purple-50', border: 'border-purple-100', hover: 'hover:bg-purple-100', text: 'text-purple-700', mono: 'text-purple-600' },
+  orange: { bg: 'bg-orange-50', border: 'border-orange-100', hover: 'hover:bg-orange-100', text: 'text-orange-700', mono: 'text-orange-600' },
+  violet: { bg: 'bg-violet-50', border: 'border-violet-100', hover: 'hover:bg-violet-100', text: 'text-violet-700', mono: 'text-violet-600' },
+  green:  { bg: 'bg-green-50',  border: 'border-green-100',  hover: 'hover:bg-green-100',  text: 'text-green-700',  mono: 'text-green-600'  },
+  blue:   { bg: 'bg-blue-50',   border: 'border-blue-100',   hover: 'hover:bg-blue-100',   text: 'text-blue-700',   mono: 'text-blue-600'   },
+  rose:   { bg: 'bg-rose-50',   border: 'border-rose-100',   hover: 'hover:bg-rose-100',   text: 'text-rose-700',   mono: 'text-rose-600'   },
+};
+
 export function LoginPage() {
   const { login } = useAuth();
   const { clearTheme } = useTheme();
@@ -107,28 +125,22 @@ export function LoginPage() {
         {/* Default credentials — dev only, never shown in production build */}
         {import.meta.env.DEV && (
           <div className="mt-4 bg-white/70 rounded-2xl border border-gray-100 px-4 py-3 text-xs text-gray-500 space-y-1.5">
-            <p className="font-medium text-gray-600 mb-2">Default credentials <span className="text-orange-400">(dev only)</span></p>
-            <div
-              className="flex items-center justify-between gap-2 bg-purple-50 border border-purple-100 rounded-xl px-3 py-2 cursor-pointer hover:bg-purple-100 transition-colors"
-              onClick={() => { setUsername('superadmin'); setPassword('super123'); }}
-            >
-              <span>🛡️ <span className="font-medium text-purple-700">Super Admin</span></span>
-              <span className="font-mono text-purple-600">superadmin / super123</span>
-            </div>
-            <div
-              className="flex items-center justify-between gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3 py-2 cursor-pointer hover:bg-orange-100 transition-colors"
-              onClick={() => { setUsername('admin'); setPassword('admin123'); }}
-            >
-              <span>🧑‍💼 <span className="font-medium text-orange-700">Admin</span></span>
-              <span className="font-mono text-orange-600">admin / admin123</span>
-            </div>
-            <div
-              className="flex items-center justify-between gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 cursor-pointer hover:bg-green-100 transition-colors"
-              onClick={() => { setUsername('kitchen'); setPassword('kitchen123'); }}
-            >
-              <span>👨‍🍳 <span className="font-medium text-green-700">Kitchen</span></span>
-              <span className="font-mono text-green-600">kitchen / kitchen123</span>
-            </div>
+            <p className="font-medium text-gray-600 mb-2">
+              Default credentials <span className="text-orange-400">(dev only)</span>
+            </p>
+            {DEV_CREDENTIALS.map(({ label, color, u, p }) => {
+              const c = COLOR_CLS[color];
+              return (
+                <div
+                  key={u}
+                  className={`flex items-center justify-between gap-2 ${c.bg} border ${c.border} rounded-xl px-3 py-2 cursor-pointer ${c.hover} transition-colors`}
+                  onClick={() => { setUsername(u); setPassword(p); }}
+                >
+                  <span className={`font-medium ${c.text}`}>{label}</span>
+                  <span className={`font-mono ${c.mono}`}>{u} / {p}</span>
+                </div>
+              );
+            })}
             <p className="text-center text-gray-400 pt-1">Click any row to auto-fill</p>
           </div>
         )}
