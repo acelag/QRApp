@@ -27,8 +27,9 @@ interface Props {
 }
 
 export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
-  const currentIdx = STATUS_FLOW.indexOf(order.status);
-  const nextStatus = STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined;
+  const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
+  // currentIdx === -1 for legacy 'served' orders — treat them as terminal (no next step)
+  const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
   const { fmt } = useCurrency();
 
   const now = clockMs ?? Date.now();
