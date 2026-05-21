@@ -79,7 +79,7 @@ export function TablesPage() {
   function printOne(table: Table) {
     const svg = getSvg(table.id);
     if (!svg) { toast.error('QR not ready, try again'); return; }
-    const url = `${origin}/menu/${table.id}`;
+    const url = `${origin}/welcome/${table.id}`;
     openPrintWindow(qrCardHtml(table.number, table.seats, url, svg));
   }
 
@@ -89,7 +89,7 @@ export function TablesPage() {
     const cards = tables
       .map((t) => {
         const svg = getSvg(t.id);
-        return svg ? qrCardHtml(t.number, t.seats, `${origin}/menu/${t.id}`, svg) : '';
+        return svg ? qrCardHtml(t.number, t.seats, `${origin}/welcome/${t.id}`, svg) : '';
       })
       .join('');
     openPrintWindow(cards);
@@ -149,7 +149,7 @@ export function TablesPage() {
               else qrRefs.current.delete(t.id);
             }}
           >
-            <QRCodeSVG value={`${origin}/menu/${t.id}`} size={220} />
+            <QRCodeSVG value={`${origin}/welcome/${t.id}`} size={220} />
           </div>
         ))}
         {takeawayUrl && (
@@ -323,10 +323,10 @@ export function TablesPage() {
             <h2 className="font-bold text-gray-900 text-lg">Table {qrPreview.number}</h2>
             <p className="text-xs text-gray-400 -mt-2">{qrPreview.seats} seats</p>
 
-            <QRCodeSVG value={`${origin}/menu/${qrPreview.id}`} size={200} />
+            <QRCodeSVG value={`${origin}/welcome/${qrPreview.id}`} size={200} />
 
             <p className="text-xs text-gray-300 text-center break-all">
-              {origin}/menu/{qrPreview.id}
+              {origin}/welcome/{qrPreview.id}
             </p>
 
             <div className="flex gap-2 w-full">

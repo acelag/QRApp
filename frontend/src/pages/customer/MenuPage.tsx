@@ -13,6 +13,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
 import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X } from 'lucide-react';
+import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 export function MenuPage() {
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
   const { setTable, setSession, setRestaurant, tableNumber, tableId } = useCart();
@@ -32,6 +33,26 @@ export function MenuPage() {
     if (!tableIdParam) return;
     setError(false);
     setLoading(true);
+
+    // Use prefetch cache if WelcomePage already fetched everything
+    const cached = menuPrefetchCache.get(tableIdParam);
+    if (cached) {
+      menuPrefetchCache.clear(tableIdParam);
+      setTable(cached.tableId, cached.tableNumber);
+      setRestaurant(cached.restaurantId);
+      loadCurrency(cached.restaurantId);
+      loadTheme(cached.restaurantId);
+      loadTags(cached.restaurantId);
+      setRestaurantInfo(cached.restaurantInfo);
+      setCategories(cached.categories);
+      setItems(cached.items);
+      setSession(cached.sessionId);
+      localStorage.setItem(`qra_session_${cached.tableId}`, cached.sessionId);
+      setLoading(false);
+      return;
+    }
+
+    // Fallback: fetch everything fresh (direct navigation / hard reload)
     tableService.getTable(tableIdParam).then((table) => {
       setTable(table.id, table.number);
       setRestaurant(table.restaurantId);

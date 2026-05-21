@@ -29,7 +29,7 @@ router.get('/:id/currency', async (req, res) => {
 
 router.get('/:id/info', async (req, res) => {
   const result = await pool.query(
-    'SELECT name, logo, theme_color, wait_time_min, room_service_open, room_service_close FROM restaurants WHERE id = $1',
+    'SELECT name, logo, theme_color, wait_time_min, room_service_open, room_service_close, facebook_url, instagram_url, welcome_image_url FROM restaurants WHERE id = $1',
     [req.params.id],
   );
   if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
@@ -41,6 +41,9 @@ router.get('/:id/info', async (req, res) => {
     waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
     roomServiceOpen:  (row.room_service_open  as string | null) ?? null,
     roomServiceClose: (row.room_service_close as string | null) ?? null,
+    facebookUrl:     (row.facebook_url      as string | null) ?? null,
+    instagramUrl:    (row.instagram_url     as string | null) ?? null,
+    welcomeImageUrl: (row.welcome_image_url as string | null) ?? null,
   });
 });
 
@@ -164,6 +167,18 @@ router.patch('/:id/room-service-hours', authenticate, requireRole('admin'), asyn
   const open  = typeof roomServiceOpen  === 'string' && timeRe.test(roomServiceOpen)  ? roomServiceOpen  : null;
   const close = typeof roomServiceClose === 'string' && timeRe.test(roomServiceClose) ? roomServiceClose : null;
   await pool.query('UPDATE restaurants SET room_service_open = $1, room_service_close = $2 WHERE id = $3', [open, close, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/social', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { facebookUrl, instagramUrl, welcomeImageUrl } = req.body as { facebookUrl?: string | null; instagramUrl?: string | null; welcomeImageUrl?: string | null };
+  await pool.query(
+    'UPDATE restaurants SET facebook_url = $1, instagram_url = $2, welcome_image_url = $3 WHERE id = $4',
+    [facebookUrl ?? null, instagramUrl ?? null, welcomeImageUrl ?? null, id],
+  );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });

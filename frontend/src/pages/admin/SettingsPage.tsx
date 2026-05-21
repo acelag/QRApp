@@ -55,6 +55,11 @@ export function SettingsPage() {
   const [rsEnabled, setRsEnabled] = useState(false);
   const [rsSaving, setRsSaving] = useState(false);
   const [rsSuccess, setRsSuccess] = useState(false);
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [welcomeImageUrl, setWelcomeImageUrl] = useState('');
+  const [socialSaving, setSocialSaving] = useState(false);
+  const [socialSuccess, setSocialSuccess] = useState(false);
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -72,6 +77,9 @@ export function SettingsPage() {
         setRsOpen(r.roomServiceOpen);
         setRsClose(r.roomServiceClose);
       }
+      setFacebookUrl(r.facebookUrl ?? '');
+      setInstagramUrl(r.instagramUrl ?? '');
+      setWelcomeImageUrl(r.welcomeImageUrl ?? '');
     });
   }, []);
 
@@ -151,6 +159,25 @@ export function SettingsPage() {
       setTimeout(() => setRsSuccess(false), 3000);
     } finally {
       setRsSaving(false);
+    }
+  }
+
+  async function saveSocial() {
+    if (!restaurant) return;
+    setSocialSaving(true);
+    setSocialSuccess(false);
+    try {
+      const updated = await restaurantService.updateSocial(
+        restaurant.id,
+        facebookUrl.trim() || null,
+        instagramUrl.trim() || null,
+        welcomeImageUrl.trim() || null,
+      );
+      setRestaurant(updated);
+      setSocialSuccess(true);
+      setTimeout(() => setSocialSuccess(false), 3000);
+    } finally {
+      setSocialSaving(false);
     }
   }
 
@@ -658,6 +685,61 @@ export function SettingsPage() {
               >
                 {rsSaving && <Loader2 size={15} className="animate-spin" />}
                 {rsSaving ? 'Saving…' : 'Save Room Service Hours'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Social Media & Welcome Screen ───────────────────────────── */}
+        {restaurant && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center flex-shrink-0">
+                <span className="text-base">📱</span>
+              </div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-800">Social Media & Welcome Screen</h2>
+                <p className="text-xs text-gray-400">Links shown on the QR welcome page</p>
+              </div>
+              {socialSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
+              {socialSuccess && <CheckCircle2 size={14} className="text-green-500" />}
+            </div>
+            <div className="p-5 space-y-4">
+              <Field label="Facebook URL">
+                <input
+                  className={input}
+                  type="url"
+                  placeholder="https://facebook.com/yourpage"
+                  value={facebookUrl}
+                  onChange={(e) => setFacebookUrl(e.target.value)}
+                />
+              </Field>
+              <Field label="Instagram URL">
+                <input
+                  className={input}
+                  type="url"
+                  placeholder="https://instagram.com/yourhandle"
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                />
+              </Field>
+              <Field label="Welcome Screen Hero Image URL">
+                <input
+                  className={input}
+                  type="url"
+                  placeholder="https://… (leave blank for default)"
+                  value={welcomeImageUrl}
+                  onChange={(e) => setWelcomeImageUrl(e.target.value)}
+                />
+                <p className="text-xs text-gray-400 mt-1">Custom photo shown behind the restaurant name on the QR welcome screen.</p>
+              </Field>
+              <button
+                onClick={saveSocial}
+                disabled={socialSaving}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+              >
+                {socialSaving && <Loader2 size={15} className="animate-spin" />}
+                {socialSaving ? 'Saving…' : 'Save Social & Welcome'}
               </button>
             </div>
           </div>
