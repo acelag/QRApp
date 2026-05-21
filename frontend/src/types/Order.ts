@@ -1,4 +1,4 @@
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'cancelled';
 export type OrderType   = 'dine-in' | 'takeaway' | 'room-service';
 
 export interface SelectedTopping {
