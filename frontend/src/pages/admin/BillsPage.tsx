@@ -90,7 +90,7 @@ export function BillsPage() {
       setPayingOrder(order.id);
       setPaymentTarget(null);
       try {
-        const updated = await orderService.updateStatus(order.id, 'ready', method);
+        const updated = await orderService.updateStatus(order.id, 'served', method);
         setTakeawayOrders((prev) => prev.map((o) => (o.id === order.id ? updated : o)));
         toast.success(`Order marked as paid by ${method}`);
       } catch {
@@ -149,9 +149,9 @@ export function BillsPage() {
     (s) => s.status === 'paid' && s.closedAt && new Date(s.closedAt).toDateString() === todayStr()
   );
 
-  const activeTakeaway = takeawayOrders.filter((o) => o.paymentMethod == null);
+  const activeTakeaway = takeawayOrders.filter((o) => o.status !== 'served');
   const paidTodayTakeaway = takeawayOrders.filter(
-    (o) => o.paymentMethod != null && new Date(o.createdAt).toDateString() === todayStr()
+    (o) => o.status === 'served' && new Date(o.createdAt).toDateString() === todayStr()
   );
 
 
