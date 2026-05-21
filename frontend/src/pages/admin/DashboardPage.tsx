@@ -35,7 +35,7 @@ export function DashboardPage() {
 
   const todayStr = new Date().toLocaleDateString('en-CA');
   const todayOrders  = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
-  const activeOrders = orders.filter((o) => o.status !== 'served');
+  const activeOrders = orders.filter((o) => o.status !== 'ready');
   const todayRevenue = todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
 
   const stats = [
