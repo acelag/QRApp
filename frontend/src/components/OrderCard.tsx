@@ -5,7 +5,7 @@ import { StatusBadge } from './StatusBadge';
 import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
-const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'served'];
+const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready'];
 const STALE_MINUTES = 30;
 
 interface Props {
@@ -303,7 +303,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, w
               <Printer size={13} /> Print Bill
             </button>
           )}
-          {showActions && order.status === 'served' && order.customerPhone && (
+          {showActions && order.status === 'ready' && order.customerPhone && (
             <a
               href={buildBillWhatsAppUrl()}
               target="_blank"

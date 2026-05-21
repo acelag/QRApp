@@ -17,7 +17,6 @@ const STATUS_TABS: { label: string; value: OrderStatus | 'all' | 'takeaway' }[] 
   { label: 'Pending',   value: 'pending' },
   { label: 'Preparing', value: 'preparing' },
   { label: 'Ready',     value: 'ready' },
-  { label: 'Served',    value: 'served' },
 ];
 
 export function OrdersPage() {

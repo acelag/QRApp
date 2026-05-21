@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { CheckCircle, RotateCcw, Clock, ChefHat, Bell, PartyPopper } from 'lucide-react';
+import { CheckCircle, RotateCcw, Clock, ChefHat, Bell } from 'lucide-react';
 import type { Order } from '../../types';
 import type { CartItem } from '../../types/Order';
 import { orderService } from '../../services/orderService';
@@ -10,7 +10,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useCart } from '../../context/CartContext';
 import toast from 'react-hot-toast';
 
-const STATUS_STEPS = ['pending', 'preparing', 'ready', 'served'] as const;
+const STATUS_STEPS = ['pending', 'preparing', 'ready'] as const;
 type StatusStep = (typeof STATUS_STEPS)[number];
 
 const STEP_META: Record<StatusStep, { label: string; sublabel: string; icon: React.ReactNode; color: string; bg: string; ring: string }> = {
@@ -38,21 +38,12 @@ const STEP_META: Record<StatusStep, { label: string; sublabel: string; icon: Rea
     bg: 'bg-blue-500',
     ring: 'ring-blue-300',
   },
-  served: {
-    label: 'Served',
-    sublabel: 'Enjoy your meal!',
-    icon: <PartyPopper size={15} />,
-    color: 'text-green-600',
-    bg: 'bg-green-500',
-    ring: 'ring-green-300',
-  },
 };
 
 const STATUS_HEADLINE: Record<StatusStep, string> = {
   pending: 'Order placed!',
   preparing: 'Being prepared…',
   ready: 'Ready for you!',
-  served: 'Enjoy your meal!',
 };
 
 export function OrderSuccessPage() {
@@ -138,10 +129,10 @@ export function OrderSuccessPage() {
             {/* Animated checkmark / status icon */}
             <div
               className={`relative flex items-center justify-center w-20 h-20 rounded-full mb-4 transition-all duration-500 ${
-                currentStep === 'served' ? 'bg-green-50' : 'bg-orange-50'
+                currentStep === 'ready' ? 'bg-green-50' : 'bg-orange-50'
               } ${bump ? 'scale-110' : 'scale-100'}`}
             >
-              {currentStep === 'served' ? (
+              {currentStep === 'ready' ? (
                 <CheckCircle className="text-green-500 animate-[bounce_0.6s_ease-out]" size={48} />
               ) : (
                 <>
@@ -224,7 +215,7 @@ export function OrderSuccessPage() {
         )}
 
         {/* Notify button */}
-        {order.status !== 'served' && (
+        {order.status !== 'ready' && (
           <CustomerNotifyButton orderId={order.id} />
         )}
 
