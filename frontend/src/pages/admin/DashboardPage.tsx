@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ClipboardList, UtensilsCrossed, Table2, ChefHat, LogOut, Settings,
+  ClipboardList, UtensilsCrossed, ChefHat, LogOut, Settings,
   Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay,
   BedDouble, Tag, CreditCard, UserCheck, Trophy, ShoppingBag, MapPin,
   Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode,
