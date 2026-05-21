@@ -12,7 +12,7 @@ import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
-import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X } from 'lucide-react';
+import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List } from 'lucide-react';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 export function MenuPage() {
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
@@ -28,6 +28,9 @@ export function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null; waitTimeMin: number | null } | null>(null);
+  const [view, setView] = useState<'grid' | 'list'>(() =>
+    (localStorage.getItem('qra_menu_view') as 'grid' | 'list' | null) ?? 'grid'
+  );
 
   function loadMenu() {
     if (!tableIdParam) return;
@@ -126,15 +129,34 @@ export function MenuPage() {
                 : <UtensilsCrossed size={20} className="text-orange-500" />}
               <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? 'Menu'}</h1>
             </div>
-            {tableId && (
-              <Link
-                to={`/order-history/${tableId}`}
-                className="flex items-center gap-1.5 text-xs text-orange-500 font-medium bg-orange-50 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors"
-              >
-                <ClipboardList size={13} />
-                My Orders
-              </Link>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Grid / List toggle */}
+              <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+                <button
+                  onClick={() => { setView('grid'); localStorage.setItem('qra_menu_view', 'grid'); }}
+                  className={`p-1.5 rounded-full transition-colors ${view === 'grid' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+                  title="Grid view"
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                <button
+                  onClick={() => { setView('list'); localStorage.setItem('qra_menu_view', 'list'); }}
+                  className={`p-1.5 rounded-full transition-colors ${view === 'list' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+                  title="List view"
+                >
+                  <List size={14} />
+                </button>
+              </div>
+              {tableId && (
+                <Link
+                  to={`/order-history/${tableId}`}
+                  className="flex items-center gap-1.5 text-xs text-orange-500 font-medium bg-orange-50 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors"
+                >
+                  <ClipboardList size={13} />
+                  My Orders
+                </Link>
+              )}
+            </div>
           </div>
           <div className="flex items-center justify-between mt-1">
             <p className="text-sm text-gray-500">Table {tableNumber}</p>
@@ -190,10 +212,16 @@ export function MenuPage() {
           <p className="text-center text-gray-400 mt-12">
             {q ? `No items match "${searchQuery}"` : 'No items in this category'}
           </p>
+        ) : view === 'list' ? (
+          <div className="flex flex-col gap-2">
+            {filtered.map((item) => (
+              <MenuCard key={item.id} item={item} view="list" />
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filtered.map((item) => (
-              <MenuCard key={item.id} item={item} />
+              <MenuCard key={item.id} item={item} view="grid" />
             ))}
           </div>
         )}

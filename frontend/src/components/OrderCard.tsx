@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready'];
@@ -13,6 +13,7 @@ interface Props {
   onStatusChange?: (id: string, status: OrderStatus) => void;
   onAssignWaiter?: (id: string, waiterId: string | null) => void;
   onAddItems?: (order: Order) => void;
+  onCancel?: (id: string) => void;
   waiters?: Waiter[];
   showActions?: boolean;
   showPrint?: boolean;
@@ -26,7 +27,7 @@ interface Props {
   clockMs?: number;
 }
 
-export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
   // currentIdx === -1 for legacy 'served' orders — treat them as terminal (no next step)
   const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
@@ -52,6 +53,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, w
   }
 
   const [cooked, setCooked] = useState<Set<number>>(new Set());
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   function toggleItem(idx: number) {
     setCooked((prev) => {
@@ -322,6 +324,33 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, w
             >
               <PlusCircle size={13} /> Add Items
             </button>
+          )}
+          {showActions && onCancel && order.status === 'pending' && (
+            confirmCancel ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-600 font-medium">Void order?</span>
+                <button
+                  onClick={() => { onCancel(order.id); setConfirmCancel(false); }}
+                  className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-full font-bold hover:bg-red-600 active:scale-95 transition-all"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmCancel(false)}
+                  className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium hover:bg-gray-200 transition-all"
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmCancel(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-500 text-sm rounded-full font-medium hover:bg-red-50 transition-colors whitespace-nowrap"
+                title="Void / cancel this order"
+              >
+                <XCircle size={13} /> Void
+              </button>
+            )
           )}
           {showActions && onStatusChange && nextStatus && (
             <button
