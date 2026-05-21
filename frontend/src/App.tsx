@@ -43,6 +43,7 @@ import { RoomChargesPage } from './pages/admin/RoomChargesPage';
 import { WaitersPage } from './pages/admin/WaitersPage';
 import { StaffPerformancePage } from './pages/admin/StaffPerformancePage';
 import { TableStatusPage } from './pages/admin/TableStatusPage';
+import { LocationsPage } from './pages/admin/LocationsPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -83,7 +84,8 @@ export default function App() {
             <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardPage /></ProtectedRoute>} />
             <Route path="/admin/orders" element={<ProtectedRoute role="admin"><OrdersPage /></ProtectedRoute>} />
             <Route path="/admin/menu" element={<ProtectedRoute role="admin"><MenuItemsPage /></ProtectedRoute>} />
-            <Route path="/admin/tables" element={<ProtectedRoute role="admin"><TablesPage /></ProtectedRoute>} />
+            <Route path="/admin/locations" element={<ProtectedRoute role="admin"><LocationsPage /></ProtectedRoute>} />
+            <Route path="/admin/tables" element={<Navigate to="/admin/locations" replace />} />
             <Route path="/receipt/:orderId" element={<ProtectedRoute role="admin"><ReceiptPage /></ProtectedRoute>} />
             <Route path="/kitchen-ticket/:orderId" element={<ProtectedRoute role="any"><KitchenTicketPage /></ProtectedRoute>} />
             <Route path="/session-receipt/:sessionId" element={<ProtectedRoute role="admin"><SessionReceiptPage /></ProtectedRoute>} />
@@ -95,7 +97,7 @@ export default function App() {
             <Route path="/admin/new-order" element={<ProtectedRoute role="admin"><NewOrderPage /></ProtectedRoute>} />
             <Route path="/admin/ready-display" element={<ProtectedRoute role="any"><ReadyDisplayPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute role="admin"><ReportsPage /></ProtectedRoute>} />
-            <Route path="/admin/rooms" element={<ProtectedRoute role="admin"><RoomsPage /></ProtectedRoute>} />
+            <Route path="/admin/rooms" element={<Navigate to="/admin/locations" replace />} />
             <Route path="/admin/promo-codes" element={<ProtectedRoute role="admin"><PromoCodesPage /></ProtectedRoute>} />
             <Route path="/admin/room-charges" element={<ProtectedRoute role="admin"><RoomChargesPage /></ProtectedRoute>} />
             <Route path="/admin/waiters"       element={<ProtectedRoute role="admin"><WaitersPage /></ProtectedRoute>} />

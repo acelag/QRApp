@@ -4,7 +4,7 @@ import {
   ClipboardList, UtensilsCrossed, Table2, ChefHat, LogOut, Settings,
   Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay,
   BedDouble, Tag, CreditCard, UserCheck, Trophy, ShoppingBag, MapPin,
-  Medal, LayoutDashboard, Eye, Activity, Banknote,
+  Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode,
 } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -79,9 +79,8 @@ export function DashboardPage() {
     { to: '/admin/bills',              label: 'Bills',              icon: Receipt,        desc: 'Table bills & takeaway receipts' },
     { to: '/admin/reports',            label: 'Reports',            icon: BarChart2,      desc: 'Sales & item performance' },
     { to: '/admin/menu',               label: 'Menu Items',         icon: UtensilsCrossed, desc: 'Add, edit, delete items' },
-    { to: '/admin/tables',             label: 'Tables & QR',        icon: Table2,         desc: 'Manage tables and QR codes' },
+    { to: '/admin/locations',          label: 'Tables & Rooms',     icon: QrCode,         desc: 'Manage tables, rooms & QR codes' },
     { to: '/admin/table-status',       label: 'Table Status',       icon: LayoutDashboard, desc: 'Live grid — open / occupied / stale' },
-    { to: '/admin/rooms',              label: 'Rooms & QR',         icon: BedDouble,      desc: 'Manage rooms and QR codes' },
     { to: '/kitchen',                  label: 'Kitchen Display',    icon: ChefHat,        desc: 'Live kitchen order view' },
     { to: '/admin/ready-display',      label: 'Ready Display',      icon: MonitorPlay,    desc: 'Show orders ready for pickup' },
     { to: '/admin/promo-codes',        label: 'Promo Codes',        icon: Tag,            desc: 'Discount & promo codes' },
