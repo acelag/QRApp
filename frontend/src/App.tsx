@@ -33,7 +33,6 @@ import { UsersPage } from './pages/admin/UsersPage';
 import { BillsPage } from './pages/admin/BillsPage';
 import { SessionReceiptPage } from './pages/admin/SessionReceiptPage';
 import { RestaurantsPage } from './pages/admin/RestaurantsPage';
-import { TakeawayOrderPage } from './pages/admin/TakeawayOrderPage';
 import { NewOrderPage } from './pages/admin/NewOrderPage';
 import { ReadyDisplayPage } from './pages/admin/ReadyDisplayPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
@@ -85,7 +84,6 @@ export default function App() {
             <Route path="/admin/orders" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><OrdersPage /></ProtectedRoute>} />
             <Route path="/admin/menu" element={<ProtectedRoute roles={['admin','manager']}><MenuItemsPage /></ProtectedRoute>} />
             <Route path="/admin/locations" element={<ProtectedRoute roles={['admin','manager']}><LocationsPage /></ProtectedRoute>} />
-            <Route path="/admin/tables" element={<Navigate to="/admin/locations" replace />} />
             <Route path="/receipt/:orderId" element={<ProtectedRoute roles={['admin','manager','cashier']}><ReceiptPage /></ProtectedRoute>} />
             <Route path="/kitchen-ticket/:orderId" element={<ProtectedRoute><KitchenTicketPage /></ProtectedRoute>} />
             <Route path="/session-receipt/:sessionId" element={<ProtectedRoute roles={['admin','manager','cashier']}><SessionReceiptPage /></ProtectedRoute>} />
@@ -93,11 +91,9 @@ export default function App() {
             <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><UsersPage /></ProtectedRoute>} />
             <Route path="/admin/bills" element={<ProtectedRoute roles={['admin','manager','cashier']}><BillsPage /></ProtectedRoute>} />
             <Route path="/admin/restaurants" element={<ProtectedRoute roles={['super_admin']}><RestaurantsPage /></ProtectedRoute>} />
-            <Route path="/admin/takeaway" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><TakeawayOrderPage /></ProtectedRoute>} />
             <Route path="/admin/new-order" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><NewOrderPage /></ProtectedRoute>} />
             <Route path="/admin/ready-display" element={<ProtectedRoute><ReadyDisplayPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute roles={['admin','manager']}><ReportsPage /></ProtectedRoute>} />
-            <Route path="/admin/rooms" element={<Navigate to="/admin/locations" replace />} />
             <Route path="/admin/promo-codes" element={<ProtectedRoute roles={['admin','manager']}><PromoCodesPage /></ProtectedRoute>} />
             <Route path="/admin/room-charges" element={<ProtectedRoute roles={['admin','manager','cashier']}><RoomChargesPage /></ProtectedRoute>} />
             <Route path="/admin/waiters" element={<ProtectedRoute roles={['admin','manager']}><WaitersPage /></ProtectedRoute>} />
