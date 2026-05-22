@@ -85,20 +85,20 @@ export function NewOrderPage() {
   );
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       menuService.getCategories(),
       menuService.getItems(),
       tableService.getTables(),
       roomService.getRooms(),
-    ])
-      .then(([cats, menuItems, tbls, rms]) => {
-        setCategories(cats);
-        setItems(menuItems.filter((i) => i.available));
-        setTables(tbls.sort((a, b) => a.number - b.number));
-        setRooms(rms.sort((a, b) => a.number - b.number));
-      })
-      .catch(() => toast.error('Failed to load menu'))
-      .finally(() => setLoading(false));
+    ]).then(([cats, menuItems, tbls, rms]) => {
+      if (cats.status === 'fulfilled')      setCategories(cats.value);
+      if (menuItems.status === 'fulfilled') setItems(menuItems.value.filter((i) => i.available));
+      if (tbls.status === 'fulfilled')      setTables(tbls.value.sort((a, b) => a.number - b.number));
+      if (rms.status === 'fulfilled')       setRooms(rms.value.sort((a, b) => a.number - b.number));
+      if (cats.status === 'rejected' || menuItems.status === 'rejected') {
+        toast.error('Failed to load menu');
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
   // Clear cart and selection when switching mode
