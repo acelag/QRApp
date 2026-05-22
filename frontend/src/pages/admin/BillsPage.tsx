@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw,
@@ -9,30 +9,20 @@ import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
 import { restaurantService, computeCharges, type RestaurantSettings } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
-import { refundService, type Refund } from '../../services/refundService';
+import { refundService, refundMethodLabel, type Refund } from '../../services/refundService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useAuth } from '../../context/AuthContext';
 import type { Order } from '../../types';
 import { SplitBillModal } from '../../components/SplitBillModal';
 import { PaymentMethodModal, paymentMethodIcon, paymentMethodLabel, type PaymentMethod } from '../../components/PaymentMethodModal';
 import { RefundModal } from '../../components/RefundModal';
+import { getApiError } from '../../lib/apiError';
 
 function elapsed(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (diff < 60) return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m`;
-}
-
-function todayStr() {
-  return new Date().toDateString();
-}
-
-function refundMethodLabel(m: string) {
-  const map: Record<string, string> = {
-    cash: 'Cash', card: 'Card', bank_transfer: 'Bank Transfer', other: 'Other',
-  };
-  return map[m] ?? m;
 }
 
 type Tab = 'table' | 'takeaway' | 'refunds';
@@ -42,21 +32,21 @@ export function BillsPage() {
   const canRefund = user?.role === 'admin' || user?.role === 'manager';
 
   const [tab, setTab] = useState<Tab>('table');
-  const [sessions, setSessions]           = useState<Session[]>([]);
+  const [sessions, setSessions]             = useState<Session[]>([]);
   const [takeawayOrders, setTakeawayOrders] = useState<Order[]>([]);
-  const [refunds, setRefunds]             = useState<Refund[]>([]);
-  const [loading, setLoading]             = useState(true);
-  const [paying, setPaying]               = useState<string | null>(null);
-  const [payingOrder, setPayingOrder]     = useState<string | null>(null);
+  const [refunds, setRefunds]               = useState<Refund[]>([]);
+  const [loading, setLoading]               = useState(true);
+  const [paying, setPaying]                 = useState<string | null>(null);
+  const [payingOrder, setPayingOrder]       = useState<string | null>(null);
   const [billingSettings, setBillingSettings] = useState<RestaurantSettings | null>(null);
-  const [splitSession, setSplitSession]   = useState<Session | null>(null);
-  const [mergeSource, setMergeSource]     = useState<Session | null>(null);
-  const [merging, setMerging]             = useState(false);
-  const [unmerging, setUnmerging]         = useState<string | null>(null);
-  const [paymentTarget, setPaymentTarget] = useState<
+  const [splitSession, setSplitSession]     = useState<Session | null>(null);
+  const [mergeSource, setMergeSource]       = useState<Session | null>(null);
+  const [merging, setMerging]               = useState(false);
+  const [unmerging, setUnmerging]           = useState<string | null>(null);
+  const [paymentTarget, setPaymentTarget]   = useState<
     { type: 'session'; session: Session } | { type: 'order'; order: Order } | null
   >(null);
-  const [refundTarget, setRefundTarget]   = useState<{
+  const [refundTarget, setRefundTarget]     = useState<{
     label: string; maxAmount: number; orderId?: string; sessionId?: string;
   } | null>(null);
 
@@ -66,10 +56,10 @@ export function BillsPage() {
     restaurantService.getMyRestaurant().then(setBillingSettings).catch(() => {});
   }, []);
 
-  const loadRefunds = () =>
-    refundService.getRefunds().then(setRefunds).catch(() => {});
+  const loadRefunds = useCallback(() =>
+    refundService.getRefunds().then(setRefunds).catch(() => {}), []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const [sess, orders] = await Promise.all([
         sessionService.getSessions(),
@@ -86,12 +76,12 @@ export function BillsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
     if (canRefund) loadRefunds();
-    const id = setInterval(load, 10000);
+    const id = setInterval(() => { load(); if (canRefund) loadRefunds(); }, 10000);
     return () => clearInterval(id);
   }, []);
 
@@ -105,9 +95,8 @@ export function BillsPage() {
         const updated = await sessionService.markAsPaid(session.id, method);
         setSessions((prev) => prev.map((s) => (s.id === session.id ? updated : s)));
         toast.success(`Table ${session.tableNumber} — paid by ${method}`);
-      } catch (err: unknown) {
-        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        toast.error(msg ?? 'Failed to close session');
+      } catch (err) {
+        toast.error(getApiError(err));
       } finally {
         setPaying(null);
       }
@@ -169,27 +158,29 @@ export function BillsPage() {
     }
   }
 
+  const todayDateStr = new Date().toDateString();
+
   const openSessions = sessions.filter((s) => s.status === 'open' && !s.mergedIntoSessionId);
   const paidToday    = sessions.filter(
-    (s) => s.status === 'paid' && s.closedAt && new Date(s.closedAt).toDateString() === todayStr(),
+    (s) => s.status === 'paid' && s.closedAt && new Date(s.closedAt).toDateString() === todayDateStr,
   );
-
   const activeTakeaway    = takeawayOrders.filter((o) => !o.paymentMethod);
   const paidTodayTakeaway = takeawayOrders.filter(
-    (o) => !!o.paymentMethod && new Date(o.createdAt).toDateString() === todayStr(),
+    (o) => !!o.paymentMethod && new Date(o.createdAt).toDateString() === todayDateStr,
   );
 
-  // Build lookup: how much has been refunded per session/order
-  const refundedBySession = refunds.reduce<Record<string, number>>((acc, r) => {
-    if (r.sessionId) acc[r.sessionId] = (acc[r.sessionId] ?? 0) + r.amount;
-    return acc;
-  }, {});
-  const refundedByOrder = refunds.reduce<Record<string, number>>((acc, r) => {
-    if (r.orderId) acc[r.orderId] = (acc[r.orderId] ?? 0) + r.amount;
-    return acc;
-  }, {});
-
-  const todayRefunds = refunds.filter((r) => new Date(r.createdAt).toDateString() === todayStr());
+  // Single pass: build per-session/per-order refund totals and today's list
+  const { refundedBySession, refundedByOrder, todayRefunds } = useMemo(() => {
+    const bySession: Record<string, number> = {};
+    const byOrder:   Record<string, number> = {};
+    const todayList: Refund[] = [];
+    for (const r of refunds) {
+      if (r.sessionId) bySession[r.sessionId] = (bySession[r.sessionId] ?? 0) + r.amount;
+      if (r.orderId)   byOrder[r.orderId]     = (byOrder[r.orderId]   ?? 0) + r.amount;
+      if (new Date(r.createdAt).toDateString() === todayDateStr) todayList.push(r);
+    }
+    return { refundedBySession: bySession, refundedByOrder: byOrder, todayRefunds: todayList };
+  }, [refunds]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -197,11 +188,13 @@ export function BillsPage() {
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Bills</h1>
-          <button onClick={() => { load(); if (canRefund) loadRefunds(); }} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button
+            onClick={() => { load(); if (canRefund) loadRefunds(); }}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
             <RefreshCw size={18} />
           </button>
         </div>
-        {/* Tabs */}
         <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2 flex-wrap">
           <button
             onClick={() => setTab('table')}
@@ -653,7 +646,6 @@ export function BillsPage() {
         ) : (
           /* ── Refunds tab ── */
           <section className="space-y-4">
-            {/* Today summary */}
             {todayRefunds.length > 0 && (
               <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 flex items-center justify-between">
                 <div>
@@ -738,7 +730,7 @@ export function BillsPage() {
           maxAmount={refundTarget.maxAmount}
           orderId={refundTarget.orderId}
           sessionId={refundTarget.sessionId}
-          onSuccess={() => loadRefunds()}
+          onSuccess={loadRefunds}
           onClose={() => setRefundTarget(null)}
         />
       )}
