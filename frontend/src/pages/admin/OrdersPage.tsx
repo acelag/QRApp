@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { NotificationBell } from '../../components/NotificationBell';
 import { SoundAlertToggle } from '../../components/SoundAlertToggle';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
@@ -95,12 +95,6 @@ export function OrdersPage() {
             <ArrowLeft size={20} />
           </Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Live Orders</h1>
-          <Link
-            to="/admin/takeaway"
-            className="flex items-center gap-1.5 text-xs bg-purple-600 text-white px-3 py-1.5 rounded-full font-medium hover:bg-purple-700 transition-colors"
-          >
-            <ShoppingBag size={13} /> Takeaway
-          </Link>
           <SoundAlertToggle />
           <NotificationBell />
           <button onClick={fetch} className="text-gray-400 hover:text-gray-600">
