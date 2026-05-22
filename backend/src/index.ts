@@ -26,6 +26,7 @@ import promoCodesRouter from './routes/promoCodes';
 import customerPushRouter from './routes/customerPush';
 import waitersRouter from './routes/waiters';
 import tagsRouter from './routes/tags';
+import refundsRouter from './routes/refunds';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
 
@@ -96,6 +97,7 @@ app.use('/api/promo-codes',  promoCodesRouter);
 app.use('/api/customer-push', customerPushRouter);
 app.use('/api/waiters',       waitersRouter);
 app.use('/api/tags',          tagsRouter);
+app.use('/api/refunds',      refundsRouter);
 app.use('/api/upload',      authenticate, requireRole('admin'), uploadRouter);
 app.use('/api/users',       usersRouter);
 

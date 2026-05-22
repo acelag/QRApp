@@ -218,6 +218,21 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'instagram_url', 'VARCHAR(500) NULL');
   await addCol('restaurants', 'welcome_image_url', 'VARCHAR(500) NULL');
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS refunds (
+      id               VARCHAR(36)   NOT NULL PRIMARY KEY,
+      restaurant_id    VARCHAR(36)   NOT NULL,
+      order_id         VARCHAR(36)   NULL,
+      session_id       VARCHAR(36)   NULL,
+      amount           DECIMAL(10,2) NOT NULL,
+      reason           VARCHAR(500)  NOT NULL,
+      refund_method    VARCHAR(30)   NOT NULL,
+      created_by       VARCHAR(36)   NOT NULL,
+      created_by_name  VARCHAR(255)  NOT NULL,
+      created_at       VARCHAR(50)   NOT NULL
+    );
+  `);
+
   // ── Dynamic tags table ──────────────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tags (

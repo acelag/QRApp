@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw, Printer, ShoppingBag, Table2, Users, GitMerge, Unlink } from 'lucide-react';
+import {
+  ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw,
+  Printer, ShoppingBag, Table2, Users, GitMerge, Unlink, RotateCcw,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
 import { restaurantService, computeCharges, type RestaurantSettings } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
+import { refundService, type Refund } from '../../services/refundService';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useAuth } from '../../context/AuthContext';
 import type { Order } from '../../types';
 import { SplitBillModal } from '../../components/SplitBillModal';
 import { PaymentMethodModal, paymentMethodIcon, paymentMethodLabel, type PaymentMethod } from '../../components/PaymentMethodModal';
+import { RefundModal } from '../../components/RefundModal';
 
 function elapsed(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -22,27 +28,46 @@ function todayStr() {
   return new Date().toDateString();
 }
 
-type Tab = 'table' | 'takeaway';
+function refundMethodLabel(m: string) {
+  const map: Record<string, string> = {
+    cash: 'Cash', card: 'Card', bank_transfer: 'Bank Transfer', other: 'Other',
+  };
+  return map[m] ?? m;
+}
+
+type Tab = 'table' | 'takeaway' | 'refunds';
 
 export function BillsPage() {
+  const { user } = useAuth();
+  const canRefund = user?.role === 'admin' || user?.role === 'manager';
+
   const [tab, setTab] = useState<Tab>('table');
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions]           = useState<Session[]>([]);
   const [takeawayOrders, setTakeawayOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState<string | null>(null);
-  const [payingOrder, setPayingOrder] = useState<string | null>(null);
+  const [refunds, setRefunds]             = useState<Refund[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [paying, setPaying]               = useState<string | null>(null);
+  const [payingOrder, setPayingOrder]     = useState<string | null>(null);
   const [billingSettings, setBillingSettings] = useState<RestaurantSettings | null>(null);
-  const [splitSession, setSplitSession] = useState<Session | null>(null);
-  const [mergeSource, setMergeSource] = useState<Session | null>(null); // session waiting to be merged
-  const [merging, setMerging] = useState(false);
-  const [unmerging, setUnmerging] = useState<string | null>(null);
-  // Payment method modal state
-  const [paymentTarget, setPaymentTarget] = useState<{ type: 'session'; session: Session } | { type: 'order'; order: Order } | null>(null);
+  const [splitSession, setSplitSession]   = useState<Session | null>(null);
+  const [mergeSource, setMergeSource]     = useState<Session | null>(null);
+  const [merging, setMerging]             = useState(false);
+  const [unmerging, setUnmerging]         = useState<string | null>(null);
+  const [paymentTarget, setPaymentTarget] = useState<
+    { type: 'session'; session: Session } | { type: 'order'; order: Order } | null
+  >(null);
+  const [refundTarget, setRefundTarget]   = useState<{
+    label: string; maxAmount: number; orderId?: string; sessionId?: string;
+  } | null>(null);
+
   const { fmt } = useCurrency();
 
   useEffect(() => {
     restaurantService.getMyRestaurant().then(setBillingSettings).catch(() => {});
   }, []);
+
+  const loadRefunds = () =>
+    refundService.getRefunds().then(setRefunds).catch(() => {});
 
   const load = async () => {
     try {
@@ -54,7 +79,7 @@ export function BillsPage() {
       setTakeawayOrders(
         orders
           .filter((o) => o.orderType === 'takeaway')
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
       );
     } catch {
       toast.error('Failed to load bills');
@@ -65,6 +90,7 @@ export function BillsPage() {
 
   useEffect(() => {
     load();
+    if (canRefund) loadRefunds();
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
   }, []);
@@ -143,17 +169,27 @@ export function BillsPage() {
     }
   }
 
-  // Secondaries are hidden from the main list — they appear under their primary
-  const openSessions  = sessions.filter((s) => s.status === 'open' && !s.mergedIntoSessionId);
-  const paidToday     = sessions.filter(
-    (s) => s.status === 'paid' && s.closedAt && new Date(s.closedAt).toDateString() === todayStr()
+  const openSessions = sessions.filter((s) => s.status === 'open' && !s.mergedIntoSessionId);
+  const paidToday    = sessions.filter(
+    (s) => s.status === 'paid' && s.closedAt && new Date(s.closedAt).toDateString() === todayStr(),
   );
 
-  const activeTakeaway = takeawayOrders.filter((o) => !o.paymentMethod);
+  const activeTakeaway    = takeawayOrders.filter((o) => !o.paymentMethod);
   const paidTodayTakeaway = takeawayOrders.filter(
-    (o) => !!o.paymentMethod && new Date(o.createdAt).toDateString() === todayStr()
+    (o) => !!o.paymentMethod && new Date(o.createdAt).toDateString() === todayStr(),
   );
 
+  // Build lookup: how much has been refunded per session/order
+  const refundedBySession = refunds.reduce<Record<string, number>>((acc, r) => {
+    if (r.sessionId) acc[r.sessionId] = (acc[r.sessionId] ?? 0) + r.amount;
+    return acc;
+  }, {});
+  const refundedByOrder = refunds.reduce<Record<string, number>>((acc, r) => {
+    if (r.orderId) acc[r.orderId] = (acc[r.orderId] ?? 0) + r.amount;
+    return acc;
+  }, {});
+
+  const todayRefunds = refunds.filter((r) => new Date(r.createdAt).toDateString() === todayStr());
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -161,12 +197,12 @@ export function BillsPage() {
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Bills</h1>
-          <button onClick={load} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={() => { load(); if (canRefund) loadRefunds(); }} className="text-gray-400 hover:text-gray-600 transition-colors">
             <RefreshCw size={18} />
           </button>
         </div>
         {/* Tabs */}
-        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2">
+        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2 flex-wrap">
           <button
             onClick={() => setTab('table')}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
@@ -174,9 +210,7 @@ export function BillsPage() {
             }`}
           >
             <Table2 size={13} /> Table Bills
-            {openSessions.length > 0 && (
-              <span className="ml-1 text-xs opacity-75">({openSessions.length})</span>
-            )}
+            {openSessions.length > 0 && <span className="ml-1 text-xs opacity-75">({openSessions.length})</span>}
           </button>
           <button
             onClick={() => setTab('takeaway')}
@@ -185,10 +219,19 @@ export function BillsPage() {
             }`}
           >
             <ShoppingBag size={13} /> Takeaway
-            {activeTakeaway.length > 0 && (
-              <span className="ml-1 text-xs opacity-75">({activeTakeaway.length})</span>
-            )}
+            {activeTakeaway.length > 0 && <span className="ml-1 text-xs opacity-75">({activeTakeaway.length})</span>}
           </button>
+          {canRefund && (
+            <button
+              onClick={() => { setTab('refunds'); loadRefunds(); }}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                tab === 'refunds' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <RotateCcw size={13} /> Refunds
+              {todayRefunds.length > 0 && <span className="ml-1 text-xs opacity-75">({todayRefunds.length})</span>}
+            </button>
+          )}
         </div>
       </header>
 
@@ -216,7 +259,7 @@ export function BillsPage() {
                 </div>
               )}
 
-            {openSessions.length === 0 ? (
+              {openSessions.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
                   <Receipt size={32} className="mx-auto mb-2 text-gray-300" />
                   No open table sessions right now
@@ -225,7 +268,8 @@ export function BillsPage() {
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
                   {openSessions.map((session) => (
                     <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className={`flex items-center justify-between px-5 py-3 border-b ${mergeSource && mergeSource.id !== session.id ? 'bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100' : 'bg-orange-50 border-orange-100'}`}
+                      <div
+                        className={`flex items-center justify-between px-5 py-3 border-b ${mergeSource && mergeSource.id !== session.id ? 'bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100' : 'bg-orange-50 border-orange-100'}`}
                         onClick={() => mergeSource && mergeSource.id !== session.id && handleMerge(session)}
                       >
                         <div className="flex items-center gap-3">
@@ -377,46 +421,67 @@ export function BillsPage() {
                   <CheckCircle2 size={16} className="text-green-500" /> Paid Today ({paidToday.length})
                 </h2>
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
-                  {paidToday.map((session) => (
-                    <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-70">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-bold">
-                          {session.tableNumber}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-700 text-sm">Table {session.tableNumber}</p>
-                          <p className="text-xs text-gray-400">
-                            {session.closedAt ? `Paid at ${new Date(session.closedAt).toLocaleTimeString()}` : 'Paid'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
-                          <div className="flex items-center gap-1 justify-end mt-0.5">
-                            {session.paymentMethod && (
-                              <span className="text-xs text-gray-500">
-                                {paymentMethodIcon(session.paymentMethod)} {paymentMethodLabel(session.paymentMethod)}
-                              </span>
+                  {paidToday.map((session) => {
+                    const refundedAmt = refundedBySession[session.id] ?? 0;
+                    return (
+                      <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-bold">
+                              {session.tableNumber}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-700 text-sm">Table {session.tableNumber}</p>
+                              <p className="text-xs text-gray-400">
+                                {session.closedAt ? `Paid at ${new Date(session.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Paid'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-right">
+                              <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
+                              <div className="flex items-center gap-1 justify-end mt-0.5 flex-wrap">
+                                {session.paymentMethod && (
+                                  <span className="text-xs text-gray-500">
+                                    {paymentMethodIcon(session.paymentMethod)} {paymentMethodLabel(session.paymentMethod)}
+                                  </span>
+                                )}
+                                {refundedAmt > 0
+                                  ? <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full">↩ {fmt(refundedAmt)}</span>
+                                  : <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                                }
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
+                              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                              title="Print Receipt"
+                            >
+                              <Printer size={16} />
+                            </button>
+                            {canRefund && (
+                              <button
+                                onClick={() => setRefundTarget({
+                                  label: `Table ${session.tableNumber}`,
+                                  maxAmount: session.totalAmount ?? 0,
+                                  sessionId: session.id,
+                                })}
+                                className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                title="Issue Refund"
+                              >
+                                <RotateCcw size={16} />
+                              </button>
                             )}
-                            <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
                           </div>
                         </div>
-                        <button
-                          onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
-                          className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                          title="Print Receipt"
-                        >
-                          <Printer size={16} />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
           </>
-        ) : (
+        ) : tab === 'takeaway' ? (
           <>
             {/* ── Active takeaway orders ── */}
             <section className="space-y-3">
@@ -443,9 +508,7 @@ export function BillsPage() {
                             <p className="font-semibold text-gray-900">
                               {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
                             </p>
-                            {order.customerName && (
-                              <p className="text-xs text-gray-500">{order.customerName}</p>
-                            )}
+                            {order.customerName && <p className="text-xs text-gray-500">{order.customerName}</p>}
                             <p className="text-xs text-gray-400 flex items-center gap-1">
                               <Clock size={11} /> {elapsed(order.createdAt)} ago
                             </p>
@@ -478,10 +541,7 @@ export function BillsPage() {
                           ))}
                         </ul>
                         {billingSettings && (() => {
-                          const charges = computeCharges(order.totalAmount, {
-                            serviceChargePct: 0,
-                            taxPct: billingSettings.taxPct,
-                          });
+                          const charges = computeCharges(order.totalAmount, { serviceChargePct: 0, taxPct: billingSettings.taxPct });
                           return (
                             <div className="mt-2 pt-2 border-t border-gray-100 space-y-1 text-sm text-gray-600">
                               {charges.tax > 0 && (
@@ -520,55 +580,133 @@ export function BillsPage() {
               )}
             </section>
 
-            {/* ── Paid today ── */}
+            {/* ── Paid today takeaway ── */}
             {paidTodayTakeaway.length > 0 && (
               <section className="space-y-3">
                 <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-green-500" /> Paid Today ({paidTodayTakeaway.length})
                 </h2>
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
-                  {paidTodayTakeaway.map((order) => (
-                    <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between opacity-80">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
-                          <ShoppingBag size={16} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-700 text-sm">
-                            {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
-                          </p>
-                          {order.customerName && <p className="text-xs text-gray-400">{order.customerName}</p>}
-                          <p className="text-xs text-gray-400">
-                            {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="font-bold text-gray-700">{fmt(order.totalAmount)}</p>
-                          <div className="flex items-center gap-1 justify-end mt-0.5">
-                            {order.paymentMethod && (
-                              <span className="text-xs text-gray-500">
-                                {paymentMethodIcon(order.paymentMethod)} {paymentMethodLabel(order.paymentMethod)}
-                              </span>
+                  {paidTodayTakeaway.map((order) => {
+                    const refundedAmt = refundedByOrder[order.id] ?? 0;
+                    return (
+                      <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
+                              <ShoppingBag size={16} />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-700 text-sm">
+                                {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                              </p>
+                              {order.customerName && <p className="text-xs text-gray-400">{order.customerName}</p>}
+                              <p className="text-xs text-gray-400">
+                                {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-right">
+                              <p className="font-bold text-gray-700">{fmt(order.totalAmount)}</p>
+                              <div className="flex items-center gap-1 justify-end mt-0.5 flex-wrap">
+                                {order.paymentMethod && (
+                                  <span className="text-xs text-gray-500">
+                                    {paymentMethodIcon(order.paymentMethod)} {paymentMethodLabel(order.paymentMethod)}
+                                  </span>
+                                )}
+                                {refundedAmt > 0
+                                  ? <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full">↩ {fmt(refundedAmt)}</span>
+                                  : <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                                }
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
+                              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                              title="Print Receipt"
+                            >
+                              <Printer size={16} />
+                            </button>
+                            {canRefund && (
+                              <button
+                                onClick={() => setRefundTarget({
+                                  label: order.orderNumber ?? order.id.slice(0, 8).toUpperCase(),
+                                  maxAmount: order.totalAmount,
+                                  orderId: order.id,
+                                })}
+                                className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                title="Issue Refund"
+                              >
+                                <RotateCcw size={16} />
+                              </button>
                             )}
-                            <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
                           </div>
                         </div>
-                        <button
-                          onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
-                          className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                          title="Print Receipt"
-                        >
-                          <Printer size={16} />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
           </>
+        ) : (
+          /* ── Refunds tab ── */
+          <section className="space-y-4">
+            {/* Today summary */}
+            {todayRefunds.length > 0 && (
+              <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-red-700">Today's Total Refunds</p>
+                  <p className="text-xs text-red-400 mt-0.5">{todayRefunds.length} transaction{todayRefunds.length !== 1 ? 's' : ''}</p>
+                </div>
+                <p className="text-2xl font-bold text-red-600">
+                  {fmt(todayRefunds.reduce((s, r) => s + r.amount, 0))}
+                </p>
+              </div>
+            )}
+
+            {refunds.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-12 text-center text-gray-400">
+                <RotateCcw size={32} className="mx-auto mb-2 text-gray-300" />
+                No refunds issued yet
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <RotateCcw size={15} className="text-red-500" />
+                  <h2 className="font-semibold text-gray-700 text-sm">All Refunds ({refunds.length})</h2>
+                </div>
+                <ul className="divide-y divide-gray-50">
+                  {refunds.map((r) => (
+                    <li key={r.id} className="px-5 py-3.5 flex items-start gap-4">
+                      <div className="w-9 h-9 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0 mt-0.5">
+                        <RotateCcw size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-gray-900 text-sm">{fmt(r.amount)}</span>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                            {refundMethodLabel(r.refundMethod)}
+                          </span>
+                          {r.sessionId && (
+                            <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">Table Session</span>
+                          )}
+                          {r.orderId && (
+                            <span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">Takeaway</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-0.5 truncate">{r.reason}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {r.createdByName} · {new Date(r.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
         )}
       </main>
 
@@ -591,6 +729,17 @@ export function BillsPage() {
           onConfirm={confirmPayment}
           onClose={() => setPaymentTarget(null)}
           loading={paying !== null || payingOrder !== null}
+        />
+      )}
+
+      {refundTarget && (
+        <RefundModal
+          label={refundTarget.label}
+          maxAmount={refundTarget.maxAmount}
+          orderId={refundTarget.orderId}
+          sessionId={refundTarget.sessionId}
+          onSuccess={() => loadRefunds()}
+          onClose={() => setRefundTarget(null)}
         />
       )}
     </div>
