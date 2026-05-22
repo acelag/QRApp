@@ -100,13 +100,27 @@ router.post('/', async (req, res) => {
   const { tableId, tableNumber, restaurantId } = req.body as { tableId: string; tableNumber: number; restaurantId: string; };
   if (!tableId || tableNumber == null || !restaurantId) { res.status(400).json({ error: 'tableId, tableNumber and restaurantId are required' }); return; }
 
-  const existing = await pool.query("SELECT * FROM table_sessions WHERE table_id = $1 AND restaurant_id = $2 AND status = 'open'", [tableId, restaurantId]);
-  if (existing.rows.length > 0) { res.json(rowToSession(existing.rows[0] as Record<string, unknown>)); return; }
-
-  const id = uuid(); const now = new Date().toISOString();
-  await pool.query(`INSERT INTO table_sessions (id,restaurant_id,table_id,table_number,status,created_at) VALUES ($1,$2,$3,$4,'open',$5)`,
-    [id, restaurantId, tableId, tableNumber, now]);
-  res.status(201).json({ id, restaurantId, tableId, tableNumber, status: 'open', createdAt: now, closedAt: null });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const existing = await client.query("SELECT id FROM table_sessions WHERE table_id = $1 AND status = 'open' FOR UPDATE", [tableId]);
+    if (existing.rows.length > 0) {
+      await client.query('ROLLBACK');
+      const full = await pool.query("SELECT * FROM table_sessions WHERE id = $1", [(existing.rows[0] as { id: string }).id]);
+      res.json(rowToSession(full.rows[0] as Record<string, unknown>));
+      return;
+    }
+    const id = uuid(); const now = new Date().toISOString();
+    await client.query(`INSERT INTO table_sessions (id,restaurant_id,table_id,table_number,status,created_at) VALUES ($1,$2,$3,$4,'open',$5)`,
+      [id, restaurantId, tableId, tableNumber, now]);
+    await client.query('COMMIT');
+    res.status(201).json({ id, restaurantId, tableId, tableNumber, status: 'open', createdAt: now, closedAt: null });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 router.get('/', authenticate, requireRole('admin', 'manager', 'cashier'), async (req: AuthRequest, res) => {

@@ -38,8 +38,8 @@ router.put('/:id', async (req: AuthRequest, res) => {
     if (taken.rows.length) { res.status(409).json({ error: 'Username already taken' }); return; }
   }
   const newHash = password ? await bcrypt.hash(password, 10) : (user.password_hash as string);
-  await pool.query('UPDATE users SET username=$1, name=$2, password_hash=$3, role=$4 WHERE id=$5',
-    [newUsername, name?.trim() || user.name, newHash, role || user.role, req.params.id]);
+  await pool.query('UPDATE users SET username=$1, name=$2, password_hash=$3, role=$4 WHERE id=$5 AND restaurant_id=$6',
+    [newUsername, name?.trim() || user.name, newHash, role || user.role, req.params.id, req.user!.restaurantId]);
   const updated = await pool.query('SELECT id, username, name, role FROM users WHERE id = $1', [req.params.id]);
   res.json(toUser(updated.rows[0] as Record<string, unknown>));
 });

@@ -116,6 +116,9 @@ router.post('/validate', async (req, res) => {
   if (!code || !restaurantId) {
     res.status(400).json({ valid: false, message: 'code and restaurantId are required' }); return;
   }
+  if (!orderAmount || orderAmount <= 0) {
+    res.status(400).json({ error: 'orderAmount must be a positive number' }); return;
+  }
 
   const upperCode = code.trim().toUpperCase();
   const result = await pool.query(

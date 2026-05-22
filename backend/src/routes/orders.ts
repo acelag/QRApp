@@ -125,36 +125,11 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     return s + (i.price + toppingsTotal) * i.quantity;
   }, 0);
 
-  // Validate and apply promo code if provided
+  // Promo code validation will happen inside the transaction (with FOR UPDATE lock)
   const { promoCode } = req.body as { promoCode?: string };
   let discountAmount = 0;
   let validatedPromoCode: string | null = null;
-
-  if (promoCode?.trim()) {
-    const upperCode = promoCode.trim().toUpperCase();
-    const promoRes = await pool.query(
-      'SELECT * FROM promo_codes WHERE code = $1 AND restaurant_id = $2',
-      [upperCode, resolvedRestaurantId],
-    );
-    if (promoRes.rows.length) {
-      const p = promoRes.rows[0] as Record<string, unknown>;
-      const isValid =
-        p.active &&
-        !(p.expires_at && new Date(p.expires_at as string) < new Date()) &&
-        !(p.max_uses != null && Number(p.uses) >= Number(p.max_uses)) &&
-        subtotal >= Number(p.min_order);
-
-      if (isValid) {
-        discountAmount = p.type === 'percentage'
-          ? Math.min(subtotal * (Number(p.value) / 100), subtotal)
-          : Math.min(Number(p.value), subtotal);
-        discountAmount = Math.round(discountAmount * 100) / 100;
-        validatedPromoCode = upperCode;
-      }
-    }
-  }
-
-  const totalAmount = Math.max(0, subtotal - discountAmount);
+  let totalAmount = 0;
 
   const now = new Date().toISOString();
   const orderId = uuid();
@@ -162,6 +137,33 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Validate and apply promo code inside transaction to prevent race condition
+    if (promoCode?.trim()) {
+      const upperCode = promoCode.trim().toUpperCase();
+      const promoRes = await client.query(
+        'SELECT * FROM promo_codes WHERE code = $1 AND restaurant_id = $2 FOR UPDATE',
+        [upperCode, resolvedRestaurantId],
+      );
+      if (promoRes.rows.length) {
+        const p = promoRes.rows[0] as Record<string, unknown>;
+        const isValid =
+          p.active &&
+          !(p.expires_at && new Date(p.expires_at as string) < new Date()) &&
+          !(p.max_uses != null && Number(p.uses) >= Number(p.max_uses)) &&
+          subtotal >= Number(p.min_order);
+
+        if (isValid) {
+          discountAmount = p.type === 'percentage'
+            ? Math.min(subtotal * (Number(p.value) / 100), subtotal)
+            : Math.min(Number(p.value), subtotal);
+          discountAmount = Math.round(discountAmount * 100) / 100;
+          validatedPromoCode = upperCode;
+        }
+      }
+    }
+
+    totalAmount = Math.max(0, subtotal - discountAmount);
     const seqRes = await client.query(
       `UPDATE restaurants SET next_order_seq = next_order_seq + 1 WHERE id = $1 RETURNING next_order_seq, order_number_prefix`,
       [resolvedRestaurantId],
@@ -194,6 +196,17 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
           [uuid(), orderItemId, topping.id, topping.name, topping.price],
         );
       }
+      // Check stock before decrementing to prevent overselling
+      const stockCheck = await client.query(
+        'SELECT stock, name FROM menu_items WHERE id = $1 AND track_stock = true AND stock IS NOT NULL',
+        [item.menuItemId],
+      );
+      if (stockCheck.rows.length) {
+        const stockRow = stockCheck.rows[0] as { stock: number; name: string };
+        if (stockRow.stock < item.quantity) {
+          throw Object.assign(new Error(`Insufficient stock for: ${stockRow.name}`), { statusCode: 400 });
+        }
+      }
       // Decrement stock for tracked items; auto-disable when it reaches 0
       await client.query(
         `UPDATE menu_items
@@ -206,6 +219,11 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
+    const e = err as { statusCode?: number; message?: string };
+    if (e.statusCode === 400) {
+      res.status(400).json({ error: e.message });
+      return;
+    }
     throw err;
   } finally {
     client.release();
@@ -398,8 +416,8 @@ router.post('/:id/feedback', async (req, res) => {
   const orderRes = await pool.query('SELECT status, rating FROM orders WHERE id = $1', [req.params.id]);
   if (!orderRes.rows.length) { res.status(404).json({ error: 'Order not found' }); return; }
   const row = orderRes.rows[0] as { status: string; rating: number | null };
-  if (row.status !== 'ready') {
-    res.status(400).json({ error: 'Feedback can only be submitted for ready orders' });
+  if (row.status === 'pending' || row.status === 'cancelled') {
+    res.status(400).json({ error: 'Feedback can only be submitted for received orders' });
     return;
   }
   if (row.rating != null) {

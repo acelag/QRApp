@@ -159,7 +159,7 @@ router.patch('/:id/wait-time', authenticate, requireRole('admin', 'manager', 'ki
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
 
-router.patch('/:id/room-service-hours', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/room-service-hours', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
   const { roomServiceOpen, roomServiceClose } = req.body as { roomServiceOpen?: string | null; roomServiceClose?: string | null };

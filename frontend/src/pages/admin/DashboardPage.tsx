@@ -151,6 +151,7 @@ export function DashboardPage() {
         </div>
 
         {/* ── Today's breakdown ──────────────────────────────────────── */}
+        {(user?.role === 'admin' || user?.role === 'manager') && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
             <div className="flex items-center gap-2">
@@ -205,6 +206,7 @@ export function DashboardPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* ── Navigation grid / list ─────────────────────────────────── */}
         {gridView ? (
