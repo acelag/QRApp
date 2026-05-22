@@ -11,6 +11,8 @@ import { orderService } from '../../services/orderService';
 import { reportService, type TodaySummary } from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
+import { SoundAlertToggle } from '../../components/SoundAlertToggle';
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
@@ -19,6 +21,8 @@ export function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [today, setToday]   = useState<TodaySummary | null>(null);
   const [gridView, setGridView] = useState(() => localStorage.getItem('dash-view') === 'grid');
+
+  useOrderSoundAlert(orders);
 
   function handleLogout() { logout(); navigate('/login', { replace: true }); }
 
@@ -101,6 +105,7 @@ export function DashboardPage() {
               <p className="text-sm text-gray-500 mt-0.5">Welcome, {user?.name}</p>
             </div>
             <div className="flex items-center gap-1">
+              <SoundAlertToggle />
               <button
                 onClick={() => setGridView((v) => { const next = !v; localStorage.setItem('dash-view', next ? 'grid' : 'list'); return next; })}
                 className="p-2 rounded-xl text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
