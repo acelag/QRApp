@@ -8,7 +8,7 @@ const toTable = (row: Record<string, unknown>) => ({
   id: row.id, restaurantId: row.restaurant_id, number: row.number, seats: row.seats, active: row.active === true,
 });
 
-router.get('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
   const result = await pool.query('SELECT * FROM tables WHERE restaurant_id = $1 ORDER BY number', [req.user!.restaurantId]);
   res.json((result.rows as Record<string, unknown>[]).map(toTable));
 });
