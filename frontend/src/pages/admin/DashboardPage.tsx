@@ -40,7 +40,8 @@ export function DashboardPage() {
   const todayStr = new Date().toLocaleDateString('en-CA');
   const todayOrders  = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
   const activeOrders = orders.filter((o) => ['pending', 'preparing', 'ready'].includes(o.status));
-  const todayRevenue = todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
+  // Net revenue = gross sales − refunds (from report API); fall back to order sum before API responds
+  const netRevenue = today?.revenue ?? todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
 
   const stats = [
     {
@@ -60,8 +61,8 @@ export function DashboardPage() {
       valueCls: 'text-red-600',
     },
     {
-      label: "Today's Revenue",
-      value: fmt(todayRevenue),
+      label: "Net Revenue",
+      value: fmt(netRevenue),
       icon: Banknote,
       iconCls: 'bg-green-50 text-green-600',
       bar: 'bg-green-400',
@@ -181,6 +182,22 @@ export function DashboardPage() {
               </div>
             ))}
           </div>
+
+          <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100 text-sm">
+            <span className="text-gray-500">Gross Revenue</span>
+            <span className="font-semibold text-gray-900">
+              {today ? fmt(today.grossRevenue) : '—'}
+            </span>
+          </div>
+
+          {today && today.totalRefunds > 0 && (
+            <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100 text-sm">
+              <span className="text-red-500 flex items-center gap-1.5">
+                <span>↩</span> Refunds ({today.refundCount})
+              </span>
+              <span className="font-semibold text-red-500">− {fmt(today.totalRefunds)}</span>
+            </div>
+          )}
 
           <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100 text-sm">
             <span className="text-gray-500">Avg. order value</span>

@@ -12,7 +12,7 @@ router.get('/today', async (req: AuthRequest, res) => {
   const from  = `${today}T00:00:00.000Z`;
   const to    = `${today}T23:59:59.999Z`;
 
-  const [summaryRes, itemsRes] = await Promise.all([
+  const [summaryRes, itemsRes, refundsRes] = await Promise.all([
     pool.query<{
       total_orders: number; total_revenue: number;
       dine_in: number; takeaway: number; room_service: number;
@@ -44,17 +44,33 @@ router.get('/today', async (req: AuthRequest, res) => {
        LIMIT 5`,
       [rid, from, to],
     ),
+    pool.query<{ total_refunds: number; refund_count: number }>(
+      `SELECT
+         COALESCE(SUM(amount), 0)::float AS total_refunds,
+         COUNT(*)::int                   AS refund_count
+       FROM refunds
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3`,
+      [rid, from, to],
+    ),
   ]);
 
   const s = summaryRes.rows[0];
+  const r = refundsRes.rows[0];
+  const grossRevenue  = s.total_revenue;
+  const totalRefunds  = r.total_refunds;
+  const netRevenue    = grossRevenue - totalRefunds;
+
   res.json({
-    revenue:       s.total_revenue,
+    revenue:       netRevenue,
+    grossRevenue,
+    totalRefunds,
+    refundCount:   r.refund_count,
     orderCount:    s.total_orders,
-    avgOrderValue: s.total_orders > 0 ? s.total_revenue / s.total_orders : 0,
+    avgOrderValue: s.total_orders > 0 ? grossRevenue / s.total_orders : 0,
     dineIn:        s.dine_in,
     takeaway:      s.takeaway,
     roomService:   s.room_service,
-    topItems:      itemsRes.rows.map((r) => ({ name: r.name, quantity: r.quantity, revenue: r.revenue })),
+    topItems:      itemsRes.rows.map((row) => ({ name: row.name, quantity: row.quantity, revenue: row.revenue })),
   });
 });
 

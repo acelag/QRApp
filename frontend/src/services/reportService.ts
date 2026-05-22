@@ -74,7 +74,10 @@ export interface Report {
 }
 
 export interface TodaySummary {
-  revenue: number;
+  revenue: number;       // net revenue (gross - refunds)
+  grossRevenue: number;
+  totalRefunds: number;
+  refundCount: number;
   orderCount: number;
   avgOrderValue: number;
   dineIn: number;
