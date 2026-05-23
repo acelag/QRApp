@@ -36,14 +36,15 @@ export function CombosPage() {
 
   useEffect(() => {
     if (!rid) return;
-    Promise.all([
+    Promise.allSettled([
       comboService.getCombos(rid),
       menuService.getItems(rid),
-    ]).then(([c, m]) => {
-      setCombos(c);
-      setMenuItems(m);
-    }).catch(() => toast.error('Failed to load'))
-      .finally(() => setLoading(false));
+    ]).then(([combosResult, itemsResult]) => {
+      if (combosResult.status === 'fulfilled') setCombos(combosResult.value);
+      else toast.error('Failed to load combos');
+      if (itemsResult.status === 'fulfilled') setMenuItems(itemsResult.value);
+      else toast.error('Failed to load menu items');
+    }).finally(() => setLoading(false));
   }, [rid]);
 
   function openCreate() {
