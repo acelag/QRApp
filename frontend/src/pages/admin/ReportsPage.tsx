@@ -9,7 +9,6 @@ import {
   ComposedChart,
   BarChart,
   Bar,
-  Area,
   Line,
   XAxis,
   YAxis,
