@@ -4,8 +4,8 @@ import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronD
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
-import { tagService } from '../../services/tagService';
-import type { Tag } from '../../services/tagService';
+import { tagService, tagPillCls } from '../../services/tagService';
+import type { Tag, TagCategory } from '../../services/tagService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useAuth } from '../../context/AuthContext';
@@ -69,7 +69,8 @@ export function MenuItemsPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [newTagLabel, setNewTagLabel] = useState('');
   const [newTagEmoji, setNewTagEmoji] = useState('🏷️');
-  const [editingTag, setEditingTag] = useState<{ id: string; label: string; emoji: string } | null>(null);
+  const [newTagCategory, setNewTagCategory] = useState<TagCategory>('label');
+  const [editingTag, setEditingTag] = useState<{ id: string; label: string; emoji: string; category: TagCategory } | null>(null);
   const [savingTag, setSavingTag] = useState(false);
   // Search / filter state
   const [searchQ,     setSearchQ]     = useState('');
@@ -257,10 +258,11 @@ export function MenuItemsPage() {
     if (!newTagLabel.trim()) return;
     setSavingTag(true);
     try {
-      const t = await tagService.createTag(newTagLabel.trim(), newTagEmoji.trim() || '🏷️');
+      const t = await tagService.createTag(newTagLabel.trim(), newTagEmoji.trim() || '🏷️', newTagCategory);
       setTags((prev) => [...prev, t]);
       setNewTagLabel('');
       setNewTagEmoji('🏷️');
+      setNewTagCategory('label');
       toast.success('Tag added');
     } catch {
       toast.error('Failed to add tag');
@@ -273,7 +275,7 @@ export function MenuItemsPage() {
     if (!editingTag || !editingTag.label.trim()) return;
     setSavingTag(true);
     try {
-      const t = await tagService.updateTag(editingTag.id, editingTag.label.trim(), editingTag.emoji.trim() || '🏷️');
+      const t = await tagService.updateTag(editingTag.id, editingTag.label.trim(), editingTag.emoji.trim() || '🏷️', editingTag.category);
       setTags((prev) => prev.map((tg) => tg.id === t.id ? t : tg));
       setEditingTag(null);
       toast.success('Tag updated');
@@ -600,61 +602,82 @@ export function MenuItemsPage() {
         {/* ── Tags management ─────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h2 className="font-semibold text-gray-700 mb-3 text-sm">Tags</h2>
-          <div className="flex gap-2 flex-wrap mb-3">
-            {tags.map((tag) => (
-              <div key={tag.id} className="flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
-                {editingTag?.id === tag.id ? (
-                  <>
-                    <input
-                      value={editingTag.emoji}
-                      onChange={(e) => setEditingTag({ ...editingTag, emoji: e.target.value })}
-                      className="w-8 text-center text-sm bg-transparent outline-none"
-                      maxLength={4}
-                      title="Emoji"
-                    />
-                    <input
-                      autoFocus
-                      value={editingTag.label}
-                      onChange={(e) => setEditingTag({ ...editingTag, label: e.target.value })}
-                      onKeyDown={(e) => { if (e.key === 'Enter') saveEditTag(); if (e.key === 'Escape') setEditingTag(null); }}
-                      className="text-sm text-blue-700 bg-transparent outline-none w-24"
-                    />
-                    <button onClick={saveEditTag} disabled={savingTag} className="text-green-500 hover:text-green-600 shrink-0">
-                      <Check size={13} />
-                    </button>
-                    <button onClick={() => setEditingTag(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
-                      <X size={13} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-blue-700 text-sm px-1">{tag.emoji} {tag.label}</span>
-                    <button
-                      onClick={() => setEditingTag({ id: tag.id, label: tag.label, emoji: tag.emoji })}
-                      className="text-blue-400 hover:text-blue-600 transition-colors shrink-0"
-                      title="Rename"
-                    >
-                      <Pencil size={12} />
-                    </button>
-                    <button
-                      onClick={() => deleteTag(tag)}
-                      className="text-blue-300 hover:text-red-500 transition-colors shrink-0"
-                      title="Delete"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </>
-                )}
+          {(['label', 'dietary', 'allergen'] as TagCategory[]).map((cat) => {
+            const catTags = tags.filter((t) => t.category === cat);
+            if (catTags.length === 0) return null;
+            const catLabel = cat === 'dietary' ? 'Dietary' : cat === 'allergen' ? 'Allergens' : 'Labels';
+            return (
+              <div key={cat} className="mb-3">
+                <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${cat === 'dietary' ? 'text-green-600' : cat === 'allergen' ? 'text-amber-600' : 'text-gray-400'}`}>
+                  {catLabel}
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {catTags.map((tag) => (
+                    <div key={tag.id} className={`flex items-center gap-1 border rounded-full px-2 py-0.5 ${tagPillCls(tag.category)} border-current/20`}>
+                      {editingTag?.id === tag.id ? (
+                        <>
+                          <input
+                            value={editingTag.emoji}
+                            onChange={(e) => setEditingTag({ ...editingTag, emoji: e.target.value })}
+                            className="w-8 text-center text-sm bg-transparent outline-none"
+                            maxLength={4}
+                            title="Emoji"
+                          />
+                          <input
+                            autoFocus
+                            value={editingTag.label}
+                            onChange={(e) => setEditingTag({ ...editingTag, label: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEditTag(); if (e.key === 'Escape') setEditingTag(null); }}
+                            className="text-sm bg-transparent outline-none w-24"
+                          />
+                          <select
+                            value={editingTag.category}
+                            onChange={(e) => setEditingTag({ ...editingTag, category: e.target.value as TagCategory })}
+                            className="text-xs bg-transparent outline-none border border-current/20 rounded px-1"
+                          >
+                            <option value="label">Label</option>
+                            <option value="dietary">Dietary</option>
+                            <option value="allergen">Allergen</option>
+                          </select>
+                          <button onClick={saveEditTag} disabled={savingTag} className="text-green-500 hover:text-green-600 shrink-0">
+                            <Check size={13} />
+                          </button>
+                          <button onClick={() => setEditingTag(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
+                            <X size={13} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-sm px-1">{tag.emoji} {tag.label}</span>
+                          <button
+                            onClick={() => setEditingTag({ id: tag.id, label: tag.label, emoji: tag.emoji, category: tag.category })}
+                            className="opacity-60 hover:opacity-100 transition-opacity shrink-0"
+                            title="Edit"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            onClick={() => deleteTag(tag)}
+                            className="opacity-40 hover:text-red-500 hover:opacity-100 transition-opacity shrink-0"
+                            title="Delete"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
+            );
+          })}
+          <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
             <input
               value={newTagEmoji}
               onChange={(e) => setNewTagEmoji(e.target.value)}
               placeholder="🏷️"
               maxLength={4}
-              className="w-12 text-center border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-300"
+              className="w-12 text-center border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300"
               title="Emoji"
             />
             <input
@@ -662,12 +685,21 @@ export function MenuItemsPage() {
               onChange={(e) => setNewTagLabel(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addTag()}
               placeholder="New tag name"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-300"
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300"
             />
+            <select
+              value={newTagCategory}
+              onChange={(e) => setNewTagCategory(e.target.value as TagCategory)}
+              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
+            >
+              <option value="label">Label</option>
+              <option value="dietary">Dietary</option>
+              <option value="allergen">Allergen</option>
+            </select>
             <button
               onClick={addTag}
               disabled={savingTag || !newTagLabel.trim()}
-              className="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-orange-600 transition-colors disabled:opacity-50"
             >
               Add
             </button>
@@ -792,7 +824,7 @@ export function MenuItemsPage() {
                     {(item.tags!).map((slug) => {
                       const tag = tags.find((t) => t.slug === slug);
                       return tag ? (
-                        <span key={slug} className="inline-flex items-center gap-0.5 text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">
+                        <span key={slug} className={`inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium ${tagPillCls(tag.category)}`}>
                           {tag.emoji} {tag.label}
                         </span>
                       ) : null;
@@ -1181,36 +1213,48 @@ export function MenuItemsPage() {
               <p className="text-xs text-gray-400 mt-1">Shown to kitchen as a countdown timer. Leave blank if not applicable.</p>
             </div>
 
-            {/* Tags */}
+            {/* Tags — grouped by category */}
             {tags.length > 0 && (
-              <div>
-                <label className="text-sm text-gray-600 mb-2 block">Tags</label>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => {
-                    const active = (form.tags ?? []).includes(tag.slug);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() =>
-                          setForm((f) => ({
-                            ...f,
-                            tags: active
-                              ? (f.tags ?? []).filter((t) => t !== tag.slug)
-                              : [...(f.tags ?? []), tag.slug],
-                          }))
-                        }
-                        className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                          active
-                            ? 'bg-orange-500 text-white border-orange-500'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'
-                        }`}
-                      >
-                        {tag.emoji} {tag.label}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="space-y-3">
+                <label className="text-sm text-gray-600 block">Tags</label>
+                {(['label', 'dietary', 'allergen'] as TagCategory[]).map((cat) => {
+                  const catTags = tags.filter((t) => t.category === cat);
+                  if (catTags.length === 0) return null;
+                  const catLabel = cat === 'dietary' ? '🥦 Dietary' : cat === 'allergen' ? '⚠️ Allergens' : '🏷️ Labels';
+                  return (
+                    <div key={cat}>
+                      <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${cat === 'dietary' ? 'text-green-600' : cat === 'allergen' ? 'text-amber-600' : 'text-gray-400'}`}>
+                        {catLabel}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {catTags.map((tag) => {
+                          const active = (form.tags ?? []).includes(tag.slug);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() =>
+                                setForm((f) => ({
+                                  ...f,
+                                  tags: active
+                                    ? (f.tags ?? []).filter((t) => t !== tag.slug)
+                                    : [...(f.tags ?? []), tag.slug],
+                                }))
+                              }
+                              className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors ${
+                                active
+                                  ? `${tagPillCls(cat, true)} border-transparent`
+                                  : `bg-white border-gray-200 hover:border-gray-300 ${cat === 'dietary' ? 'text-green-700' : cat === 'allergen' ? 'text-amber-700' : 'text-gray-600'}`
+                              }`}
+                            >
+                              {tag.emoji} {tag.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

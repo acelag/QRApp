@@ -6,13 +6,13 @@ const router = Router();
 router.use(authenticate, requireRole('admin', 'manager', 'cashier'));
 
 router.post('/kitchen/:orderId', async (req: AuthRequest, res) => {
-  const result = await printKitchenTicket(req.user!.restaurantId!, req.params.orderId);
+  const result = await printKitchenTicket(req.user!.restaurantId as string, req.params.orderId as string);
   if (result.success) res.json({ message: result.message });
   else res.status(500).json({ error: result.message });
 });
 
 router.post('/receipt/:orderId', async (req: AuthRequest, res) => {
-  const result = await printReceipt(req.user!.restaurantId!, req.params.orderId);
+  const result = await printReceipt(req.user!.restaurantId as string, req.params.orderId as string);
   if (result.success) res.json({ message: result.message });
   else res.status(500).json({ error: result.message });
 });

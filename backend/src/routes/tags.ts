@@ -24,6 +24,7 @@ function rowToTag(row: Record<string, unknown>) {
     label:      row.label as string,
     emoji:      row.emoji as string,
     sortOrder:  Number(row.sort_order ?? 0),
+    category:   (row.category as string | undefined) ?? 'label',
   };
 }
 
@@ -50,11 +51,12 @@ router.get('/', optionalAuthenticate, async (req, res) => {
 // POST /api/tags  — create a new tag
 router.post('/', authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { label, emoji } = req.body as { label?: string; emoji?: string };
+    const { label, emoji, category } = req.body as { label?: string; emoji?: string; category?: string };
     if (!label?.trim()) return res.status(400).json({ error: 'label required' });
 
     const restaurantId = (req as unknown as AuthReq).user!.restaurantId;
     let slug = slugify(label.trim());
+    const cat = ['dietary', 'allergen'].includes(category ?? '') ? category! : 'label';
 
     // Ensure slug is unique within the restaurant
     const existing = await pool.query(
@@ -75,9 +77,9 @@ router.post('/', authenticate, requireRole('admin'), async (req, res) => {
     const sortOrder = Number((maxRes.rows[0] as { next: number }).next);
 
     const r = await pool.query(
-      `INSERT INTO tags (id, restaurant_id, slug, label, emoji, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [uuidv4(), restaurantId, slug, label.trim(), (emoji ?? '').trim() || '🏷️', sortOrder],
+      `INSERT INTO tags (id, restaurant_id, slug, label, emoji, sort_order, category)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [uuidv4(), restaurantId, slug, label.trim(), (emoji ?? '').trim() || '🏷️', sortOrder, cat],
     );
     res.status(201).json(rowToTag(r.rows[0] as Record<string, unknown>));
   } catch (err) {
@@ -86,17 +88,18 @@ router.post('/', authenticate, requireRole('admin'), async (req, res) => {
   }
 });
 
-// PUT /api/tags/:id  — update label / emoji  (slug stays fixed so menu item refs still work)
+// PUT /api/tags/:id  — update label / emoji / category  (slug stays fixed so menu item refs still work)
 router.put('/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { label, emoji } = req.body as { label?: string; emoji?: string };
+    const { label, emoji, category } = req.body as { label?: string; emoji?: string; category?: string };
     if (!label?.trim()) return res.status(400).json({ error: 'label required' });
 
     const restaurantId = (req as unknown as AuthReq).user!.restaurantId;
+    const cat = ['dietary', 'allergen'].includes(category ?? '') ? category! : 'label';
     const r = await pool.query(
-      `UPDATE tags SET label=$1, emoji=$2
-       WHERE id=$3 AND restaurant_id=$4 RETURNING *`,
-      [label.trim(), (emoji ?? '').trim() || '🏷️', req.params.id, restaurantId],
+      `UPDATE tags SET label=$1, emoji=$2, category=$3
+       WHERE id=$4 AND restaurant_id=$5 RETURNING *`,
+      [label.trim(), (emoji ?? '').trim() || '🏷️', cat, req.params.id, restaurantId],
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
     res.json(rowToTag(r.rows[0] as Record<string, unknown>));

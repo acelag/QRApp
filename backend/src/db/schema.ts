@@ -255,28 +255,53 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
-  // Seed default tags for any restaurant that currently has none
+  // Add category column to tags (label | dietary | allergen)
+  await addCol('tags', 'category', "VARCHAR(20) NOT NULL DEFAULT 'label'");
+
+  // Fix categories for existing tags
+  await pool.query(`UPDATE tags SET category = 'dietary' WHERE slug IN ('vegan','vegetarian','gluten-free','halal','kosher') AND category = 'label'`);
+  await pool.query(`UPDATE tags SET category = 'allergen' WHERE slug IN ('dairy','eggs','fish','gluten','nuts','peanuts','shellfish','crustaceans','soy','sesame','mustard','celery','sulphites','lupin','molluscs') AND category = 'label'`);
+
+  // Seed all default + allergen tags for every restaurant (ON CONFLICT skips existing)
   {
-    const DEFAULT_TAGS = [
-      { slug: 'spicy',        label: 'Spicy',       emoji: '🌶' },
-      { slug: 'vegan',        label: 'Vegan',       emoji: '🌱' },
-      { slug: 'popular',      label: 'Popular',     emoji: '⭐' },
-      { slug: 'new',          label: 'New',         emoji: '🆕' },
-      { slug: 'vegetarian',   label: 'Vegetarian',  emoji: '🥦' },
-      { slug: 'gluten-free',  label: 'Gluten-Free', emoji: '🌾' },
-      { slug: 'halal',        label: 'Halal',       emoji: '✅' },
+    const ALL_TAGS: { slug: string; label: string; emoji: string; category: string }[] = [
+      // ── Labels ──────────────────────────────────────────────────────
+      { slug: 'spicy',       label: 'Spicy',       emoji: '🌶️', category: 'label'    },
+      { slug: 'popular',     label: 'Popular',     emoji: '⭐',  category: 'label'    },
+      { slug: 'new',         label: 'New',         emoji: '🆕',  category: 'label'    },
+      // ── Dietary ─────────────────────────────────────────────────────
+      { slug: 'vegan',       label: 'Vegan',       emoji: '🌱',  category: 'dietary'  },
+      { slug: 'vegetarian',  label: 'Vegetarian',  emoji: '🥦',  category: 'dietary'  },
+      { slug: 'gluten-free', label: 'Gluten-Free', emoji: '🌾',  category: 'dietary'  },
+      { slug: 'halal',       label: 'Halal',       emoji: '✅',  category: 'dietary'  },
+      // ── Allergens (EU Big 14) ────────────────────────────────────────
+      { slug: 'gluten',      label: 'Gluten',      emoji: '🌾',  category: 'allergen' },
+      { slug: 'crustaceans', label: 'Crustaceans', emoji: '🦞',  category: 'allergen' },
+      { slug: 'eggs',        label: 'Eggs',        emoji: '🥚',  category: 'allergen' },
+      { slug: 'fish',        label: 'Fish',        emoji: '🐟',  category: 'allergen' },
+      { slug: 'peanuts',     label: 'Peanuts',     emoji: '🥜',  category: 'allergen' },
+      { slug: 'soy',         label: 'Soy',         emoji: '🫘',  category: 'allergen' },
+      { slug: 'dairy',       label: 'Dairy',       emoji: '🥛',  category: 'allergen' },
+      { slug: 'nuts',        label: 'Tree Nuts',   emoji: '🌰',  category: 'allergen' },
+      { slug: 'celery',      label: 'Celery',      emoji: '🥬',  category: 'allergen' },
+      { slug: 'mustard',     label: 'Mustard',     emoji: '🌭',  category: 'allergen' },
+      { slug: 'sesame',      label: 'Sesame',      emoji: '🫙',  category: 'allergen' },
+      { slug: 'sulphites',   label: 'Sulphites',   emoji: '⚗️',  category: 'allergen' },
+      { slug: 'lupin',       label: 'Lupin',       emoji: '🌸',  category: 'allergen' },
+      { slug: 'molluscs',    label: 'Molluscs',    emoji: '🐚',  category: 'allergen' },
     ];
-    const restRes = await pool.query(
-      `SELECT r.id FROM restaurants r
-       WHERE NOT EXISTS (SELECT 1 FROM tags t WHERE t.restaurant_id = r.id)`
-    );
+    const restRes = await pool.query('SELECT id FROM restaurants');
     for (const rest of restRes.rows as { id: string }[]) {
-      for (let i = 0; i < DEFAULT_TAGS.length; i++) {
-        const t = DEFAULT_TAGS[i];
+      const maxRes = await pool.query(
+        'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM tags WHERE restaurant_id = $1',
+        [rest.id],
+      );
+      let nextOrder = Number((maxRes.rows[0] as { next: number }).next);
+      for (const t of ALL_TAGS) {
         await pool.query(
-          `INSERT INTO tags (id, restaurant_id, slug, label, emoji, sort_order)
-           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
-          [rest.id, t.slug, t.label, t.emoji, i],
+          `INSERT INTO tags (id, restaurant_id, slug, label, emoji, sort_order, category)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6) ON CONFLICT (restaurant_id, slug) DO NOTHING`,
+          [rest.id, t.slug, t.label, t.emoji, nextOrder++, t.category],
         );
       }
     }

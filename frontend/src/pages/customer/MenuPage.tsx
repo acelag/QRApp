@@ -12,6 +12,7 @@ import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
+import { tagPillCls } from '../../services/tagService';
 import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List } from 'lucide-react';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 export function MenuPage() {
@@ -172,19 +173,18 @@ export function MenuPage() {
         </div>
         {visibleTags.length > 0 && (
           <div className="max-w-lg mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
-            {visibleTags.map((tag) => (
-              <button
-                key={tag.slug}
-                onClick={() => setActiveTag(activeTag === tag.slug ? null : tag.slug)}
-                className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                  activeTag === tag.slug
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {tag.emoji} {tag.label}
-              </button>
-            ))}
+            {visibleTags.map((tag) => {
+              const isActive = activeTag === tag.slug;
+              return (
+                <button
+                  key={tag.slug}
+                  onClick={() => setActiveTag(isActive ? null : tag.slug)}
+                  className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${tagPillCls(tag.category, isActive)}`}
+                >
+                  {tag.emoji} {tag.label}
+                </button>
+              );
+            })}
           </div>
         )}
         {/* Search bar */}
