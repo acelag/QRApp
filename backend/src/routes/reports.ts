@@ -82,7 +82,7 @@ router.get('/', async (req: AuthRequest, res) => {
   const fromIso = `${from}T00:00:00.000Z`;
   const toIso   = `${to}T23:59:59.999Z`;
 
-  const [summaryRes, dailyRes, itemsRes, categoriesRes, toppingsRes, heatmapRes, promosRes, paymentRes] = await Promise.all([
+  const [summaryRes, dailyRes, itemsRes, categoriesRes, toppingsRes, heatmapRes, promosRes, paymentRes, tableTurnsRes] = await Promise.all([
     // Summary totals
     pool.query<{ total_orders: number; total_revenue: number; dine_in_orders: number; takeaway_orders: number }>(
       `SELECT
@@ -221,6 +221,32 @@ router.get('/', async (req: AuthRequest, res) => {
        ORDER BY revenue DESC`,
       [rid, fromIso, toIso],
     ),
+
+    // Table turn rate — closed dine-in sessions per day
+    pool.query<{ date: string; turn_count: number; avg_duration_mins: number; max_duration_mins: number; min_duration_mins: number }>(
+      `SELECT
+         SUBSTRING(created_at, 1, 10) AS date,
+         COUNT(*)::int AS turn_count,
+         COALESCE(AVG(
+           EXTRACT(EPOCH FROM (closed_at::timestamptz - created_at::timestamptz)) / 60.0
+         ), 0)::float AS avg_duration_mins,
+         COALESCE(MAX(
+           EXTRACT(EPOCH FROM (closed_at::timestamptz - created_at::timestamptz)) / 60.0
+         ), 0)::float AS max_duration_mins,
+         COALESCE(MIN(
+           EXTRACT(EPOCH FROM (closed_at::timestamptz - created_at::timestamptz)) / 60.0
+         ), 0)::float AS min_duration_mins
+       FROM table_sessions
+       WHERE restaurant_id = $1
+         AND created_at >= $2
+         AND created_at <= $3
+         AND status = 'closed'
+         AND closed_at IS NOT NULL
+         AND merged_into_session_id IS NULL
+       GROUP BY SUBSTRING(created_at, 1, 10)
+       ORDER BY date DESC`,
+      [rid, fromIso, toIso],
+    ),
   ]);
 
   const s = summaryRes.rows[0];
@@ -276,6 +302,13 @@ router.get('/', async (req: AuthRequest, res) => {
       method:     r.method,
       orderCount: r.order_count,
       revenue:    r.revenue,
+    })),
+    tableTurns: tableTurnsRes.rows.map((r) => ({
+      date:            r.date,
+      turnCount:       r.turn_count,
+      avgDurationMins: r.avg_duration_mins,
+      maxDurationMins: r.max_duration_mins,
+      minDurationMins: r.min_duration_mins,
     })),
   });
 });

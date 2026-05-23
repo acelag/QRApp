@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard } from 'lucide-react';
+import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard, Clock } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 import {
   ResponsiveContainer,
+  ComposedChart,
   BarChart,
   Bar,
+  Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Cell,
+  Legend,
 } from 'recharts';
 
 // ── CSV helpers ──────────────────────────────────────────────────────────────
@@ -99,6 +103,19 @@ function buildCsv(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
       ]);
       break;
     }
+    case 'turns':
+      downloadCsv(`${prefix}-table-turns.csv`, [
+        ['Date', 'Turns', 'Avg Duration', 'Min Duration', 'Max Duration'],
+        ...(report.tableTurns ?? []).map((r) => [
+          r.date,
+          r.turnCount,
+          fmtDuration(r.avgDurationMins),
+          fmtDuration(r.minDurationMins),
+          fmtDuration(r.maxDurationMins),
+        ]),
+        ['TOTAL', (report.tableTurns ?? []).reduce((s, r) => s + r.turnCount, 0), '', '', ''],
+      ]);
+      break;
   }
   void fmt; // used in switch above indirectly; keep lint happy
   toast.success('CSV downloaded');
@@ -399,6 +416,7 @@ function buildPdf(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
     extras:     'Extras & Toppings',
     promos:     'Promo Code Usage',
     payment:    'Revenue by Payment Method',
+    turns:      'Table Turn Rate',
   };
   const title = TAB_TITLES[tab];
   const header = pdfHeader(title, from, to);
@@ -425,6 +443,36 @@ function buildPdf(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
     case 'promos':
       body = pdfPromosSection(report, fmt);
       break;
+    case 'turns': {
+      const turns = report.tableTurns ?? [];
+      const totalTurns = turns.reduce((s, r) => s + r.turnCount, 0);
+      const weightedAvg = totalTurns > 0
+        ? turns.reduce((s, r) => s + r.avgDurationMins * r.turnCount, 0) / totalTurns
+        : 0;
+      const maxDur = turns.length > 0 ? Math.max(...turns.map((r) => r.maxDurationMins)) : 0;
+      const HOUR_FMT = (m: number) => m < 1 ? '< 1 min' : m < 60 ? `${Math.round(m)} min` : `${Math.floor(m / 60)}h ${Math.round(m % 60)}m`;
+      const rows = turns.map((r) => `<tr>
+        <td>${new Date(r.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+        <td class="right">${r.turnCount}</td>
+        <td class="right">${HOUR_FMT(r.avgDurationMins)}</td>
+        <td class="right">${HOUR_FMT(r.minDurationMins)}</td>
+        <td class="right">${HOUR_FMT(r.maxDurationMins)}</td>
+      </tr>`).join('');
+      body = `
+        <div class="summary" style="grid-template-columns:repeat(3,1fr)">
+          <div class="card"><div class="val">${totalTurns}</div><div class="lbl">Total Table Turns</div></div>
+          <div class="card"><div class="val">${HOUR_FMT(weightedAvg)}</div><div class="lbl">Avg Session Duration</div></div>
+          <div class="card"><div class="val">${HOUR_FMT(maxDur)}</div><div class="lbl">Longest Session</div></div>
+        </div>
+        <h2>Turn Rate by Day</h2>
+        ${turns.length === 0 ? '<p style="color:#9ca3af;font-style:italic">No closed sessions in this period.</p>' : `
+        <table>
+          <thead><tr><th>Date</th><th class="right">Turns</th><th class="right">Avg Duration</th><th class="right">Shortest</th><th class="right">Longest</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td>Total</td><td class="right">${totalTurns}</td><td class="right">${HOUR_FMT(weightedAvg)}</td><td></td><td></td></tr></tfoot>
+        </table>`}`;
+      break;
+    }
     case 'heatmap': {
       const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       const HOUR = Array.from({ length: 24 }, (_, h) => h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h-12}pm`);
@@ -468,7 +516,15 @@ function buildFullPdf(report: Report, from: string, to: string, fmt: (n: number)
   openPrintWindow(`Full Report — ${from === to ? from : `${from} – ${to}`}`, header + summary + body + pdfFooter());
 }
 
-type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap' | 'promos' | 'payment';
+type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap' | 'promos' | 'payment' | 'turns';
+
+function fmtDuration(mins: number): string {
+  if (mins < 1) return '< 1 min';
+  if (mins < 60) return `${Math.round(mins)} min`;
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -679,6 +735,7 @@ export function ReportsPage() {
                 ...(report.toppings.length > 0 ? [{ key: 'extras', label: 'Extras' }] : []),
                 { key: 'promos',     label: '🏷️ Promo Codes' },
                 { key: 'payment',    label: '💳 Payment' },
+                { key: 'turns',      label: '⏱️ Table Turns' },
               ] as { key: Tab; label: string }[]).map((t) => (
                 <button
                   key={t.key}
@@ -854,6 +911,48 @@ export function ReportsPage() {
                           ))}
                         </div>
                       </div>
+
+                      {/* Day-of-week revenue + orders bar chart */}
+                      {(() => {
+                        const dayRevenue  = Array(7).fill(0) as number[];
+                        const dayOrders   = Array(7).fill(0) as number[];
+                        cells.forEach((c) => { dayRevenue[c.dayOfWeek] += c.revenue; dayOrders[c.dayOfWeek] += c.orderCount; });
+                        const dowData = DAY_ORDER.map((d) => ({
+                          day: DAY_LABELS[d],
+                          revenue: dayRevenue[d],
+                          orders: dayOrders[d],
+                        }));
+                        const peakDow = DAY_ORDER.reduce((best, d) => dayOrders[d] > dayOrders[best] ? d : best, DAY_ORDER[0]);
+                        return (
+                          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="px-5 pt-4 pb-2 border-b border-gray-100">
+                              <p className="text-sm font-bold text-gray-900">Revenue by Day of Week</p>
+                              <p className="text-xs text-gray-400 mt-0.5">Busiest day: <span className="font-semibold text-orange-500">{DAY_LABELS[peakDow]}</span> · {dayOrders[peakDow]} orders</p>
+                            </div>
+                            <div className="px-2 pt-3 pb-2">
+                              <ResponsiveContainer width="100%" height={200}>
+                                <ComposedChart data={dowData} margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                  <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} />
+                                  <YAxis yAxisId="rev" orientation="left" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={(v) => fmt(v)} width={60} />
+                                  <YAxis yAxisId="ord" orientation="right" tick={{ fontSize: 10, fill: '#93c5fd' }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+                                  <Tooltip
+                                    contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,.08)' }}
+                                    formatter={(value, name) => name === 'revenue' ? [fmt(Number(value)), 'Revenue'] : [String(value), 'Orders']}
+                                  />
+                                  <Legend formatter={(v) => v === 'revenue' ? 'Revenue' : 'Orders'} iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                                  <Bar yAxisId="rev" dataKey="revenue" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                                    {dowData.map((d, i) => (
+                                      <Cell key={i} fill={d.day === DAY_LABELS[peakDow] ? '#ea580c' : '#fb923c'} />
+                                    ))}
+                                  </Bar>
+                                  <Line yAxisId="ord" type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} activeDot={{ r: 5 }} />
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </>
                   )}
                 </div>
@@ -942,48 +1041,126 @@ export function ReportsPage() {
               </div>
             )}
 
-            {/* Sales by day table */}
-            {tab === 'sales' && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                {report.daily.length === 0 ? (
-                  <p className="text-center text-gray-400 py-10">No orders in this period.</p>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100 bg-gray-50">
-                        <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-600">Orders</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-600">Dine-in</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-600">Takeaway</th>
-                        <th className="text-right px-4 py-3 font-semibold text-gray-600">Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {report.daily.map((row) => (
-                        <tr key={row.date} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 text-gray-700 font-medium">
-                            {new Date(row.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-700">{row.orderCount}</td>
-                          <td className="px-4 py-3 text-right text-gray-500">{row.dineInCount}</td>
-                          <td className="px-4 py-3 text-right text-gray-500">{row.takeawayCount}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-gray-900">{fmt(row.revenue)}</td>
+            {/* Sales by day — trend chart + table */}
+            {tab === 'sales' && (() => {
+              if (report.daily.length === 0) {
+                return (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
+                    <TrendingUp size={32} className="mx-auto mb-2 text-gray-200" />
+                    <p>No orders in this period.</p>
+                  </div>
+                );
+              }
+              // Chronological order for chart
+              const trendData = report.daily.slice().reverse().map((r) => ({
+                label: new Date(r.date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                revenue: r.revenue,
+                orders: r.orderCount,
+                dineIn: r.dineInCount,
+                takeaway: r.takeawayCount,
+              }));
+              return (
+                <div className="space-y-4">
+                  {/* Trend chart */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="px-5 pt-4 pb-2 border-b border-gray-100">
+                      <p className="text-sm font-bold text-gray-900">Revenue &amp; Order Trend</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{trendData.length} day{trendData.length !== 1 ? 's' : ''} · bars = revenue · line = orders</p>
+                    </div>
+                    <div className="px-2 pt-3 pb-2">
+                      <ResponsiveContainer width="100%" height={220}>
+                        <ComposedChart data={trendData} margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                          <XAxis
+                            dataKey="label"
+                            tick={{ fontSize: 10, fill: '#9ca3af' }}
+                            tickLine={false}
+                            axisLine={false}
+                            interval="preserveStartEnd"
+                          />
+                          <YAxis
+                            yAxisId="rev"
+                            orientation="left"
+                            tick={{ fontSize: 10, fill: '#9ca3af' }}
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(v) => fmt(v)}
+                            width={60}
+                          />
+                          <YAxis
+                            yAxisId="ord"
+                            orientation="right"
+                            tick={{ fontSize: 10, fill: '#93c5fd' }}
+                            tickLine={false}
+                            axisLine={false}
+                            allowDecimals={false}
+                            width={28}
+                          />
+                          <Tooltip
+                            contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,.08)' }}
+                            labelStyle={{ fontWeight: 700, color: '#111' }}
+                            formatter={(value, name) => {
+                              if (name === 'revenue') return [fmt(Number(value)), 'Revenue'];
+                              if (name === 'orders')  return [String(value), 'Orders'];
+                              if (name === 'dineIn')  return [String(value), 'Dine-in'];
+                              return [String(value), String(name)];
+                            }}
+                          />
+                          <Legend
+                            formatter={(value) => value === 'revenue' ? 'Revenue' : value === 'orders' ? 'Orders' : value}
+                            iconSize={10}
+                            wrapperStyle={{ fontSize: 11 }}
+                          />
+                          <Bar yAxisId="rev" dataKey="revenue" fill="#fed7aa" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                            {trendData.map((_, i) => (
+                              <Cell key={i} fill={i === trendData.length - 1 ? '#ea580c' : '#fb923c'} />
+                            ))}
+                          </Bar>
+                          <Line yAxisId="ord" type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} activeDot={{ r: 5 }} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Daily detail table */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50">
+                          <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
+                          <th className="text-right px-4 py-3 font-semibold text-gray-600">Orders</th>
+                          <th className="text-right px-4 py-3 font-semibold text-gray-600">Dine-in</th>
+                          <th className="text-right px-4 py-3 font-semibold text-gray-600">Takeaway</th>
+                          <th className="text-right px-4 py-3 font-semibold text-gray-600">Revenue</th>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-orange-50 border-t border-orange-100">
-                        <td className="px-4 py-3 font-bold text-orange-800">Total</td>
-                        <td className="px-4 py-3 text-right font-bold text-orange-800">{s!.totalOrders}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-orange-700">{s!.dineInOrders}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-orange-700">{s!.takeawayOrders}</td>
-                        <td className="px-4 py-3 text-right font-bold text-orange-800">{fmt(s!.totalRevenue)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                )}
-              </div>
-            )}
+                      </thead>
+                      <tbody>
+                        {report.daily.map((row) => (
+                          <tr key={row.date} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3 text-gray-700 font-medium">
+                              {new Date(row.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-700">{row.orderCount}</td>
+                            <td className="px-4 py-3 text-right text-gray-500">{row.dineInCount}</td>
+                            <td className="px-4 py-3 text-right text-gray-500">{row.takeawayCount}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-gray-900">{fmt(row.revenue)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-orange-50 border-t border-orange-100">
+                          <td className="px-4 py-3 font-bold text-orange-800">Total</td>
+                          <td className="px-4 py-3 text-right font-bold text-orange-800">{s!.totalOrders}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-orange-700">{s!.dineInOrders}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-orange-700">{s!.takeawayOrders}</td>
+                          <td className="px-4 py-3 text-right font-bold text-orange-800">{fmt(s!.totalRevenue)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Items tab — chart + table */}
             {tab === 'items' && (
@@ -1382,6 +1559,130 @@ export function ReportsPage() {
                               <td className="px-4 py-3 text-right font-bold text-orange-800">{totalOrders}</td>
                               <td className="px-4 py-3 text-right font-bold text-orange-800">{fmt(totalRev)}</td>
                               <td className="px-4 py-3 text-right font-bold text-orange-800">100%</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Table Turns tab */}
+            {tab === 'turns' && (() => {
+              const turns = report.tableTurns ?? [];
+              const totalTurns  = turns.reduce((s, r) => s + r.turnCount, 0);
+              const weightedAvg = totalTurns > 0
+                ? turns.reduce((s, r) => s + r.avgDurationMins * r.turnCount, 0) / totalTurns
+                : 0;
+              const maxDuration = turns.length > 0 ? Math.max(...turns.map((r) => r.maxDurationMins)) : 0;
+              const minDuration = turns.filter((r) => r.minDurationMins > 0).length > 0
+                ? Math.min(...turns.filter((r) => r.minDurationMins > 0).map((r) => r.minDurationMins))
+                : 0;
+
+              // Chronological chart data
+              const turnsChart = turns.slice().reverse().map((r) => ({
+                label: new Date(r.date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                turns: r.turnCount,
+                avgMins: Math.round(r.avgDurationMins),
+              }));
+
+              return (
+                <div className="space-y-4">
+                  {/* Summary cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-1"><Clock size={15} className="text-orange-500" /><span className="text-xs text-gray-500">Total Turns</span></div>
+                      <p className="text-2xl font-bold text-gray-900">{totalTurns}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">closed sessions</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-1"><TrendingUp size={15} className="text-blue-500" /><span className="text-xs text-gray-500">Avg Duration</span></div>
+                      <p className="text-2xl font-bold text-gray-900">{totalTurns > 0 ? fmtDuration(weightedAvg) : '—'}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">per table session</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-1"><span className="text-green-500 text-xs font-bold">▼</span><span className="text-xs text-gray-500">Shortest</span></div>
+                      <p className="text-2xl font-bold text-gray-900">{minDuration > 0 ? fmtDuration(minDuration) : '—'}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">quickest session</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-1"><span className="text-red-400 text-xs font-bold">▲</span><span className="text-xs text-gray-500">Longest</span></div>
+                      <p className="text-2xl font-bold text-gray-900">{maxDuration > 0 ? fmtDuration(maxDuration) : '—'}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">longest session</p>
+                    </div>
+                  </div>
+
+                  {turns.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
+                      <Clock size={32} className="mx-auto mb-2 text-gray-200" />
+                      <p>No closed dine-in sessions in this period.</p>
+                      <p className="text-xs mt-1 text-gray-300">Sessions are recorded when a table is opened and closed via the Table Management page.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Turns + avg duration chart */}
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="px-5 pt-4 pb-2 border-b border-gray-100">
+                          <p className="text-sm font-bold text-gray-900">Daily Turn Rate</p>
+                          <p className="text-xs text-gray-400 mt-0.5">bars = table turns · line = avg duration (mins)</p>
+                        </div>
+                        <div className="px-2 pt-3 pb-2">
+                          <ResponsiveContainer width="100%" height={200}>
+                            <ComposedChart data={turnsChart} margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                              <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                              <YAxis yAxisId="t" orientation="left" allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={28} />
+                              <YAxis yAxisId="m" orientation="right" tick={{ fontSize: 10, fill: '#a78bfa' }} tickLine={false} axisLine={false} width={40} tickFormatter={(v) => `${v}m`} />
+                              <Tooltip
+                                contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,.08)' }}
+                                formatter={(value, name) =>
+                                  name === 'turns'   ? [String(value), 'Turns'] :
+                                  name === 'avgMins' ? [`${value} min`, 'Avg Duration'] :
+                                  [String(value), String(name)]
+                                }
+                              />
+                              <Legend formatter={(v) => v === 'turns' ? 'Table Turns' : 'Avg Duration (min)'} iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                              <Bar yAxisId="t" dataKey="turns" fill="#fb923c" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                              <Line yAxisId="m" type="monotone" dataKey="avgMins" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3, fill: '#8b5cf6' }} activeDot={{ r: 5 }} />
+                            </ComposedChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* Daily detail table */}
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-100 bg-gray-50">
+                              <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600">Turns</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600">Avg Duration</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Shortest</th>
+                              <th className="text-right px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Longest</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {turns.map((row) => (
+                              <tr key={row.date} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                <td className="px-4 py-3 text-gray-700 font-medium">
+                                  {new Date(row.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                </td>
+                                <td className="px-4 py-3 text-right font-semibold text-gray-900">{row.turnCount}</td>
+                                <td className="px-4 py-3 text-right text-gray-700">{fmtDuration(row.avgDurationMins)}</td>
+                                <td className="px-4 py-3 text-right text-green-600 hidden sm:table-cell">{fmtDuration(row.minDurationMins)}</td>
+                                <td className="px-4 py-3 text-right text-red-400 hidden sm:table-cell">{fmtDuration(row.maxDurationMins)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-orange-50 border-t border-orange-100">
+                              <td className="px-4 py-3 font-bold text-orange-800">Total</td>
+                              <td className="px-4 py-3 text-right font-bold text-orange-800">{totalTurns}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-orange-700">{fmtDuration(weightedAvg)}</td>
+                              <td className="px-4 py-3 hidden sm:table-cell" />
+                              <td className="px-4 py-3 hidden sm:table-cell" />
                             </tr>
                           </tfoot>
                         </table>

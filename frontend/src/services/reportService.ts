@@ -62,6 +62,14 @@ export interface PaymentMethodRow {
   revenue: number;
 }
 
+export interface TableTurnRow {
+  date: string;
+  turnCount: number;
+  avgDurationMins: number;
+  maxDurationMins: number;
+  minDurationMins: number;
+}
+
 export interface Report {
   summary: ReportSummary;
   daily: DailyRow[];
@@ -71,6 +79,7 @@ export interface Report {
   heatmap: HeatmapCell[];
   promos: PromoReportRow[];
   paymentMethods: PaymentMethodRow[];
+  tableTurns: TableTurnRow[];
 }
 
 export interface TodaySummary {
