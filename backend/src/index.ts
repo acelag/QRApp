@@ -28,6 +28,7 @@ import waitersRouter from './routes/waiters';
 import tagsRouter from './routes/tags';
 import refundsRouter from './routes/refunds';
 import printRouter from './routes/print';
+import rosterRouter from './routes/roster';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
 
@@ -100,6 +101,7 @@ app.use('/api/waiters',       waitersRouter);
 app.use('/api/tags',          tagsRouter);
 app.use('/api/refunds',      refundsRouter);
 app.use('/api/print',        printRouter);
+app.use('/api/roster',       rosterRouter);
 app.use('/api/upload',      authenticate, requireRole('admin'), uploadRouter);
 app.use('/api/users',       usersRouter);
 

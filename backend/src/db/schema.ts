@@ -324,5 +324,21 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shifts (
+      id            VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id VARCHAR(36)  NOT NULL,
+      user_id       VARCHAR(36)  NULL,
+      staff_name    VARCHAR(255) NOT NULL,
+      staff_role    VARCHAR(50)  NOT NULL DEFAULT 'staff',
+      date          VARCHAR(10)  NOT NULL,
+      start_time    VARCHAR(5)   NOT NULL,
+      end_time      VARCHAR(5)   NOT NULL,
+      notes         VARCHAR(500) NULL,
+      status        VARCHAR(20)  NOT NULL DEFAULT 'scheduled',
+      created_at    VARCHAR(50)  NOT NULL
+    );
+  `);
+
   console.log('✓ Schema ready');
 }

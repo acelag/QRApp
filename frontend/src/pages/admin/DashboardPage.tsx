@@ -4,7 +4,7 @@ import {
   ClipboardList, UtensilsCrossed, ChefHat, LogOut, Settings,
   Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay,
   BedDouble, Tag, CreditCard, UserCheck, Trophy, ShoppingBag, MapPin,
-  Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode, ClipboardCheck,
+  Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode, ClipboardCheck, CalendarDays,
 } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -85,6 +85,7 @@ export function DashboardPage() {
     { to: '/admin/room-charges',       label: 'Room Charges',       icon: CreditCard,     desc: 'Pending charge-to-room bills',          primary: false, badge: undefined, allowedRoles: ['admin','manager','cashier'] },
     { to: '/admin/waiters',            label: 'Waiters',            icon: UserCheck,      desc: 'Manage waiter staff list',              primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
     { to: '/admin/staff-performance',  label: 'Staff Performance',  icon: Trophy,         desc: 'Waiter leaderboard & stats',            primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
+    { to: '/admin/roster',             label: 'Staff Roster',       icon: CalendarDays,   desc: 'Weekly shift scheduling & roster',      primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
     ...(user?.restaurantId ? [{
       to: '#',
       href: `/takeaway/${user.restaurantId}`,

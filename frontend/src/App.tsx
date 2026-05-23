@@ -43,6 +43,7 @@ import { StaffPerformancePage } from './pages/admin/StaffPerformancePage';
 import { TableStatusPage } from './pages/admin/TableStatusPage';
 import { LocationsPage } from './pages/admin/LocationsPage';
 import { ShiftCloseReportPage } from './pages/admin/ShiftCloseReportPage';
+import { RosterPage } from './pages/admin/RosterPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -100,6 +101,7 @@ export default function App() {
             <Route path="/admin/room-charges" element={<ProtectedRoute roles={['admin','manager','cashier']}><RoomChargesPage /></ProtectedRoute>} />
             <Route path="/admin/waiters" element={<ProtectedRoute roles={['admin','manager']}><WaitersPage /></ProtectedRoute>} />
             <Route path="/admin/staff-performance" element={<ProtectedRoute roles={['admin','manager']}><StaffPerformancePage /></ProtectedRoute>} />
+            <Route path="/admin/roster" element={<ProtectedRoute roles={['admin','manager']}><RosterPage /></ProtectedRoute>} />
             <Route path="/admin/table-status" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><TableStatusPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by kitchen, admin and manager */}
