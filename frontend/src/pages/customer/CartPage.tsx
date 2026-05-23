@@ -68,6 +68,11 @@ export function CartPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                    {item.comboId && (
+                      <span className="text-xs bg-orange-500 text-white font-semibold px-2 py-0.5 rounded-full">
+                        Bundle
+                      </span>
+                    )}
                     {item.size && (
                       <span className="text-xs bg-orange-100 text-orange-600 font-medium px-2 py-0.5 rounded-full capitalize">
                         {item.size}
@@ -75,6 +80,9 @@ export function CartPage() {
                     )}
                   </div>
                   <p className="text-orange-600 font-medium text-sm">{fmt(item.price)}</p>
+                  {(item.comboItems ?? []).length > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">{item.comboItems!.join(' · ')}</p>
+                  )}
                   {(item.toppings ?? []).length > 0 && (
                     <ul className="mt-1 space-y-0.5">
                       {item.toppings!.map((t, ti) => (

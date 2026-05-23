@@ -15,6 +15,10 @@ export interface CartItem {
   notes?: string;
   size?: 'regular' | 'large';
   toppings?: SelectedTopping[];
+  /** Set when this cart item is a combo/bundle deal */
+  comboId?: string;
+  /** Display names of items included in the combo */
+  comboItems?: string[];
 }
 
 export interface OrderItem {
@@ -25,6 +29,7 @@ export interface OrderItem {
   notes?: string;
   size?: 'regular' | 'large';
   toppings?: SelectedTopping[];
+  comboId?: string;
 }
 
 export interface Order {

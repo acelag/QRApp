@@ -15,12 +15,13 @@ import { useTags } from '../../context/TagsContext';
 import { tagPillCls } from '../../services/tagService';
 import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
 import type { MenuSchedule } from '../../services/menuScheduleService';
-import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List } from 'lucide-react';
+import { comboService, type Combo } from '../../services/comboService';
+import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package } from 'lucide-react';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 export function MenuPage() {
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
-  const { setTable, setSession, setRestaurant, tableNumber, tableId } = useCart();
-  const { loadCurrency } = useCurrency();
+  const { setTable, setSession, setRestaurant, tableNumber, tableId, addCombo } = useCart();
+  const { loadCurrency, fmt } = useCurrency();
   const { loadTheme } = useTheme();
   const { tags: allTags, loadTags } = useTags();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -35,6 +36,7 @@ export function MenuPage() {
     (localStorage.getItem('qra_menu_view') as 'grid' | 'list' | null) ?? 'grid'
   );
   const [schedules, setSchedules] = useState<MenuSchedule[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
 
   function loadMenu() {
     if (!tableIdParam) return;
@@ -55,8 +57,9 @@ export function MenuPage() {
       setItems(cached.items);
       setSession(cached.sessionId);
       localStorage.setItem(`qra_session_${cached.tableId}`, cached.sessionId);
-      // Load schedules in background (non-blocking)
+      // Load schedules + combos in background (non-blocking)
       menuScheduleService.getSchedules(cached.restaurantId).then(setSchedules).catch(() => {});
+      comboService.getCombos(cached.restaurantId).then((c) => setCombos(c.filter((x) => x.active))).catch(() => {});
       setLoading(false);
       return;
     }
@@ -70,6 +73,7 @@ export function MenuPage() {
       loadTags(table.restaurantId);
       restaurantService.getRestaurantInfo(table.restaurantId).then(setRestaurantInfo).catch(() => {});
       menuScheduleService.getSchedules(table.restaurantId).then(setSchedules).catch(() => {});
+      comboService.getCombos(table.restaurantId).then((c) => setCombos(c.filter((x) => x.active))).catch(() => {});
       return Promise.all([
         menuService.getCategories(table.restaurantId),
         menuService.getItems(table.restaurantId),
@@ -228,6 +232,54 @@ export function MenuPage() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 pt-4">
+        {/* Combos & Deals strip */}
+        {combos.length > 0 && (
+          <section className="mb-5">
+            <h2 className="text-sm font-bold text-orange-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <Package size={14} /> Combos &amp; Deals
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+              {combos.map((combo) => (
+                <div
+                  key={combo.id}
+                  className="shrink-0 w-52 bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden"
+                >
+                  {combo.image ? (
+                    <img src={combo.image} alt={combo.name} className="w-full h-28 object-cover" />
+                  ) : (
+                    <div className="w-full h-28 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
+                      <Package size={32} className="text-orange-300" />
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <p className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{combo.name}</p>
+                    {combo.description && (
+                      <p className="text-xs text-gray-400 line-clamp-1 mb-1">{combo.description}</p>
+                    )}
+                    {combo.items.length > 0 && (
+                      <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+                        {combo.items.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.menuItemName}`).join(' · ')}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-orange-600 font-bold text-base">{fmt(combo.price)}</span>
+                      <button
+                        onClick={() => {
+                          addCombo(combo.id, combo.name, combo.price, combo.items.map((i) => i.menuItemName));
+                          // brief visual feedback handled by CartButton badge increment
+                        }}
+                        className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-orange-600 active:scale-95 transition-all"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {filtered.length === 0 ? (
           <p className="text-center text-gray-400 mt-12">
             {q ? `No items match "${searchQuery}"` : 'No items in this category'}

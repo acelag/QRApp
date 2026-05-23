@@ -4,7 +4,7 @@ import {
   ClipboardList, UtensilsCrossed, ChefHat, LogOut, Settings,
   Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay,
   BedDouble, Tag, CreditCard, UserCheck, Trophy, ShoppingBag, MapPin,
-  Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode, ClipboardCheck, CalendarDays, AlarmClock,
+  Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode, ClipboardCheck, CalendarDays, AlarmClock, Package,
 } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -87,6 +87,7 @@ export function DashboardPage() {
     { to: '/admin/staff-performance',  label: 'Staff Performance',  icon: Trophy,         desc: 'Waiter leaderboard & stats',            primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
     { to: '/admin/roster',             label: 'Staff Roster',       icon: CalendarDays,   desc: 'Weekly shift scheduling & roster',      primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
     { to: '/admin/menu-schedules',     label: 'Menu Schedules',     icon: AlarmClock,     desc: 'Time-based menus (breakfast, lunch…)',   primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
+    { to: '/admin/combos',             label: 'Combo Deals',        icon: Package,        desc: 'Bundle deals & combo offers',            primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
     ...(user?.restaurantId ? [{
       to: '#',
       href: `/takeaway/${user.restaurantId}`,

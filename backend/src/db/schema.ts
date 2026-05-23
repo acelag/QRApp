@@ -339,6 +339,31 @@ export async function createSchema(): Promise<void> {
   await addCol('menu_items',  'schedule_id', 'VARCHAR(36) NULL');
   await addCol('categories',  'schedule_id', 'VARCHAR(36) NULL');
 
+  // ── Combo / Bundle Deals ────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS combos (
+      id            VARCHAR(36)   NOT NULL PRIMARY KEY,
+      restaurant_id VARCHAR(36)   NOT NULL,
+      name          VARCHAR(255)  NOT NULL,
+      description   VARCHAR(500)  NULL,
+      price         DECIMAL(10,2) NOT NULL,
+      image         VARCHAR(500)  NULL,
+      active        BOOLEAN       NOT NULL DEFAULT TRUE,
+      sort_order    INT           NOT NULL DEFAULT 0,
+      created_at    VARCHAR(50)   NOT NULL
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS combo_items (
+      id           VARCHAR(36) NOT NULL PRIMARY KEY,
+      combo_id     VARCHAR(36) NOT NULL REFERENCES combos(id) ON DELETE CASCADE,
+      menu_item_id VARCHAR(36) NOT NULL,
+      quantity     INT         NOT NULL DEFAULT 1,
+      sort_order   INT         NOT NULL DEFAULT 0
+    );
+  `);
+  await addCol('order_items', 'combo_id', 'VARCHAR(36) NULL');
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS shifts (
       id            VARCHAR(36)  NOT NULL PRIMARY KEY,

@@ -45,6 +45,7 @@ import { LocationsPage } from './pages/admin/LocationsPage';
 import { ShiftCloseReportPage } from './pages/admin/ShiftCloseReportPage';
 import { RosterPage } from './pages/admin/RosterPage';
 import { MenuSchedulesPage } from './pages/admin/MenuSchedulesPage';
+import { CombosPage } from './pages/admin/CombosPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -104,6 +105,7 @@ export default function App() {
             <Route path="/admin/staff-performance" element={<ProtectedRoute roles={['admin','manager']}><StaffPerformancePage /></ProtectedRoute>} />
             <Route path="/admin/roster" element={<ProtectedRoute roles={['admin','manager']}><RosterPage /></ProtectedRoute>} />
             <Route path="/admin/menu-schedules" element={<ProtectedRoute roles={['admin','manager']}><MenuSchedulesPage /></ProtectedRoute>} />
+            <Route path="/admin/combos" element={<ProtectedRoute roles={['admin','manager']}><CombosPage /></ProtectedRoute>} />
             <Route path="/admin/table-status" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><TableStatusPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by kitchen, admin and manager */}

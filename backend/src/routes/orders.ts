@@ -14,6 +14,7 @@ interface CartItem {
   menuItemId: string; name: string; price: number; quantity: number;
   notes?: string; size?: 'regular' | 'large';
   toppings?: SelectedTopping[];
+  comboId?: string;
 }
 
 const ITEMS_SQL = `
@@ -57,6 +58,7 @@ async function buildOrder(orderId: string) {
     items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
       notes: i.notes ?? undefined, size: (i.size as string | null) ?? undefined,
+      comboId: (i.combo_id as string | null) ?? undefined,
       toppings: ((i.toppings as SelectedTopping[] | null) ?? []).filter((t) => t.id != null),
     })),
   };
@@ -188,8 +190,8 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     for (const item of items) {
       const orderItemId = uuid();
       await client.query(
-        `INSERT INTO order_items (id,order_id,menu_item_id,name,price,quantity,notes,size) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [orderItemId, orderId, item.menuItemId, item.name, item.price, item.quantity, item.notes ?? null, item.size ?? null],
+        `INSERT INTO order_items (id,order_id,menu_item_id,name,price,quantity,notes,size,combo_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [orderItemId, orderId, item.menuItemId, item.name, item.price, item.quantity, item.notes ?? null, item.size ?? null, item.comboId ?? null],
       );
       for (const topping of (item.toppings ?? [])) {
         await client.query(
