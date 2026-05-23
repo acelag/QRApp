@@ -13,6 +13,8 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
 import { tagPillCls } from '../../services/tagService';
+import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
+import type { MenuSchedule } from '../../services/menuScheduleService';
 import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List } from 'lucide-react';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 export function MenuPage() {
@@ -32,6 +34,7 @@ export function MenuPage() {
   const [view, setView] = useState<'grid' | 'list'>(() =>
     (localStorage.getItem('qra_menu_view') as 'grid' | 'list' | null) ?? 'grid'
   );
+  const [schedules, setSchedules] = useState<MenuSchedule[]>([]);
 
   function loadMenu() {
     if (!tableIdParam) return;
@@ -52,6 +55,8 @@ export function MenuPage() {
       setItems(cached.items);
       setSession(cached.sessionId);
       localStorage.setItem(`qra_session_${cached.tableId}`, cached.sessionId);
+      // Load schedules in background (non-blocking)
+      menuScheduleService.getSchedules(cached.restaurantId).then(setSchedules).catch(() => {});
       setLoading(false);
       return;
     }
@@ -64,6 +69,7 @@ export function MenuPage() {
       loadTheme(table.restaurantId);
       loadTags(table.restaurantId);
       restaurantService.getRestaurantInfo(table.restaurantId).then(setRestaurantInfo).catch(() => {});
+      menuScheduleService.getSchedules(table.restaurantId).then(setSchedules).catch(() => {});
       return Promise.all([
         menuService.getCategories(table.restaurantId),
         menuService.getItems(table.restaurantId),
@@ -83,16 +89,30 @@ export function MenuPage() {
 
   useEffect(() => { loadMenu(); }, [tableIdParam]);
 
+  // Build schedule lookup map
+  const scheduleMap = new Map(schedules.map((s) => [s.id, s]));
+
+  // Returns true if this item should be shown right now based on its schedule
+  function isItemVisible(scheduleId?: string | null): boolean {
+    if (!scheduleId) return true;
+    const sch = scheduleMap.get(scheduleId);
+    if (!sch) return true; // unknown schedule → always show
+    return isScheduleNowActive(sch);
+  }
+
+  // Visible items: filter out items whose schedule is not currently active
+  const visibleItems = items.filter((i) => isItemVisible(i.scheduleId));
+
   const q = searchQuery.trim().toLowerCase();
-  const catFiltered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
+  const catFiltered = activeCategory === 'all' ? visibleItems : visibleItems.filter((i) => i.category === activeCategory);
   const tagFiltered = activeTag ? catFiltered.filter((i) => (i.tags ?? []).includes(activeTag)) : catFiltered;
   const filtered = q
-    ? items
+    ? visibleItems
         .filter((i) => i.name.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q))
         .filter((i) => (activeTag ? (i.tags ?? []).includes(activeTag) : true))
     : tagFiltered;
-  // Only show tag chips for tags that exist on at least one menu item
-  const presentSlugs = new Set(items.flatMap((i) => i.tags ?? []));
+  // Only show tag chips for tags that exist on at least one visible menu item
+  const presentSlugs = new Set(visibleItems.flatMap((i) => i.tags ?? []));
   const visibleTags = allTags.filter((t) => presentSlugs.has(t.slug));
 
   if (loading) {

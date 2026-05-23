@@ -325,6 +325,21 @@ export async function createSchema(): Promise<void> {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS menu_schedules (
+      id            VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id VARCHAR(36)  NOT NULL,
+      name          VARCHAR(100) NOT NULL,
+      days          VARCHAR(50)  NOT NULL DEFAULT 'daily',
+      start_time    VARCHAR(5)   NOT NULL,
+      end_time      VARCHAR(5)   NOT NULL,
+      active        BOOLEAN      NOT NULL DEFAULT TRUE,
+      created_at    VARCHAR(50)  NOT NULL
+    );
+  `);
+  await addCol('menu_items',  'schedule_id', 'VARCHAR(36) NULL');
+  await addCol('categories',  'schedule_id', 'VARCHAR(36) NULL');
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS shifts (
       id            VARCHAR(36)  NOT NULL PRIMARY KEY,
       restaurant_id VARCHAR(36)  NOT NULL,

@@ -34,6 +34,7 @@ export interface MenuItem {
   tags?: string[];
   toppings?: Topping[];
   prepTimeMins?: number | null;
+  scheduleId?: string | null;
 }
 
 /** Returns the effective price after discount for the given size. */
@@ -52,4 +53,5 @@ export function effectivePrice(item: MenuItem, size?: 'regular' | 'large'): numb
 export interface Category {
   id: string;
   name: string;
+  scheduleId?: string | null;
 }

@@ -6,6 +6,8 @@ import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { tagService, tagPillCls } from '../../services/tagService';
 import type { Tag, TagCategory } from '../../services/tagService';
+import { menuScheduleService } from '../../services/menuScheduleService';
+import type { MenuSchedule } from '../../services/menuScheduleService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useAuth } from '../../context/AuthContext';
@@ -42,6 +44,7 @@ const EMPTY: Omit<MenuItem, 'id'> = {
   stock: null,
   tags: [],
   prepTimeMins: null,
+  scheduleId: null,
 };
 
 export function MenuItemsPage() {
@@ -65,6 +68,8 @@ export function MenuItemsPage() {
   const [importing, setImporting] = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
   const [bulkToggling, setBulkToggling] = useState<Set<string>>(new Set());
+  // Schedules
+  const [schedules, setSchedules] = useState<MenuSchedule[]>([]);
   // Tags
   const [tags, setTags] = useState<Tag[]>([]);
   const [newTagLabel, setNewTagLabel] = useState('');
@@ -110,7 +115,10 @@ export function MenuItemsPage() {
   const loadTags = () =>
     tagService.getTagsAdmin().then(setTags).catch(() => {});
 
-  useEffect(() => { load(); loadTags(); }, []);
+  const loadSchedules = () =>
+    menuScheduleService.getSchedules().then(setSchedules).catch(() => {});
+
+  useEffect(() => { load(); loadTags(); loadSchedules(); }, []);
 
   function openNew() {
     setEditing(null);
@@ -121,7 +129,7 @@ export function MenuItemsPage() {
 
   function openEdit(item: MenuItem) {
     setEditing(item);
-    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null, tags: item.tags ?? [], prepTimeMins: item.prepTimeMins ?? null });
+    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null, tags: item.tags ?? [], prepTimeMins: item.prepTimeMins ?? null, scheduleId: item.scheduleId ?? null });
     setPreview(item.image ?? '');
     setShowForm(true);
   }
@@ -818,6 +826,15 @@ export function MenuItemsPage() {
                   {categories.find((c) => c.id === item.category)?.name ?? item.category}
                 </span>
 
+                {/* Schedule badge */}
+                {item.scheduleId && (() => {
+                  const sch = schedules.find((s) => s.id === item.scheduleId);
+                  return sch ? (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium mb-1">
+                      ⏰ {sch.name}
+                    </span>
+                  ) : null;
+                })()}
                 {/* Tags */}
                 {(item.tags ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-1">
@@ -1211,6 +1228,31 @@ export function MenuItemsPage() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">min</span>
               </div>
               <p className="text-xs text-gray-400 mt-1">Shown to kitchen as a countdown timer. Leave blank if not applicable.</p>
+            </div>
+
+            {/* Visibility Schedule */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm text-gray-600">Visibility Schedule</label>
+                <Link to="/admin/menu-schedules" className="text-xs text-orange-500 hover:underline">Manage schedules →</Link>
+              </div>
+              <select
+                value={form.scheduleId ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, scheduleId: e.target.value || null }))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-white"
+              >
+                <option value="">Always visible (no schedule)</option>
+                {schedules.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} — {s.startTime}–{s.endTime}
+                  </option>
+                ))}
+              </select>
+              {form.scheduleId && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⏰ This item will only appear on the customer menu during the assigned time window.
+                </p>
+              )}
             </div>
 
             {/* Tags — grouped by category */}

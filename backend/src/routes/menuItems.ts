@@ -76,6 +76,7 @@ const toItem = (row: Record<string, unknown>) => ({
   tags:             (() => { try { return JSON.parse((row.tags as string | null) ?? '[]') as string[]; } catch { return []; } })(),
   toppings:         (row.toppings as { id: string; name: string; price: number; available: boolean }[] | null) ?? [],
   prepTimeMins:     row.prep_time_mins != null ? Number(row.prep_time_mins) : null,
+  scheduleId:       (row.schedule_id as string | null) ?? null,
 });
 
 
@@ -225,8 +226,8 @@ router.patch('/bulk-availability', authenticate, requireRole('admin', 'manager')
 });
 
 router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
-  const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock, tags, prepTimeMins } =
-    req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null };
+  const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock, tags, prepTimeMins, scheduleId } =
+    req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null; scheduleId?: string | null };
   if (!name || !category) { res.status(400).json({ error: 'name and category are required' }); return; }
   const safeDiscount = Math.min(100, Math.max(0, Number(discountPct) || 0));
   const safeLargePrice = largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null;
@@ -242,8 +243,8 @@ router.post('/', authenticate, requireRole('admin', 'manager'), async (req: Auth
   const nextOrder = Number((seqRes.rows[0] as Record<string, unknown>).next_order ?? 0);
   const id = uuid();
   await pool.query(
-    `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available, track_stock, stock, sort_order, tags, prep_time_mins) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
-    [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock, nextOrder, safeTags, safePrepTime],
+    `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available, track_stock, stock, sort_order, tags, prep_time_mins, schedule_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+    [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock, nextOrder, safeTags, safePrepTime, scheduleId ?? null],
   );
   const created = await pool.query(`${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`, [id]);
   res.status(201).json(toItem(created.rows[0] as Record<string, unknown>));
@@ -253,8 +254,8 @@ router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: Au
   const existing = await pool.query('SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if (!existing.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = existing.rows[0] as Record<string, unknown>;
-  const { name, description, price, discountPct, largePrice, largeDiscountPct, category, image, available, trackStock, stock, tags, prepTimeMins } =
-    req.body as { name?: string; description?: string; price?: number; discountPct?: number; largePrice?: number | null; largeDiscountPct?: number; category?: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null };
+  const { name, description, price, discountPct, largePrice, largeDiscountPct, category, image, available, trackStock, stock, tags, prepTimeMins, scheduleId } =
+    req.body as { name?: string; description?: string; price?: number; discountPct?: number; largePrice?: number | null; largeDiscountPct?: number; category?: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null; scheduleId?: string | null };
   const safeDiscount = discountPct !== undefined ? Math.min(100, Math.max(0, Number(discountPct) || 0)) : Number(row.discount_pct ?? 0);
   const safeLargePrice = largePrice !== undefined
     ? (largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null)
@@ -268,11 +269,12 @@ router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: Au
   const safePrepTime = prepTimeMins !== undefined
     ? (prepTimeMins != null && Number(prepTimeMins) > 0 ? Math.round(Number(prepTimeMins)) : null)
     : (row.prep_time_mins != null ? Number(row.prep_time_mins) : null);
+  const safeScheduleId = scheduleId !== undefined ? (scheduleId || null) : (row.schedule_id as string | null) ?? null;
   await pool.query(
-    `UPDATE menu_items SET name=$1, description=$2, price=$3, discount_pct=$4, large_price=$5, large_discount_pct=$6, category_id=$7, image=$8, available=$9, track_stock=$10, stock=$11, tags=$12, prep_time_mins=$13 WHERE id=$14`,
+    `UPDATE menu_items SET name=$1, description=$2, price=$3, discount_pct=$4, large_price=$5, large_discount_pct=$6, category_id=$7, image=$8, available=$9, track_stock=$10, stock=$11, tags=$12, prep_time_mins=$13, schedule_id=$14 WHERE id=$15`,
     [name ?? row.name, description ?? row.description, price ?? row.price, safeDiscount, safeLargePrice, safeLargeDiscount,
      category ?? row.category_id, image !== undefined ? (image || null) : row.image,
-     available !== undefined ? available : row.available, safeTrackStock, safeStock, safeTags, safePrepTime, req.params.id],
+     available !== undefined ? available : row.available, safeTrackStock, safeStock, safeTags, safePrepTime, safeScheduleId, req.params.id],
   );
   const updated = await pool.query(
     `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`,
