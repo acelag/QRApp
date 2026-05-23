@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
-  Package, Minus, ImageIcon,
+  Package, Minus, ImagePlus, Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { comboService, type Combo, type ComboPayload } from '../../services/comboService';
 import { menuService } from '../../services/menuService';
+import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useAuth } from '../../context/AuthContext';
 import type { MenuItem } from '../../types';
@@ -27,8 +28,11 @@ export function CombosPage() {
   const [editing, setEditing] = useState<Combo | null>(null);
   const [form, setForm] = useState<ComboPayload>(EMPTY_FORM());
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [itemSearch, setItemSearch] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const rid = user?.restaurantId ?? '';
 
@@ -47,6 +51,7 @@ export function CombosPage() {
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM());
+    setPreview('');
     setItemSearch('');
     setShowModal(true);
   }
@@ -62,13 +67,32 @@ export function CombosPage() {
       sortOrder: combo.sortOrder,
       items: combo.items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity })),
     });
+    setPreview(combo.image ?? '');
     setItemSearch('');
     setShowModal(true);
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      setForm((p) => ({ ...p, image: url }));
+      toast.success('Image uploaded');
+    } catch {
+      toast.error('Image upload failed');
+      setPreview(form.image ?? '');
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleSave() {
     if (!form.name.trim()) { toast.error('Name is required'); return; }
     if (!form.price || form.price <= 0) { toast.error('Price must be positive'); return; }
+    if (uploading) { toast.error('Please wait for the image to finish uploading'); return; }
     setSaving(true);
     try {
       const payload: ComboPayload = {
@@ -271,21 +295,42 @@ export function CombosPage() {
                   />
                 </div>
               </div>
-              {/* Image URL */}
+              {/* Photo upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
-                  <ImageIcon size={13} /> Image URL
-                </label>
-                <input
-                  type="url"
-                  value={form.image}
-                  onChange={(e) => setForm((p) => ({ ...p, image: e.target.value }))}
-                  placeholder="https://…"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300"
-                />
-                {form.image && (
-                  <img src={form.image} alt="preview" className="mt-2 w-full h-32 object-cover rounded-xl" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                )}
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Photo</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0 border-2 border-dashed border-gray-200">
+                    {uploading ? (
+                      <Loader2 size={28} className="text-orange-400 animate-spin" />
+                    ) : preview ? (
+                      <img src={preview} alt="preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Package size={28} className="text-gray-300" />
+                    )}
+                  </div>
+                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      className="flex items-center gap-2 px-4 py-2 border-2 border-orange-200 text-orange-600 rounded-xl text-sm font-medium hover:bg-orange-50 transition-colors disabled:opacity-50"
+                    >
+                      <ImagePlus size={16} />
+                      {preview ? 'Change photo' : 'Browse photo'}
+                    </button>
+                    {preview && !uploading && (
+                      <button
+                        type="button"
+                        onClick={() => { setPreview(''); setForm((p) => ({ ...p, image: '' })); }}
+                        className="text-xs text-red-400 hover:text-red-500 text-left"
+                      >
+                        Remove photo
+                      </button>
+                    )}
+                    <p className="text-xs text-gray-400">JPG, PNG, WebP · max 5 MB</p>
+                  </div>
+                </div>
               </div>
               {/* Active */}
               <div className="flex items-center justify-between">
