@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { UtensilsCrossed, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -23,6 +24,7 @@ const COLOR_CLS: Record<string, { bg: string; border: string; hover: string; tex
 };
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const { clearTheme } = useTheme();
   const navigate = useNavigate();
@@ -44,7 +46,7 @@ export function LoginPage() {
       navigate('/', { replace: true }); // RootRedirect handles role-based routing
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg ?? 'Login failed. Please try again.');
+      setError(msg ?? t('auth.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -58,8 +60,8 @@ export function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-2xl mb-4 shadow-lg">
             <UtensilsCrossed size={32} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">QRA System</h1>
-          <p className="text-gray-500 text-sm mt-1">Sign in to continue</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('auth.appName')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('auth.signInTo')}</p>
         </div>
 
         {/* Card */}
@@ -74,7 +76,7 @@ export function LoginPage() {
 
             {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.username')}</label>
               <input
                 type="text"
                 value={username}
@@ -82,14 +84,14 @@ export function LoginPage() {
                 autoComplete="username"
                 autoFocus
                 required
-                placeholder="Enter your username"
+                placeholder={t('auth.usernamePlaceholder')}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent transition"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.password')}</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -97,7 +99,7 @@ export function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
-                  placeholder="Enter your password"
+                  placeholder={t('auth.passwordPlaceholder')}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent transition"
                 />
                 <button
@@ -117,7 +119,7 @@ export function LoginPage() {
               className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
             >
               {loading && <Loader2 size={18} className="animate-spin" />}
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? t('auth.signingIn') : t('auth.signIn')}
             </button>
           </form>
         </div>

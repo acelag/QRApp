@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { Category, MenuItem } from '../../types';
 import { menuService } from '../../services/menuService';
 import { tableService } from '../../services/tableService';
@@ -18,7 +19,9 @@ import type { MenuSchedule } from '../../services/menuScheduleService';
 import { comboService, type Combo } from '../../services/comboService';
 import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package } from 'lucide-react';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 export function MenuPage() {
+  const { t } = useTranslation();
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
   const { setTable, setSession, setRestaurant, tableNumber, tableId, addCombo } = useCart();
   const { loadCurrency, fmt } = useCurrency();
@@ -131,13 +134,13 @@ export function MenuPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
         <UtensilsCrossed size={40} className="text-gray-300" />
-        <p className="text-gray-500 font-medium">Could not load the menu</p>
-        <p className="text-sm text-gray-400">Check your connection and try again</p>
+        <p className="text-gray-500 font-medium">{t('common.errorLoadMenu')}</p>
+        <p className="text-sm text-gray-400">{t('common.errorCheckConnection')}</p>
         <button
           onClick={loadMenu}
           className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors"
         >
-          <RefreshCw size={15} /> Try Again
+          <RefreshCw size={15} /> {t('common.tryAgain')}
         </button>
       </div>
     );
@@ -155,19 +158,20 @@ export function MenuPage() {
               <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? 'Menu'}</h1>
             </div>
             <div className="flex items-center gap-2">
+              <LanguageSwitcher className="shrink-0" />
               {/* Grid / List toggle */}
               <div className="flex items-center bg-gray-100 rounded-full p-0.5">
                 <button
                   onClick={() => { setView('grid'); localStorage.setItem('qra_menu_view', 'grid'); }}
                   className={`p-1.5 rounded-full transition-colors ${view === 'grid' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
-                  title="Grid view"
+                  title={t('customer.gridView')}
                 >
                   <LayoutGrid size={14} />
                 </button>
                 <button
                   onClick={() => { setView('list'); localStorage.setItem('qra_menu_view', 'list'); }}
                   className={`p-1.5 rounded-full transition-colors ${view === 'list' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
-                  title="List view"
+                  title={t('customer.listView')}
                 >
                   <List size={14} />
                 </button>
@@ -178,16 +182,16 @@ export function MenuPage() {
                   className="flex items-center gap-1.5 text-xs text-orange-500 font-medium bg-orange-50 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors"
                 >
                   <ClipboardList size={13} />
-                  My Orders
+                  {t('orderHistory.title')}
                 </Link>
               )}
             </div>
           </div>
           <div className="flex items-center justify-between mt-1">
-            <p className="text-sm text-gray-500">Table {tableNumber}</p>
+            <p className="text-sm text-gray-500">{t('customer.tableNumber', { number: tableNumber })}</p>
             {restaurantInfo?.waitTimeMin && (
               <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
-                <Clock size={11} /> ~{restaurantInfo.waitTimeMin} min wait
+                <Clock size={11} /> {t('customer.waitTime', { n: restaurantInfo.waitTimeMin })}
               </span>
             )}
           </div>
@@ -219,7 +223,7 @@ export function MenuPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search menu…"
+              placeholder={t('customer.searchMenu')}
               className="w-full bg-gray-100 rounded-full pl-9 pr-9 py-2 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-300 transition-all placeholder:text-gray-400"
             />
             {searchQuery && (
@@ -236,7 +240,7 @@ export function MenuPage() {
         {combos.length > 0 && (
           <section className="mb-5">
             <h2 className="text-sm font-bold text-orange-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              <Package size={14} /> Combos &amp; Deals
+              <Package size={14} /> {t('customer.combosAndDeals')}
             </h2>
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
               {combos.map((combo) => (
@@ -270,7 +274,7 @@ export function MenuPage() {
                         }}
                         className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-orange-600 active:scale-95 transition-all"
                       >
-                        Add
+                        {t('customer.addToCart')}
                       </button>
                     </div>
                   </div>
@@ -282,7 +286,7 @@ export function MenuPage() {
 
         {filtered.length === 0 ? (
           <p className="text-center text-gray-400 mt-12">
-            {q ? `No items match "${searchQuery}"` : 'No items in this category'}
+            {q ? t('customer.noItemsMatch', { query: searchQuery }) : t('customer.noItemsCategory')}
           </p>
         ) : view === 'list' ? (
           <div className="flex flex-col gap-2">

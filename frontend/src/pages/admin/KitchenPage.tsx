@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, LogOut, UtensilsCrossed, ClipboardList, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { NotificationBell } from '../../components/NotificationBell';
 import { SoundAlertToggle } from '../../components/SoundAlertToggle';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
@@ -16,6 +17,7 @@ import toast from 'react-hot-toast';
 type KitchenTab = 'orders' | 'items';
 
 export function KitchenPage() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -83,9 +85,9 @@ export function KitchenPage() {
       const updated = await restaurantService.updateWaitTime(user.restaurantId, val);
       setWaitTimeMin(updated.waitTimeMin ?? null);
       setWaitOpen(false);
-      toast.success(val ? `Wait time set to ${val} min` : 'Wait time cleared');
+      toast.success(val ? t('kitchen.waitTimeSet', { n: val }) : t('kitchen.waitTimeCleared'));
     } catch {
-      toast.error('Failed to update wait time');
+      toast.error(t('kitchen.waitTimeFailed'));
     } finally {
       setWaitSaving(false);
     }
@@ -111,9 +113,9 @@ export function KitchenPage() {
           .map((o) => (o.id === id ? updated : o))
           .filter((o) => o.status === 'pending' || o.status === 'preparing'),
       );
-      toast.success(`Order marked as ${status}`);
+      toast.success(t('orders.statusUpdated', { status }));
     } catch {
-      toast.error('Failed to update status');
+      toast.error(t('orders.statusFailed'));
     }
   }
 
@@ -127,11 +129,11 @@ export function KitchenPage() {
 
     try {
       await menuService.setAvailability(item.id, next);
-      toast.success(`"${item.name}" marked as ${next ? 'available' : 'sold out'}`);
+      toast.success(t('kitchen.availabilityUpdated', { name: item.name, status: next ? t('kitchen.available') : t('kitchen.soldOut') }));
     } catch {
       // Revert on failure
       setMenuItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, available: !next } : i)));
-      toast.error('Failed to update availability');
+      toast.error(t('kitchen.availabilityFailed'));
     } finally {
       setToggling((s) => { const n = new Set(s); n.delete(item.id); return n; });
     }
@@ -152,7 +154,7 @@ export function KitchenPage() {
         <Link to="/admin" className="text-gray-400 hover:text-white">
           <ArrowLeft size={20} />
         </Link>
-        <h1 className="text-xl font-bold flex-1">Kitchen Display</h1>
+        <h1 className="text-xl font-bold flex-1">{t('kitchen.title')}</h1>
         <span className="hidden sm:inline text-sm text-gray-400">{user?.name}</span>
 
         {/* Wait time widget */}
@@ -166,12 +168,12 @@ export function KitchenPage() {
             }`}
           >
             <Clock size={13} />
-            {waitTimeMin ? `~${waitTimeMin} min` : 'Wait?'}
+            {waitTimeMin ? t('kitchen.estWait', { n: waitTimeMin }) : t('kitchen.waitQuestion')}
           </button>
 
           {waitOpen && (
             <div className="absolute right-0 top-9 bg-gray-800 border border-gray-700 rounded-2xl p-3 shadow-2xl z-50 min-w-[200px]">
-              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Estimated Wait</p>
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">{t('kitchen.estimatedWait')}</p>
               <div className="grid grid-cols-3 gap-1.5 mb-2">
                 {[null, 10, 15, 20, 25, 30, 45, 60].map((val) => (
                   <button
@@ -184,7 +186,7 @@ export function KitchenPage() {
                         : 'bg-gray-700 text-gray-300 hover:bg-amber-500 hover:text-white'
                     }`}
                   >
-                    {val == null ? 'Off' : `${val}m`}
+                    {val == null ? t('kitchen.off') : `${val}m`}
                   </button>
                 ))}
               </div>
@@ -210,7 +212,7 @@ export function KitchenPage() {
           }`}
         >
           <ClipboardList size={15} />
-          Orders
+          {t('kitchen.tabOrders')}
           {orders.length > 0 && (
             <span className="bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
               {orders.length}
@@ -226,7 +228,7 @@ export function KitchenPage() {
           }`}
         >
           <UtensilsCrossed size={15} />
-          Item Availability
+          {t('kitchen.tabAvailability')}
           {itemsLoaded && menuItems.filter((i) => !i.available).length > 0 && (
             <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
               {menuItems.filter((i) => !i.available).length}
@@ -241,7 +243,7 @@ export function KitchenPage() {
           {orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center pt-24 text-gray-500">
               <p className="text-2xl">👨‍🍳</p>
-              <p className="mt-2">No active orders</p>
+              <p className="mt-2">{t('kitchen.noActiveOrders')}</p>
             </div>
           ) : (
             <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
@@ -273,16 +275,16 @@ export function KitchenPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400" />
             </div>
           ) : menuItems.length === 0 ? (
-            <p className="text-center text-gray-500 pt-16">No menu items found</p>
+            <p className="text-center text-gray-500 pt-16">{t('kitchen.noMenuItems')}</p>
           ) : (
             <>
               {/* Sold-out summary bar */}
               {menuItems.filter((i) => !i.available).length > 0 && (
                 <div className="bg-red-900/40 border border-red-700/50 rounded-2xl px-4 py-3 flex items-center gap-3">
                   <span className="text-red-400 font-bold text-sm">
-                    {menuItems.filter((i) => !i.available).length} item{menuItems.filter((i) => !i.available).length !== 1 ? 's' : ''} sold out
+                    {t('kitchen.itemsSoldOut', { n: menuItems.filter((i) => !i.available).length })}
                   </span>
-                  <span className="text-gray-400 text-xs flex-1">Customers cannot see or order these items</span>
+                  <span className="text-gray-400 text-xs flex-1">{t('kitchen.soldOutNote')}</span>
                   <button
                     onClick={async () => {
                       const soldOut = menuItems.filter((i) => !i.available);
@@ -290,7 +292,7 @@ export function KitchenPage() {
                     }}
                     className="text-xs bg-red-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-medium transition-colors"
                   >
-                    Mark all available
+                    {t('kitchen.markAllAvailable')}
                   </button>
                 </div>
               )}
@@ -315,7 +317,7 @@ export function KitchenPage() {
               {/* Uncategorised */}
               {uncategorised.length > 0 && (
                 <section>
-                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Other</h2>
+                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{t('kitchen.other')}</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                     {uncategorised.map((item) => (
                       <ItemToggleCard
@@ -345,6 +347,7 @@ interface ItemToggleCardProps {
 }
 
 function ItemToggleCard({ item, loading, onToggle }: ItemToggleCardProps) {
+  const { t } = useTranslation();
   return (
     <div
       className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors cursor-pointer select-none ${
@@ -367,7 +370,7 @@ function ItemToggleCard({ item, loading, onToggle }: ItemToggleCardProps) {
           {item.name}
         </p>
         <p className={`text-xs font-semibold ${item.available ? 'text-green-400' : 'text-red-400'}`}>
-          {item.available ? 'Available' : 'Sold out'}
+          {item.available ? t('kitchen.available') : t('kitchen.soldOut')}
         </p>
       </div>
 

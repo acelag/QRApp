@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard, Clock } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import toast from 'react-hot-toast';
 import {
   ResponsiveContainer,
@@ -556,16 +558,17 @@ function buildRange(preset: string): { from: string; to: string } {
   }
 }
 
-const PRESETS = [
-  { key: 'today',   label: 'Today' },
-  { key: 'yesterday', label: 'Yesterday' },
-  { key: 'week',    label: 'This Week' },
-  { key: 'month',   label: 'This Month' },
-  { key: '30days',  label: 'Last 30 Days' },
-];
-
 export function ReportsPage() {
   const { fmt } = useCurrency();
+  const { t } = useTranslation();
+
+  const PRESETS = useMemo(() => [
+    { key: 'today',     label: t('reports.today') },
+    { key: 'yesterday', label: t('reports.yesterday') },
+    { key: 'week',      label: t('reports.thisWeek') },
+    { key: 'month',     label: t('reports.thisMonth') },
+    { key: '30days',    label: t('reports.last30Days') },
+  ], [t]);
 
   const initial = buildRange('today');
   const [from, setFrom] = useState(initial.from);
@@ -578,14 +581,14 @@ export function ReportsPage() {
 
   useEffect(() => { fetchReport(initial.from, initial.to); }, []);
 
-  async function fetchReport(f: string, t: string) {
-    if (f > t) { toast.error('From date must be before To date'); return; }
+  async function fetchReport(f: string, tDate: string) {
+    if (f > tDate) { toast.error(t('reports.dateError')); return; }
     setLoading(true);
     try {
-      const data = await reportService.get(f, t);
+      const data = await reportService.get(f, tDate);
       setReport(data);
     } catch {
-      toast.error('Failed to load report');
+      toast.error(t('reports.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -612,7 +615,8 @@ export function ReportsPage() {
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <BarChart2 size={20} className="text-orange-500" />
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Reports</h1>
+          <h1 className="text-xl font-bold text-gray-900 flex-1">{t('reports.title')}</h1>
+          <LanguageSwitcher variant="select" className="shrink-0" />
         </div>
       </header>
 
@@ -663,7 +667,7 @@ export function ReportsPage() {
                 className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60 flex items-center gap-1.5"
               >
                 {loading ? <Loader2 size={14} className="animate-spin" /> : <BarChart2 size={14} />}
-                Generate
+                {t('reports.generate')}
               </button>
             </div>
           </div>
@@ -680,7 +684,7 @@ export function ReportsPage() {
         {!loading && !report && (
           <div className="text-center py-16 text-gray-400">
             <BarChart2 size={40} className="mx-auto mb-3 text-gray-300" />
-            <p>Select a date range and click Generate to view your report.</p>
+            <p>{t('reports.noReport')}</p>
           </div>
         )}
 
@@ -692,34 +696,34 @@ export function ReportsPage() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp size={16} className="text-green-500" />
-                  <span className="text-xs text-gray-500 font-medium">Revenue</span>
+                  <span className="text-xs text-gray-500 font-medium">{t('reports.revenue')}</span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{fmt(s!.totalRevenue)}</p>
-                <p className="text-xs text-gray-400 mt-0.5">avg {fmt(s!.avgOrderValue)} / order</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('reports.avgOrderValue', { amount: fmt(s!.avgOrderValue) })}</p>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart2 size={16} className="text-blue-500" />
-                  <span className="text-xs text-gray-500 font-medium">Orders</span>
+                  <span className="text-xs text-gray-500 font-medium">{t('reports.orders')}</span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{s!.totalOrders}</p>
-                <p className="text-xs text-gray-400 mt-0.5">total orders</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('reports.totalOrders')}</p>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <UtensilsCrossed size={16} className="text-orange-500" />
-                  <span className="text-xs text-gray-500 font-medium">Dine-in</span>
+                  <span className="text-xs text-gray-500 font-medium">{t('reports.dineIn')}</span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{s!.dineInOrders}</p>
-                <p className="text-xs text-gray-400 mt-0.5">dine-in orders</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('reports.dineIn')}</p>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <ShoppingBag size={16} className="text-purple-500" />
-                  <span className="text-xs text-gray-500 font-medium">Takeaway</span>
+                  <span className="text-xs text-gray-500 font-medium">{t('reports.takeaway')}</span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{s!.takeawayOrders}</p>
-                <p className="text-xs text-gray-400 mt-0.5">takeaway orders</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('reports.takeaway')}</p>
               </div>
             </div>
 
@@ -727,23 +731,23 @@ export function ReportsPage() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-2xl w-fit">
               {([
-                { key: 'sales',      label: 'Sales by Day' },
-                { key: 'heatmap',    label: '🔥 Heatmap' },
-                { key: 'categories', label: 'Categories' },
-                { key: 'items',      label: 'Items' },
-                ...(report.toppings.length > 0 ? [{ key: 'extras', label: 'Extras' }] : []),
-                { key: 'promos',     label: '🏷️ Promo Codes' },
-                { key: 'payment',    label: '💳 Payment' },
-                { key: 'turns',      label: '⏱️ Table Turns' },
-              ] as { key: Tab; label: string }[]).map((t) => (
+                { key: 'sales',      label: t('reports.salesByDay') },
+                { key: 'heatmap',    label: `🔥 ${t('reports.heatmap')}` },
+                { key: 'categories', label: t('reports.categories') },
+                { key: 'items',      label: t('reports.items') },
+                ...(report.toppings.length > 0 ? [{ key: 'extras', label: t('reports.extras') }] : []),
+                { key: 'promos',     label: `🏷️ ${t('reports.promoCodes')}` },
+                { key: 'payment',    label: `💳 ${t('reports.payment')}` },
+                { key: 'turns',      label: `⏱️ ${t('reports.tableTurns')}` },
+              ] as { key: Tab; label: string }[]).map((tabItem) => (
                 <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
+                  key={tabItem.key}
+                  onClick={() => setTab(tabItem.key)}
                   className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-colors ${
-                    tab === t.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    tab === tabItem.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {t.label}
+                  {tabItem.label}
                 </button>
               ))}
             </div>
@@ -753,21 +757,21 @@ export function ReportsPage() {
                 onClick={() => buildCsv(report, tab, from, to, fmt)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
               >
-                <Download size={14} /> CSV
+                <Download size={14} /> {t('reports.csv')}
               </button>
               <button
                 onClick={() => buildPdf(report, tab, from, to, fmt)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors"
                 title="Print / save current tab as PDF"
               >
-                <Printer size={14} /> PDF
+                <Printer size={14} /> {t('reports.pdf')}
               </button>
               <button
                 onClick={() => buildFullPdf(report, from, to, fmt)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-orange-300 text-orange-600 text-sm font-medium hover:bg-orange-50 transition-colors"
                 title="Print / save full report (all sections)"
               >
-                <Printer size={14} /> Full Report
+                <Printer size={14} /> {t('reports.fullReport')}
               </button>
             </div>
             </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Trash2, NotebookPen } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { QuantitySelector } from '../../components/QuantitySelector';
@@ -11,6 +12,7 @@ const cartKey = (menuItemId: string, size?: 'regular' | 'large', toppingIds?: st
   `${menuItemId}|${size ?? 'regular'}|${(toppingIds ?? []).sort().join(',')}`;
 
 export function CartPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { items, tableId, tableNumber, sessionId, restaurantId, total, updateQty, removeItem, updateNotes, clearCart } = useCart();
   const { fmt } = useCurrency();
@@ -26,7 +28,7 @@ export function CartPage() {
       clearCart();
       navigate(`/order-success/${order.id}`);
     } catch {
-      toast.error('Failed to place order. Please try again.');
+      toast.error(t('customer.failedOrder'));
     } finally {
       setPlacing(false);
     }
@@ -35,9 +37,9 @@ export function CartPage() {
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
-        <p className="text-gray-400 text-lg">Your cart is empty</p>
+        <p className="text-gray-400 text-lg">{t('customer.emptyCart')}</p>
         <button onClick={() => navigate(-1)} className="text-orange-500 font-medium flex items-center gap-1">
-          <ArrowLeft size={16} /> Back to Menu
+          <ArrowLeft size={16} /> {t('customer.backToMenu')}
         </button>
       </div>
     );
@@ -51,8 +53,8 @@ export function CartPage() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Your Cart</h1>
-            <p className="text-sm text-gray-500">Table {tableNumber}</p>
+            <h1 className="text-xl font-bold text-gray-900">{t('customer.yourCart')}</h1>
+            <p className="text-sm text-gray-500">{t('customer.tableNumber', { number: tableNumber })}</p>
           </div>
         </div>
       </header>
@@ -70,7 +72,7 @@ export function CartPage() {
                     <h3 className="font-semibold text-gray-900">{item.name}</h3>
                     {item.comboId && (
                       <span className="text-xs bg-orange-500 text-white font-semibold px-2 py-0.5 rounded-full">
-                        Bundle
+                        {t('customer.bundle')}
                       </span>
                     )}
                     {item.size && (
@@ -123,7 +125,7 @@ export function CartPage() {
                       onChange={(e) => updateNotes(item.menuItemId, item.size, item.toppings, e.target.value)}
                       onBlur={() => setEditingNotes(null)}
                       onKeyDown={(e) => e.key === 'Enter' && setEditingNotes(null)}
-                      placeholder="e.g. no onions, less spicy, extra sauce…"
+                      placeholder={t('customer.notePlaceholder')}
                       className="flex-1 text-sm border border-orange-200 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-orange-300"
                     />
                   </div>
@@ -137,7 +139,7 @@ export function CartPage() {
                     }`}
                   >
                     <NotebookPen size={12} className="shrink-0" />
-                    {item.notes ? item.notes : 'Add note (e.g. no onions)'}
+                    {item.notes ? item.notes : t('customer.noteHint')}
                   </button>
                 )}
               </div>
@@ -152,11 +154,11 @@ export function CartPage() {
             type="tel"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
-            placeholder="📱 Phone for WhatsApp bill (optional)"
+            placeholder={t('customer.phonePlaceholder')}
             className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
           />
           <div className="flex justify-between text-sm text-gray-500">
-            <span>Subtotal</span>
+            <span>{t('customer.subtotal')}</span>
             <span>{fmt(total)}</span>
           </div>
           <button
@@ -164,7 +166,7 @@ export function CartPage() {
             disabled={placing}
             className="w-full bg-orange-500 text-white py-4 rounded-2xl font-semibold text-base hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {placing ? 'Placing Order…' : `Place Order • ${fmt(total)}`}
+            {placing ? t('customer.placingOrder') : t('customer.placeOrder', { amount: fmt(total) })}
           </button>
         </div>
       </div>

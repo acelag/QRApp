@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, Clock, RefreshCw, Search, Package } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
@@ -64,6 +65,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
 }
 
 export function RoomMenuPage() {
+  const { t } = useTranslation();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -204,7 +206,7 @@ export function RoomMenuPage() {
       setCartOpen(false);
       navigate(`/order-success/${order.id}`);
     } catch {
-      toast.error('Failed to place order. Please try again.');
+      toast.error(t('customer.failedOrder'));
     } finally {
       setPlacing(false);
     }
@@ -243,18 +245,18 @@ export function RoomMenuPage() {
             <BedDouble size={20} className="text-blue-500" />
             <div>
               <h1 className="text-xl font-bold text-gray-900 leading-tight">
-                {restaurantName || 'Room Service'}
+                {restaurantName || t('customer.roomService')}
               </h1>
               <p className="text-sm text-blue-600 font-medium">
-                Room {roomInfo?.number}{roomInfo?.name ? ` — ${roomInfo.name}` : ''}
+                {t('customer.room', { number: roomInfo?.number })}{roomInfo?.name ? ` — ${roomInfo.name}` : ''}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <p className="text-xs text-gray-400">Browse the menu and tap Add to get started</p>
+            <p className="text-xs text-gray-400">{t('customer.searchMenu')}</p>
             {waitTimeMin && (
               <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
-                <Clock size={11} /> ~{waitTimeMin} min wait
+                <Clock size={11} /> {t('customer.waitTime', { n: waitTimeMin })}
               </span>
             )}
           </div>
@@ -285,7 +287,7 @@ export function RoomMenuPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search menu…"
+              placeholder={t('common.search')}
               className="w-full bg-gray-100 rounded-full pl-9 pr-9 py-2 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-300 transition-all placeholder:text-gray-400"
             />
             {searchQuery && (
@@ -319,7 +321,7 @@ export function RoomMenuPage() {
         {combos.length > 0 && (
           <section className="mb-5">
             <h2 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              <Package size={14} /> Combos &amp; Deals
+              <Package size={14} /> {t('customer.combosAndDeals')}
             </h2>
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
               {combos.map((combo) => (
@@ -341,7 +343,7 @@ export function RoomMenuPage() {
                         onClick={() => dispatch({ type: 'ADD_COMBO', comboId: combo.id, name: combo.name, price: combo.price, comboItems: combo.items.map((i) => i.menuItemName) })}
                         className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-blue-700 active:scale-95 transition-all"
                       >
-                        Add
+                        {t('customer.addToCart')}
                       </button>
                     </div>
                   </div>
@@ -353,7 +355,7 @@ export function RoomMenuPage() {
 
         {filtered.length === 0 ? (
           <p className="text-center text-gray-400 mt-12">
-            {q ? `No items match "${searchQuery}"` : 'No items in this category'}
+            {q ? `No items match "${searchQuery}"` : t('customer.allCategories')}
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -376,7 +378,7 @@ export function RoomMenuPage() {
                     )}
                     {(hasToppings || hasLarge) && (
                       <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-                        {hasToppings ? '+ Extras' : 'R / L'}
+                        {hasToppings ? `+ ${t('customer.extras')}` : 'R / L'}
                       </span>
                     )}
                     {item.trackStock && item.stock != null && item.stock <= 5 && (
@@ -398,7 +400,7 @@ export function RoomMenuPage() {
                           onClick={() => handleAdd(item)}
                           className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${totalInCart > 0 ? 'bg-blue-100 text-blue-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                         >
-                          <Plus size={14} /> {totalInCart > 0 ? `Add more (${totalInCart})` : 'Add'}
+                          <Plus size={14} /> {totalInCart > 0 ? `${t('customer.addToCart')} (${totalInCart})` : t('customer.addToCart')}
                         </button>
                       </div>
                     </div>
@@ -417,19 +419,19 @@ export function RoomMenuPage() {
             {cartOpen && (
               <div className="bg-white rounded-t-3xl shadow-2xl border border-gray-100 max-h-[60vh] flex flex-col">
                 <div className="px-4 pt-4 pb-2 border-b border-gray-100">
-                  <p className="font-semibold text-gray-900 mb-2">Your Order</p>
+                  <p className="font-semibold text-gray-900 mb-2">{t('customer.yourCart')}</p>
                   <input
                     type="text"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Your name (optional)"
+                    placeholder={t('customer.notePlaceholder')}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-300 mb-1"
                   />
                   <input
                     type="tel"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    placeholder="📱 Phone for WhatsApp/SMS confirmation (optional)"
+                    placeholder={t('customer.phonePlaceholder')}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-300"
                   />
                   {/* Charge to Room toggle */}
@@ -460,7 +462,7 @@ export function RoomMenuPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-sm text-gray-700 truncate block">{c.name}</span>
-                            {c.comboId && <span className="text-xs bg-blue-500 text-white font-semibold px-1.5 py-0.5 rounded-full">Bundle</span>}
+                            {c.comboId && <span className="text-xs bg-blue-500 text-white font-semibold px-1.5 py-0.5 rounded-full">{t('customer.bundle')}</span>}
                             {c.size && <span className="text-xs text-blue-500 capitalize">{c.size}</span>}
                           </div>
                           <span className="text-sm font-semibold text-gray-800 shrink-0">{fmt((c.price + toppingsTotal) * c.quantity)}</span>
@@ -482,7 +484,7 @@ export function RoomMenuPage() {
                               value={c.notes ?? ''}
                               onChange={(e) => dispatch({ type: 'SET_NOTES', key, notes: e.target.value })}
                               onBlur={() => setEditingNotesKey(null)}
-                              placeholder="e.g. no onions, less spicy…"
+                              placeholder={t('customer.noteHint')}
                               className="w-full text-xs border border-blue-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-blue-300"
                             />
                           ) : (
@@ -490,7 +492,7 @@ export function RoomMenuPage() {
                               onClick={() => setEditingNotesKey(key)}
                               className="text-xs text-blue-400 hover:text-blue-600"
                             >
-                              {c.notes ? `📝 ${c.notes}` : '+ Add note'}
+                              {c.notes ? `📝 ${c.notes}` : `+ ${t('customer.notePlaceholder')}`}
                             </button>
                           )}
                         </div>
@@ -536,9 +538,9 @@ export function RoomMenuPage() {
                   )}
                   {discount > 0 && (
                     <div className="mt-2 space-y-0.5 text-xs text-gray-500">
-                      <div className="flex justify-between"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+                      <div className="flex justify-between"><span>{t('customer.subtotal')}</span><span>{fmt(subtotal)}</span></div>
                       <div className="flex justify-between text-green-600 font-medium"><span>Discount</span><span>−{fmt(discount)}</span></div>
-                      <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-100 pt-1"><span>Total</span><span>{fmt(total)}</span></div>
+                      <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-100 pt-1"><span>{t('common.total')}</span><span>{fmt(total)}</span></div>
                     </div>
                   )}
                 </div>
@@ -551,7 +553,7 @@ export function RoomMenuPage() {
             >
               <span className="bg-white/20 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">{itemCount}</span>
               <span className="font-semibold">
-                {placing ? 'Placing Order…' : cartOpen && !isRoomServiceOpen ? 'Room service closed' : cartOpen ? `Place Order • ${fmt(total)}` : `View Order • ${fmt(total)}`}
+                {placing ? t('customer.placingOrder') : cartOpen && !isRoomServiceOpen ? t('customer.roomService') : cartOpen ? t('customer.placeOrder', { amount: fmt(total) }) : t('customer.yourCart')}
               </span>
               {cartOpen
                 ? <ChevronDown size={20} onClick={(e) => { e.stopPropagation(); setCartOpen(false); }} />
