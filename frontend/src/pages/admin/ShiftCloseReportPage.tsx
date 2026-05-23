@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Printer, RefreshCw, AlertTriangle,
   TrendingUp, ShoppingBag, UtensilsCrossed, BedDouble,
-  RotateCcw, CreditCard, CheckCircle2, Loader2,
+  RotateCcw, CheckCircle2, Loader2,
 } from 'lucide-react';
 import { reportService, type ShiftCloseReport } from '../../services/reportService';
 import { refundMethodLabel } from '../../services/refundService';
