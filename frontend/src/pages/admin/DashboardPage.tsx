@@ -4,7 +4,7 @@ import {
   ClipboardList, UtensilsCrossed, ChefHat, LogOut, Settings,
   Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay,
   BedDouble, Tag, CreditCard, UserCheck, Trophy, ShoppingBag, MapPin,
-  Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode,
+  Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode, ClipboardCheck,
 } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -74,6 +74,7 @@ export function DashboardPage() {
     { to: '/admin/new-order',          label: 'New Order',          icon: PlusCircle,     desc: 'Place takeaway or dine-in order',       primary: true,  badge: undefined, allowedRoles: ['admin','manager','cashier','waiter'] },
     { to: '/admin/orders',             label: 'Live Orders',        icon: ClipboardList,  desc: 'Manage incoming orders',                primary: true,  badge: activeOrders.length, allowedRoles: ['admin','manager','cashier','waiter'] },
     { to: '/admin/bills',              label: 'Bills',              icon: Receipt,        desc: 'Table bills & takeaway receipts',       primary: false, badge: undefined, allowedRoles: ['admin','manager','cashier'] },
+    { to: '/admin/shift-close',         label: 'Shift Close',        icon: ClipboardCheck, desc: 'End-of-day summary & open tables',      primary: false, badge: undefined, allowedRoles: ['admin','manager','cashier'] },
     { to: '/admin/reports',            label: 'Reports',            icon: BarChart2,      desc: 'Sales & item performance',              primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
     { to: '/admin/menu',               label: 'Menu Items',         icon: UtensilsCrossed, desc: 'Add, edit, delete items',              primary: false, badge: undefined, allowedRoles: ['admin','manager'] },
     { to: '/admin/locations',          label: 'Tables & Rooms',     icon: QrCode,         desc: 'Manage tables, rooms & QR codes',       primary: false, badge: undefined, allowedRoles: ['admin','manager'] },

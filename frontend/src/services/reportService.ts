@@ -86,9 +86,49 @@ export interface TodaySummary {
   topItems: { name: string; quantity: number; revenue: number }[];
 }
 
+export interface ShiftCloseRefund {
+  id: string;
+  amount: number;
+  reason: string;
+  method: string;
+  issuedBy: string;
+  createdAt: string;
+  orderId: string | null;
+  sessionId: string | null;
+}
+
+export interface ShiftCloseOpenSession {
+  id: string;
+  tableNumber: number;
+  openedAt: string;
+  estimatedTotal: number;
+}
+
+export interface ShiftCloseReport {
+  date: string;
+  generatedAt: string;
+  summary: {
+    grossRevenue: number;
+    totalRefunds: number;
+    netRevenue: number;
+    totalDiscounts: number;
+    orderCount: number;
+    avgOrderValue: number;
+    dineIn:      { count: number; revenue: number };
+    takeaway:    { count: number; revenue: number };
+    roomService: { count: number; revenue: number };
+  };
+  paymentMethods: { method: string; count: number; revenue: number }[];
+  topItems:       { name: string; quantity: number; revenue: number }[];
+  refunds:        ShiftCloseRefund[];
+  openSessions:   ShiftCloseOpenSession[];
+}
+
 export const reportService = {
   get: (from: string, to: string) =>
     axios.get<Report>(BASE, { params: { from, to } }).then((r) => r.data),
   getToday: () =>
     axios.get<TodaySummary>(`${BASE}/today`).then((r) => r.data),
+  getShiftClose: (date?: string) =>
+    axios.get<ShiftCloseReport>(`${BASE}/shift-close`, { params: date ? { date } : {} }).then((r) => r.data),
 };

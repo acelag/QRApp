@@ -280,6 +280,122 @@ router.get('/', async (req: AuthRequest, res) => {
   });
 });
 
+// End-of-Day / Shift Close Report
+router.get('/shift-close', async (req: AuthRequest, res) => {
+  const rid  = req.user!.restaurantId;
+  const date = (req.query.date as string | undefined) ?? new Date().toISOString().slice(0, 10);
+  const from = `${date}T00:00:00.000Z`;
+  const to   = `${date}T23:59:59.999Z`;
+
+  const [summaryRes, paymentRes, itemsRes, refundsRes, openSessionsRes] = await Promise.all([
+    pool.query<{
+      total_orders: number; gross_revenue: number; total_discounts: number;
+      dine_in_count: number; dine_in_revenue: number;
+      takeaway_count: number; takeaway_revenue: number;
+      room_service_count: number; room_service_revenue: number;
+    }>(
+      `SELECT
+         COUNT(*)::int                                                   AS total_orders,
+         COALESCE(SUM(total_amount), 0)::float                          AS gross_revenue,
+         COALESCE(SUM(COALESCE(discount_amount, 0)), 0)::float          AS total_discounts,
+         COUNT(*) FILTER (WHERE order_type = 'dine-in')::int            AS dine_in_count,
+         COALESCE(SUM(total_amount) FILTER (WHERE order_type = 'dine-in'), 0)::float      AS dine_in_revenue,
+         COUNT(*) FILTER (WHERE order_type = 'takeaway')::int           AS takeaway_count,
+         COALESCE(SUM(total_amount) FILTER (WHERE order_type = 'takeaway'), 0)::float     AS takeaway_revenue,
+         COUNT(*) FILTER (WHERE order_type = 'room-service')::int       AS room_service_count,
+         COALESCE(SUM(total_amount) FILTER (WHERE order_type = 'room-service'), 0)::float AS room_service_revenue
+       FROM orders
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3`,
+      [rid, from, to],
+    ),
+
+    pool.query<{ method: string; order_count: number; revenue: number }>(
+      `SELECT
+         COALESCE(payment_method, 'unpaid') AS method,
+         COUNT(*)::int                       AS order_count,
+         COALESCE(SUM(total_amount), 0)::float AS revenue
+       FROM orders
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
+       GROUP BY payment_method
+       ORDER BY revenue DESC`,
+      [rid, from, to],
+    ),
+
+    pool.query<{ name: string; quantity: number; revenue: number }>(
+      `SELECT
+         oi.name,
+         SUM(oi.quantity)::int                                                          AS quantity,
+         COALESCE(SUM((oi.price + COALESCE(t.topping_sum, 0)) * oi.quantity), 0)::float AS revenue
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       LEFT JOIN (
+         SELECT order_item_id, SUM(price)::float AS topping_sum
+         FROM order_item_toppings GROUP BY order_item_id
+       ) t ON t.order_item_id = oi.id
+       WHERE o.restaurant_id = $1 AND o.created_at >= $2 AND o.created_at <= $3
+       GROUP BY oi.name
+       ORDER BY quantity DESC
+       LIMIT 10`,
+      [rid, from, to],
+    ),
+
+    pool.query<{ id: string; amount: number; reason: string; refund_method: string; created_by_name: string; created_at: string; order_id: string | null; session_id: string | null }>(
+      `SELECT id, amount::float, reason, refund_method, created_by_name, created_at, order_id, session_id
+       FROM refunds
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
+       ORDER BY created_at ASC`,
+      [rid, from, to],
+    ),
+
+    pool.query<{ id: string; table_number: number; created_at: string; total: number }>(
+      `SELECT ts.id, ts.table_number, ts.created_at,
+              COALESCE(SUM(o.total_amount), 0)::float AS total
+       FROM table_sessions ts
+       LEFT JOIN orders o ON o.session_id = ts.id
+       WHERE ts.restaurant_id = $1 AND ts.status = 'open'
+         AND ts.merged_into_session_id IS NULL
+       GROUP BY ts.id, ts.table_number, ts.created_at
+       ORDER BY ts.created_at ASC`,
+      [rid],
+    ),
+  ]);
+
+  const s            = summaryRes.rows[0];
+  const totalRefunds = refundsRes.rows.reduce((acc, r) => acc + r.amount, 0);
+  const netRevenue   = s.gross_revenue - totalRefunds;
+
+  res.json({
+    date,
+    generatedAt: new Date().toISOString(),
+    summary: {
+      grossRevenue:   s.gross_revenue,
+      totalRefunds,
+      netRevenue,
+      totalDiscounts: s.total_discounts,
+      orderCount:     s.total_orders,
+      avgOrderValue:  s.total_orders > 0 ? s.gross_revenue / s.total_orders : 0,
+      dineIn:    { count: s.dine_in_count,      revenue: s.dine_in_revenue },
+      takeaway:  { count: s.takeaway_count,     revenue: s.takeaway_revenue },
+      roomService: { count: s.room_service_count, revenue: s.room_service_revenue },
+    },
+    paymentMethods: paymentRes.rows.map((r) => ({
+      method: r.method, count: r.order_count, revenue: r.revenue,
+    })),
+    topItems: itemsRes.rows.map((r) => ({
+      name: r.name, quantity: r.quantity, revenue: r.revenue,
+    })),
+    refunds: refundsRes.rows.map((r) => ({
+      id: r.id, amount: r.amount, reason: r.reason,
+      method: r.refund_method, issuedBy: r.created_by_name,
+      createdAt: r.created_at, orderId: r.order_id, sessionId: r.session_id,
+    })),
+    openSessions: openSessionsRes.rows.map((r) => ({
+      id: r.id, tableNumber: r.table_number,
+      openedAt: r.created_at, estimatedTotal: r.total,
+    })),
+  });
+});
+
 router.get('/staff', async (req: AuthRequest, res) => {
   const { from, to } = req.query as { from?: string; to?: string };
   if (!from || !to) { res.status(400).json({ error: 'from and to date params required (YYYY-MM-DD)' }); return; }

@@ -42,6 +42,7 @@ import { WaitersPage } from './pages/admin/WaitersPage';
 import { StaffPerformancePage } from './pages/admin/StaffPerformancePage';
 import { TableStatusPage } from './pages/admin/TableStatusPage';
 import { LocationsPage } from './pages/admin/LocationsPage';
+import { ShiftCloseReportPage } from './pages/admin/ShiftCloseReportPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -94,6 +95,7 @@ export default function App() {
             <Route path="/admin/new-order" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><NewOrderPage /></ProtectedRoute>} />
             <Route path="/admin/ready-display" element={<ProtectedRoute><ReadyDisplayPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute roles={['admin','manager']}><ReportsPage /></ProtectedRoute>} />
+            <Route path="/admin/shift-close" element={<ProtectedRoute roles={['admin','manager','cashier']}><ShiftCloseReportPage /></ProtectedRoute>} />
             <Route path="/admin/promo-codes" element={<ProtectedRoute roles={['admin','manager']}><PromoCodesPage /></ProtectedRoute>} />
             <Route path="/admin/room-charges" element={<ProtectedRoute roles={['admin','manager','cashier']}><RoomChargesPage /></ProtectedRoute>} />
             <Route path="/admin/waiters" element={<ProtectedRoute roles={['admin','manager']}><WaitersPage /></ProtectedRoute>} />
