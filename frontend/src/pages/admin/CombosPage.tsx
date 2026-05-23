@@ -12,8 +12,6 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useAuth } from '../../context/AuthContext';
 import type { MenuItem } from '../../types';
 
-interface ItemEntry { menuItemId: string; quantity: number }
-
 const EMPTY_FORM = (): ComboPayload => ({
   name: '', description: '', price: 0, image: '', active: true, sortOrder: 0, items: [],
 });
