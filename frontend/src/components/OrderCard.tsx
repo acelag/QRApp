@@ -3,6 +3,8 @@ import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
 import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle } from 'lucide-react';
+import { printService } from '../services/printService';
+import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready'];
@@ -85,11 +87,26 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     return `https://wa.me/${e164}?text=${text}`;
   }
 
-  function handlePrint() {
-    const url = order.sessionId
-      ? `/session-receipt/${order.sessionId}`
-      : `/receipt/${order.id}`;
-    window.open(url, '_blank', 'width=400,height=600');
+  async function handlePrint() {
+    const result = await printService.receipt(order.id);
+    if (result.success) {
+      toast.success('Receipt sent to printer');
+    } else {
+      // Fallback to browser print if no printer configured
+      const url = order.sessionId
+        ? `/session-receipt/${order.sessionId}`
+        : `/receipt/${order.id}`;
+      window.open(url, '_blank', 'width=400,height=600');
+    }
+  }
+
+  async function handleKitchenPrint() {
+    const result = await printService.kitchen(order.id);
+    if (result.success) {
+      toast.success('Sent to kitchen printer');
+    } else {
+      window.open(`/kitchen-ticket/${order.id}`, '_blank', 'width=400,height=600');
+    }
   }
 
   const priorityColor = priority === 1
@@ -290,7 +307,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
         <div className="flex items-center gap-2 shrink-0">
           {showKitchenPrint && (
             <button
-              onClick={() => window.open(`/kitchen-ticket/${order.id}`, '_blank', 'width=400,height=600')}
+              onClick={handleKitchenPrint}
               className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-full font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
               title="Print kitchen ticket"
             >

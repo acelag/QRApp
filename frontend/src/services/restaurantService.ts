@@ -20,6 +20,13 @@ export interface RestaurantSettings {
   facebookUrl?: string | null;
   instagramUrl?: string | null;
   welcomeImageUrl?: string | null;
+  receiptPrinterIp?:   string | null;
+  receiptPrinterPort?: number;
+  kitchenPrinterIp?:   string | null;
+  kitchenPrinterPort?: number;
+  printerType?:        'epson' | 'star';
+  autoPrintKitchen?:   boolean;
+  autoPrintReceipt?:   boolean;
 }
 
 export interface BillingCharges {
@@ -112,4 +119,10 @@ export const restaurantService = {
 
   updateSocial: (id: string, facebookUrl: string | null, instagramUrl: string | null, welcomeImageUrl: string | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/social`, { facebookUrl, instagramUrl, welcomeImageUrl }).then((r) => r.data),
+
+  updatePrinter: (id: string, payload: {
+    receiptPrinterIp: string | null; receiptPrinterPort: number;
+    kitchenPrinterIp: string | null; kitchenPrinterPort: number;
+    printerType: 'epson' | 'star'; autoPrintKitchen: boolean; autoPrintReceipt: boolean;
+  }) => axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/printer`, payload).then((r) => r.data),
 };

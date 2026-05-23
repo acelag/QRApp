@@ -17,6 +17,13 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
   roomServiceOpen:  (row.room_service_open  as string | null) ?? null,
   roomServiceClose: (row.room_service_close as string | null) ?? null,
+  receiptPrinterIp:   (row.receipt_printer_ip   as string | null) ?? null,
+  receiptPrinterPort: row.receipt_printer_port != null ? Number(row.receipt_printer_port) : 9100,
+  kitchenPrinterIp:   (row.kitchen_printer_ip   as string | null) ?? null,
+  kitchenPrinterPort: row.kitchen_printer_port != null ? Number(row.kitchen_printer_port) : 9100,
+  printerType:        ((row.printer_type as string | null) ?? 'epson') as 'epson' | 'star',
+  autoPrintKitchen:   row.auto_print_kitchen === true,
+  autoPrintReceipt:   row.auto_print_receipt === true,
 });
 
 // ── Public endpoints — no auth required ──────────────────────────────────────
@@ -178,6 +185,26 @@ router.patch('/:id/social', authenticate, requireRole('admin'), async (req: Auth
   await pool.query(
     'UPDATE restaurants SET facebook_url = $1, instagram_url = $2, welcome_image_url = $3 WHERE id = $4',
     [facebookUrl ?? null, instagramUrl ?? null, welcomeImageUrl ?? null, id],
+  );
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/printer', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { receiptPrinterIp, receiptPrinterPort, kitchenPrinterIp, kitchenPrinterPort, printerType, autoPrintKitchen, autoPrintReceipt } =
+    req.body as { receiptPrinterIp?: string | null; receiptPrinterPort?: number; kitchenPrinterIp?: string | null; kitchenPrinterPort?: number; printerType?: string; autoPrintKitchen?: boolean; autoPrintReceipt?: boolean };
+  const safeIp   = (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : null;
+  const safePort = (v: unknown) => { const n = Number(v); return (!isNaN(n) && n >= 1 && n <= 65535) ? n : 9100; };
+  const safeType = ['epson', 'star'].includes(printerType ?? '') ? printerType : 'epson';
+  await pool.query(
+    `UPDATE restaurants SET
+       receipt_printer_ip = $1, receipt_printer_port = $2,
+       kitchen_printer_ip = $3, kitchen_printer_port = $4,
+       printer_type = $5, auto_print_kitchen = $6, auto_print_receipt = $7
+     WHERE id = $8`,
+    [safeIp(receiptPrinterIp), safePort(receiptPrinterPort), safeIp(kitchenPrinterIp), safePort(kitchenPrinterPort), safeType, autoPrintKitchen === true, autoPrintReceipt === true, id],
   );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));

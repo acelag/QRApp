@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { autoPrintReceipt } from '../services/printerService';
 
 const router = Router();
 
@@ -152,7 +153,18 @@ router.patch('/:id/pay', authenticate, requireRole('admin', 'manager', 'cashier'
     [now, paymentMethod ?? null, req.params.id],
   );
   const updated = await pool.query('SELECT * FROM table_sessions WHERE id = $1', [req.params.id]);
-  res.json(await buildSessionDetail(updated.rows[0] as Record<string, unknown>));
+  const sessionDetail = await buildSessionDetail(updated.rows[0] as Record<string, unknown>);
+  res.json(sessionDetail);
+
+  // Auto-print receipt for the first order in the session (fire-and-forget)
+  if (req.user?.restaurantId) {
+    const firstOrder = await pool.query(
+      "SELECT id FROM orders WHERE session_id = $1 ORDER BY created_at ASC LIMIT 1",
+      [req.params.id],
+    ).catch(() => null);
+    const firstOrderId = (firstOrder?.rows[0] as Record<string, unknown> | undefined)?.id as string | undefined;
+    if (firstOrderId) autoPrintReceipt(req.user.restaurantId, firstOrderId);
+  }
 });
 
 // ── Merge: link session into another (secondary → primary) ────────────────────

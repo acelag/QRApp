@@ -4,6 +4,7 @@ import { pool } from '../db/database';
 import { authenticate, optionalAuthenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { sendPushToAll, newOrderPayload, sendPushToOrder } from '../lib/pushNotifier';
 import { sendOrderConfirmation } from '../lib/smsNotifier';
+import { autoPrintKitchen } from '../services/printerService';
 
 const router = Router();
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
@@ -233,6 +234,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
   const label = orderType === 'takeaway' ? (customerName?.trim() ?? 'Takeaway') : orderType === 'room-service' ? (customerName?.trim() ?? `Room ${roomNumber}`) : tableNumber ?? 0;
   sendPushToAll(resolvedRestaurantId, newOrderPayload(label as number, itemCount, totalAmount, orderId)).catch(() => {});
+  autoPrintKitchen(resolvedRestaurantId, orderId);
 
   // WhatsApp / SMS confirmation
   if (customerPhone?.trim() && built) {

@@ -2,10 +2,11 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Users,
-  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock,
+  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock, Printer,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
+import { printService } from '../../services/printService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { applyTheme } from '../../context/ThemeContext';
@@ -60,6 +61,19 @@ export function SettingsPage() {
   const [welcomeImageUrl, setWelcomeImageUrl] = useState('');
   const [socialSaving, setSocialSaving] = useState(false);
   const [socialSuccess, setSocialSuccess] = useState(false);
+
+  // Printer settings
+  const [receiptPrinterIp,   setReceiptPrinterIp]   = useState('');
+  const [receiptPrinterPort, setReceiptPrinterPort] = useState('9100');
+  const [kitchenPrinterIp,   setKitchenPrinterIp]   = useState('');
+  const [kitchenPrinterPort, setKitchenPrinterPort] = useState('9100');
+  const [printerType,        setPrinterType]        = useState<'epson' | 'star'>('epson');
+  const [autoPrintKitchen,   setAutoPrintKitchen]   = useState(false);
+  const [autoPrintReceipt,   setAutoPrintReceipt]   = useState(false);
+  const [printerSaving,      setPrinterSaving]      = useState(false);
+  const [printerSuccess,     setPrinterSuccess]     = useState(false);
+  const [testingPrinter,     setTestingPrinter]     = useState<'receipt' | 'kitchen' | null>(null);
+
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -80,6 +94,13 @@ export function SettingsPage() {
       setFacebookUrl(r.facebookUrl ?? '');
       setInstagramUrl(r.instagramUrl ?? '');
       setWelcomeImageUrl(r.welcomeImageUrl ?? '');
+      setReceiptPrinterIp(r.receiptPrinterIp ?? '');
+      setReceiptPrinterPort(String(r.receiptPrinterPort ?? 9100));
+      setKitchenPrinterIp(r.kitchenPrinterIp ?? '');
+      setKitchenPrinterPort(String(r.kitchenPrinterPort ?? 9100));
+      setPrinterType(r.printerType ?? 'epson');
+      setAutoPrintKitchen(r.autoPrintKitchen ?? false);
+      setAutoPrintReceipt(r.autoPrintReceipt ?? false);
     });
   }, []);
 
@@ -178,6 +199,37 @@ export function SettingsPage() {
       setTimeout(() => setSocialSuccess(false), 3000);
     } finally {
       setSocialSaving(false);
+    }
+  }
+
+  async function savePrinter() {
+    if (!restaurant) return;
+    setPrinterSaving(true);
+    setPrinterSuccess(false);
+    try {
+      const updated = await restaurantService.updatePrinter(restaurant.id, {
+        receiptPrinterIp:   receiptPrinterIp.trim() || null,
+        receiptPrinterPort: parseInt(receiptPrinterPort, 10) || 9100,
+        kitchenPrinterIp:   kitchenPrinterIp.trim() || null,
+        kitchenPrinterPort: parseInt(kitchenPrinterPort, 10) || 9100,
+        printerType, autoPrintKitchen, autoPrintReceipt,
+      });
+      setRestaurant(updated);
+      setPrinterSuccess(true);
+      setTimeout(() => setPrinterSuccess(false), 3000);
+    } finally {
+      setPrinterSaving(false);
+    }
+  }
+
+  async function handleTestPrint(role: 'receipt' | 'kitchen') {
+    setTestingPrinter(role);
+    const result = await printService.test(role);
+    setTestingPrinter(null);
+    if (result.success) {
+      import('react-hot-toast').then(({ default: toast }) => toast.success(result.message));
+    } else {
+      import('react-hot-toast').then(({ default: toast }) => toast.error(result.message));
     }
   }
 
@@ -805,6 +857,126 @@ export function SettingsPage() {
 
           </div>{/* end nested xl:grid-cols-2 */}
         </div>{/* end outer lg:grid-cols-2 */}
+
+        {/* ── Printer Settings (full width) ────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+              <Printer size={17} className="text-orange-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800 text-sm">Printer Settings</h2>
+              <p className="text-xs text-gray-400">ESC/POS thermal printers via TCP/IP (server must be on the same network as the printer)</p>
+            </div>
+          </div>
+
+          {/* Printer type */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Printer Protocol</label>
+            <div className="flex gap-2">
+              {(['epson', 'star'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setPrinterType(t)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+                    printerType === t ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 text-gray-600 hover:border-orange-200'
+                  }`}
+                >
+                  {t === 'epson' ? 'Epson / ESC-POS' : 'Star Micronics'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Receipt printer */}
+          <div className="border border-gray-100 rounded-xl p-4 space-y-3">
+            <p className="text-sm font-semibold text-gray-700">Receipt Printer</p>
+            <div className="flex gap-2">
+              <input
+                value={receiptPrinterIp}
+                onChange={(e) => setReceiptPrinterIp(e.target.value)}
+                placeholder="192.168.1.100"
+                className={`${input} flex-1`}
+              />
+              <input
+                value={receiptPrinterPort}
+                onChange={(e) => setReceiptPrinterPort(e.target.value)}
+                placeholder="9100"
+                className={`${input} w-24`}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => handleTestPrint('receipt')}
+              disabled={!receiptPrinterIp.trim() || testingPrinter === 'receipt'}
+              className="flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-700 disabled:opacity-40 font-medium"
+            >
+              {testingPrinter === 'receipt' ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />}
+              Test Print
+            </button>
+          </div>
+
+          {/* Kitchen printer */}
+          <div className="border border-gray-100 rounded-xl p-4 space-y-3">
+            <p className="text-sm font-semibold text-gray-700">Kitchen Printer</p>
+            <div className="flex gap-2">
+              <input
+                value={kitchenPrinterIp}
+                onChange={(e) => setKitchenPrinterIp(e.target.value)}
+                placeholder="192.168.1.101"
+                className={`${input} flex-1`}
+              />
+              <input
+                value={kitchenPrinterPort}
+                onChange={(e) => setKitchenPrinterPort(e.target.value)}
+                placeholder="9100"
+                className={`${input} w-24`}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => handleTestPrint('kitchen')}
+              disabled={!kitchenPrinterIp.trim() || testingPrinter === 'kitchen'}
+              className="flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-700 disabled:opacity-40 font-medium"
+            >
+              {testingPrinter === 'kitchen' ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />}
+              Test Print
+            </button>
+          </div>
+
+          {/* Auto-print toggles */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Auto-Print</p>
+            {([
+              { key: 'kitchen', label: 'Auto-print kitchen ticket when new order arrives', value: autoPrintKitchen, set: setAutoPrintKitchen },
+              { key: 'receipt', label: 'Auto-print receipt when bill is settled',          value: autoPrintReceipt, set: setAutoPrintReceipt },
+            ] as const).map(({ key, label, value, set }) => (
+              <label key={key} className="flex items-center justify-between gap-4 cursor-pointer">
+                <span className="text-sm text-gray-700">{label}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={value}
+                  onClick={() => set(!value)}
+                  className={`relative shrink-0 w-10 h-5 rounded-full transition-colors ${value ? 'bg-orange-500' : 'bg-gray-200'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${value ? 'translate-x-5' : ''}`} />
+                </button>
+              </label>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={savePrinter}
+            disabled={printerSaving}
+            className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
+          >
+            {printerSaving ? <Loader2 size={15} className="animate-spin" /> : printerSuccess ? <CheckCircle2 size={15} /> : <Printer size={15} />}
+            {printerSuccess ? 'Saved!' : 'Save Printer Settings'}
+          </button>
+        </div>
 
         {/* ── Quick links (full width below grid) ──────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">

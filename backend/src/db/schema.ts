@@ -218,6 +218,15 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'instagram_url', 'VARCHAR(500) NULL');
   await addCol('restaurants', 'welcome_image_url', 'VARCHAR(500) NULL');
 
+  // Printer settings
+  await addCol('restaurants', 'receipt_printer_ip',   'VARCHAR(100) NULL');
+  await addCol('restaurants', 'receipt_printer_port',  'INTEGER NOT NULL DEFAULT 9100');
+  await addCol('restaurants', 'kitchen_printer_ip',   'VARCHAR(100) NULL');
+  await addCol('restaurants', 'kitchen_printer_port',  'INTEGER NOT NULL DEFAULT 9100');
+  await addCol('restaurants', 'printer_type',          "VARCHAR(20) NOT NULL DEFAULT 'epson'");
+  await addCol('restaurants', 'auto_print_kitchen',    'BOOLEAN NOT NULL DEFAULT FALSE');
+  await addCol('restaurants', 'auto_print_receipt',    'BOOLEAN NOT NULL DEFAULT FALSE');
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS refunds (
       id               VARCHAR(36)   NOT NULL PRIMARY KEY,
