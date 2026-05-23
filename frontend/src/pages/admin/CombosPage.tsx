@@ -41,7 +41,7 @@ export function CombosPage() {
       menuService.getItems(rid),
     ]).then(([c, m]) => {
       setCombos(c);
-      setMenuItems(m.filter((i) => i.available));
+      setMenuItems(m);
     }).catch(() => toast.error('Failed to load'))
       .finally(() => setLoading(false));
   }, [rid]);
