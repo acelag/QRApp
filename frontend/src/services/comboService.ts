@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 const BASE = '/api/combos';
 
 export interface ComboItem {
@@ -30,37 +32,24 @@ export interface ComboPayload {
   items: { menuItemId: string; quantity: number }[];
 }
 
-const headers = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('qra_token') ?? ''}`,
-});
-
-async function json<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as { error?: string };
-    throw new Error(body.error ?? res.statusText);
-  }
-  return res.json() as Promise<T>;
-}
-
 export const comboService = {
   getCombos(restaurantId: string): Promise<Combo[]> {
-    return fetch(`${BASE}?restaurantId=${restaurantId}`).then((r) => json<Combo[]>(r));
+    return axios.get<Combo[]>(BASE, { params: { restaurantId } }).then((r) => r.data);
   },
 
   createCombo(data: ComboPayload): Promise<Combo> {
-    return fetch(BASE, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then((r) => json<Combo>(r));
+    return axios.post<Combo>(BASE, data).then((r) => r.data);
   },
 
   updateCombo(id: string, data: ComboPayload): Promise<Combo> {
-    return fetch(`${BASE}/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(data) }).then((r) => json<Combo>(r));
+    return axios.put<Combo>(`${BASE}/${id}`, data).then((r) => r.data);
   },
 
   toggleActive(id: string, active: boolean): Promise<Combo> {
-    return fetch(`${BASE}/${id}/active`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ active }) }).then((r) => json<Combo>(r));
+    return axios.patch<Combo>(`${BASE}/${id}/active`, { active }).then((r) => r.data);
   },
 
   deleteCombo(id: string): Promise<void> {
-    return fetch(`${BASE}/${id}`, { method: 'DELETE', headers: headers() }).then((r) => json<void>(r));
+    return axios.delete(`${BASE}/${id}`).then(() => {});
   },
 };
