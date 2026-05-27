@@ -4,6 +4,7 @@ import { ArrowLeft, RefreshCw, Users, Clock, CheckCircle2, AlertTriangle, Coffee
 import { tableService, type TableStatusEntry, type TableOccupancyStatus } from '../../services/tableService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 const POLL_MS = 10_000;
 
@@ -208,7 +209,9 @@ export function TableStatusPage() {
   const visible = filter === 'all' ? tables : tables.filter((t) => t.status === filter);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
@@ -271,7 +274,7 @@ export function TableStatusPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4">
         {loading ? (
           <div className="flex justify-center pt-16">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" />
@@ -293,6 +296,7 @@ export function TableStatusPage() {
             ))}
           </div>
         )}
+      </div>
       </main>
     </div>
   );

@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Trash2, ToggleLeft, ToggleRight, Tag, Loader2, Percent
 import toast from 'react-hot-toast';
 import { promoCodeService, type PromoCode } from '../../services/promoCodeService';
 import { useCurrency } from '../../context/CurrencyContext';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 const EMPTY_FORM = {
   code: '',
@@ -92,7 +93,9 @@ export function PromoCodesPage() {
   const inactiveCodes = codes.filter((c) => !c.active);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
@@ -107,7 +110,7 @@ export function PromoCodesPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-5 max-w-3xl">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5 max-w-3xl">
         {/* ── Create form ── */}
         {showForm && (
           <div className="bg-white rounded-2xl border border-orange-200 shadow-sm p-5">
@@ -273,6 +276,7 @@ export function PromoCodesPage() {
             )}
           </>
         )}
+      </div>
       </main>
     </div>
   );

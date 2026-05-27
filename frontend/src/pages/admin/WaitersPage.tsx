@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, UserCheck, Loader2, X } from 'lucide-react';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 export function WaitersPage() {
   const [waiters, setWaiters]   = useState<Waiter[]>([]);
@@ -47,7 +48,9 @@ export function WaitersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
@@ -61,7 +64,7 @@ export function WaitersPage() {
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-4 py-4">
+      <div className="max-w-xl mx-auto px-4 py-4">
         {loading ? (
           <div className="flex justify-center pt-16">
             <Loader2 size={28} className="animate-spin text-orange-500" />
@@ -90,7 +93,7 @@ export function WaitersPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
@@ -119,6 +122,7 @@ export function WaitersPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

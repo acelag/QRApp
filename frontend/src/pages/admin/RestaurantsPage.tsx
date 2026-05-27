@@ -7,6 +7,7 @@ import {
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 interface Restaurant {
   id: string;
@@ -171,7 +172,9 @@ export function RestaurantsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
@@ -198,7 +201,7 @@ export function RestaurantsPage() {
       </header>
 
       {/* List */}
-      <main className="max-w-3xl mx-auto px-4 py-4 space-y-3">
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
@@ -341,7 +344,7 @@ export function RestaurantsPage() {
             );
           })
         )}
-      </main>
+      </div>
 
       {/* Create modal */}
       {showForm && (
@@ -405,6 +408,7 @@ export function RestaurantsPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

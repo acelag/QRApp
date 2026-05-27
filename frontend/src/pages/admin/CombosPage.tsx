@@ -11,6 +11,7 @@ import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useAuth } from '../../context/AuthContext';
 import type { MenuItem } from '../../types';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 const EMPTY_FORM = (): ComboPayload => ({
   name: '', description: '', price: 0, image: '', active: true, sortOrder: 0, items: [],
@@ -153,14 +154,14 @@ export function CombosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" />
-      </div>
+      <div className="flex h-screen overflow-hidden bg-gray-50"><AdminSidebar /><main className="flex-1 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" /></main></div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -179,7 +180,7 @@ export function CombosPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6">
         {combos.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <Package size={48} className="mx-auto text-gray-200" />
@@ -236,7 +237,7 @@ export function CombosPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Create / Edit modal */}
       {showModal && (
@@ -430,6 +431,7 @@ export function CombosPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { tableService } from '../../services/tableService';
 import { roomService } from '../../services/roomService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 type Tab = 'tables' | 'rooms';
 
@@ -178,7 +179,9 @@ export function LocationsPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
 
       {/* Hidden QR renders — used only to grab SVG for printing */}
       <div className="hidden" aria-hidden>
@@ -245,7 +248,7 @@ export function LocationsPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
         {/* ════════════════ TABLES TAB ════════════════ */}
         {activeTab === 'tables' && (
@@ -376,7 +379,7 @@ export function LocationsPage() {
             )}
           </>
         )}
-      </main>
+      </div>
 
       {/* ── Takeaway QR modal ──────────────────────────────────────────── */}
       {takeawayQrOpen && takeawayUrl && (
@@ -437,6 +440,7 @@ export function LocationsPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

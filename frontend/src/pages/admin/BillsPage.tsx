@@ -15,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import type { Order } from '../../types';
 import { SplitBillModal } from '../../components/SplitBillModal';
 import { PaymentMethodModal, paymentMethodIcon, paymentMethodLabel, type PaymentMethod } from '../../components/PaymentMethodModal';
+import { AdminSidebar } from '../../components/AdminSidebar';
 import { RefundModal } from '../../components/RefundModal';
 import { getApiError } from '../../lib/apiError';
 
@@ -183,7 +184,9 @@ export function BillsPage() {
   }, [refunds]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
@@ -228,7 +231,7 @@ export function BillsPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-6">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-6">
         {loading ? (
           <div className="flex justify-center pt-16">
             <Loader2 size={28} className="animate-spin text-orange-500" />
@@ -700,7 +703,7 @@ export function BillsPage() {
             )}
           </section>
         )}
-      </main>
+      </div>
 
       {splitSession && (
         <SplitBillModal
@@ -734,6 +737,7 @@ export function BillsPage() {
           onClose={() => setRefundTarget(null)}
         />
       )}
+      </main>
     </div>
   );
 }

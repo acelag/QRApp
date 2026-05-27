@@ -12,6 +12,7 @@ import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
 import { AddItemsModal } from '../../components/AddItemsModal';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 
 export function OrdersPage() {
@@ -93,7 +94,9 @@ export function OrdersPage() {
     : orders.filter((o) => o.status === tab);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600">
@@ -132,7 +135,7 @@ export function OrdersPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4">
         {loading ? (
           <div className="flex justify-center pt-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
@@ -156,7 +159,7 @@ export function OrdersPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
       {addItemsOrder && (
         <AddItemsModal
           order={addItemsOrder}
@@ -164,6 +167,7 @@ export function OrdersPage() {
           onDone={handleAddItemsDone}
         />
       )}
+      </main>
     </div>
   );
 }
