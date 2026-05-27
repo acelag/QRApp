@@ -13,7 +13,7 @@ const toRoom = (row: Record<string, unknown>) => ({
   createdAt: row.created_at,
 });
 
-router.get('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
   const result = await pool.query('SELECT * FROM rooms WHERE restaurant_id = $1 ORDER BY number', [req.user!.restaurantId]);
   res.json((result.rows as Record<string, unknown>[]).map(toRoom));
 });
@@ -24,7 +24,7 @@ router.get('/:id', async (req, res) => {
   res.json(toRoom(result.rows[0] as Record<string, unknown>));
 });
 
-router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { number, name } = req.body as { number: number; name?: string };
   if (!number) { res.status(400).json({ error: 'number is required' }); return; }
   const dup = await pool.query('SELECT id FROM rooms WHERE restaurant_id = $1 AND number = $2', [req.user!.restaurantId, number]);
@@ -39,7 +39,7 @@ router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, re
   res.status(201).json(toRoom(result.rows[0] as Record<string, unknown>));
 });
 
-router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const result = await pool.query('DELETE FROM rooms WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.status(204).send();

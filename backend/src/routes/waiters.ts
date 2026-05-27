@@ -4,7 +4,7 @@ import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 
 const router = Router();
-router.use(authenticate, requireRole('admin'));
+router.use(authenticate, requireRole('admin', 'manager'));
 
 router.get('/', async (req: AuthRequest, res) => {
   const result = await pool.query(

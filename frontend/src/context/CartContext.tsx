@@ -21,6 +21,7 @@ interface CartState {
 
 type CartAction =
   | { type: 'ADD_ITEM'; payload: { menuItem: MenuItem; size?: Size; notes?: string; toppings?: SelectedTopping[] } }
+  | { type: 'ADD_COMBO'; payload: { comboId: string; name: string; price: number; comboItems: string[] } }
   | { type: 'REMOVE_ITEM'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[] } }
   | { type: 'UPDATE_QTY'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; quantity: number } }
   | { type: 'UPDATE_NOTES'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; notes: string } }
@@ -32,6 +33,7 @@ type CartAction =
 
 interface CartContextValue extends CartState {
   addItem: (menuItem: MenuItem, size?: Size, notes?: string, toppings?: SelectedTopping[]) => void;
+  addCombo: (comboId: string, name: string, price: number, comboItems: string[]) => void;
   removeItem: (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) => void;
   updateQty: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], quantity?: number) => void;
   updateNotes: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], notes?: string) => void;
@@ -67,6 +69,23 @@ function reducer(state: CartState, action: CartAction): CartState {
           ...state.items,
           { menuItemId: menuItem.id, name: menuItem.name, price, quantity: 1, notes, size, toppings },
         ],
+      };
+    }
+    case 'ADD_COMBO': {
+      const { comboId, name, price, comboItems } = action.payload;
+      const key = itemKey(comboId, undefined, undefined);
+      const existing = state.items.find((i) => itemKey(i.menuItemId, i.size, i.toppings) === key);
+      if (existing) {
+        return {
+          ...state,
+          items: state.items.map((i) =>
+            itemKey(i.menuItemId, i.size, i.toppings) === key ? { ...i, quantity: i.quantity + 1 } : i
+          ),
+        };
+      }
+      return {
+        ...state,
+        items: [...state.items, { menuItemId: comboId, name, price, quantity: 1, comboId, comboItems }],
       };
     }
     case 'REMOVE_ITEM': {
@@ -137,6 +156,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         itemCount,
         addItem: (menuItem, size, notes, toppings) =>
           dispatch({ type: 'ADD_ITEM', payload: { menuItem, size, notes, toppings } }),
+        addCombo: (comboId, name, price, comboItems) =>
+          dispatch({ type: 'ADD_COMBO', payload: { comboId, name, price, comboItems } }),
         removeItem: (menuItemId, size, toppings) =>
           dispatch({ type: 'REMOVE_ITEM', payload: { menuItemId, size, toppings } }),
         updateQty: (menuItemId, size, toppings, quantity) =>

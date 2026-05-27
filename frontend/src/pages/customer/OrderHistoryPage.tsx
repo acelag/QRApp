@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ClipboardList, UtensilsCrossed, CheckCircle2, RefreshCw, Star } from 'lucide-react';
 import type { Session, SessionOrder } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
@@ -18,6 +19,7 @@ function timeAgo(iso: string): string {
 }
 
 function FeedbackRow({ order, onDone }: { order: SessionOrder; onDone: (orderId: string, rating: number) => void }) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(0);
   const [selected, setSelected] = useState(0);
   const [note, setNote] = useState('');
@@ -29,9 +31,9 @@ function FeedbackRow({ order, onDone }: { order: SessionOrder; onDone: (orderId:
     try {
       await orderService.submitFeedback(order.id, selected, note.trim() || undefined);
       onDone(order.id, selected);
-      toast.success('Thanks for your feedback!');
+      toast.success(t('orderHistory.feedbackThanks'));
     } catch {
-      toast.error('Could not submit feedback');
+      toast.error(t('orderHistory.feedbackError'));
     } finally {
       setSubmitting(false);
     }
@@ -41,7 +43,7 @@ function FeedbackRow({ order, onDone }: { order: SessionOrder; onDone: (orderId:
 
   return (
     <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-orange-50/40">
-      <p className="text-xs font-semibold text-gray-500 mb-2 text-center">How was your order?</p>
+      <p className="text-xs font-semibold text-gray-500 mb-2 text-center">{t('orderHistory.howWasOrder')}</p>
       <div className="flex justify-center gap-1 mb-2">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
@@ -64,7 +66,7 @@ function FeedbackRow({ order, onDone }: { order: SessionOrder; onDone: (orderId:
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Add a comment (optional)"
+            placeholder={t('orderHistory.addComment')}
             className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-orange-300 bg-white"
           />
           <button
@@ -72,7 +74,7 @@ function FeedbackRow({ order, onDone }: { order: SessionOrder; onDone: (orderId:
             disabled={submitting}
             className="w-full bg-orange-500 text-white py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
-            {submitting ? 'Submitting…' : 'Submit Feedback'}
+            {submitting ? t('orderHistory.submitting') : t('orderHistory.submitFeedback')}
           </button>
         </div>
       )}
@@ -81,6 +83,7 @@ function FeedbackRow({ order, onDone }: { order: SessionOrder; onDone: (orderId:
 }
 
 export function OrderHistoryPage() {
+  const { t } = useTranslation();
   const { tableId } = useParams<{ tableId: string }>();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,13 +125,13 @@ export function OrderHistoryPage() {
             <UtensilsCrossed size={20} />
           </Link>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
-            <p className="text-xs text-gray-400">Table {tableNumber}</p>
+            <h1 className="text-xl font-bold text-gray-900">{t('orderHistory.title')}</h1>
+            <p className="text-xs text-gray-400">{t('customer.tableNumber', { number: tableNumber })}</p>
           </div>
           {session?.status === 'open' && (
             <div className="flex items-center gap-1 text-xs text-gray-400">
               <RefreshCw size={12} className="animate-spin" style={{ animationDuration: '3s' }} />
-              Live
+              {t('orderHistory.live')}
             </div>
           )}
         </div>
@@ -145,12 +148,12 @@ export function OrderHistoryPage() {
             <div className="bg-orange-50 p-5 rounded-full">
               <ClipboardList size={36} className="text-orange-400" />
             </div>
-            <p className="text-gray-500 font-medium">No orders yet</p>
+            <p className="text-gray-500 font-medium">{t('orderHistory.noOrders')}</p>
             <Link
               to={`/menu/${tableId}`}
               className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-full text-sm font-semibold transition-colors"
             >
-              Browse Menu
+              {t('orderHistory.browseMenu')}
             </Link>
           </div>
         ) : (
@@ -160,15 +163,15 @@ export function OrderHistoryPage() {
               <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
                 <CheckCircle2 size={20} className="text-green-500 shrink-0" />
                 <div>
-                  <p className="font-semibold text-green-800 text-sm">Bill Paid — Session Closed</p>
+                  <p className="font-semibold text-green-800 text-sm">{t('orderHistory.sessionClosed')}</p>
                   <p className="text-xs text-green-600">
-                    {session.closedAt ? `Paid at ${new Date(session.closedAt).toLocaleTimeString()}` : ''}
+                    {session.closedAt ? t('orderHistory.paidAt', { time: new Date(session.closedAt).toLocaleTimeString() }) : ''}
                   </p>
                 </div>
               </div>
             ) : (
               <p className="text-xs text-gray-400 text-right">
-                Auto-refreshes every 5s
+                {t('orderHistory.autoRefresh')}
               </p>
             )}
 
@@ -177,10 +180,10 @@ export function OrderHistoryPage() {
               <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-400">Order #{orders.length - idx}</span>
+                    <span className="text-xs font-bold text-gray-400">{t('orderHistory.orderNumber', { n: orders.length - idx })}</span>
                     <StatusBadge status={order.status as OrderStatus} />
                   </div>
-                  <span className="text-xs text-gray-400">{timeAgo(order.createdAt)}</span>
+                  <span className="text-xs text-gray-400">{timeAgo(order.createdAt) === 'Just now' ? t('orderHistory.justNow') : timeAgo(order.createdAt)}</span>
                 </div>
                 <ul className="px-4 py-3 space-y-2">
                   {order.items.map((item, i) => {
@@ -194,7 +197,7 @@ export function OrderHistoryPage() {
                               <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
                                 item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
                               }`}>
-                                {item.size === 'large' ? 'Large' : 'Regular'}
+                                {item.size === 'large' ? t('orderHistory.large') : t('orderHistory.regular')}
                               </span>
                             )}
                             {item.notes && (
@@ -217,7 +220,7 @@ export function OrderHistoryPage() {
                   })}
                 </ul>
                 <div className="flex justify-between px-4 py-3 border-t border-gray-100">
-                  <span className="text-xs text-gray-400">Subtotal</span>
+                  <span className="text-xs text-gray-400">{t('orderHistory.subtotal')}</span>
                   <span className="font-semibold text-gray-800 text-sm">{fmt(order.totalAmount)}</span>
                 </div>
 
@@ -228,7 +231,7 @@ export function OrderHistoryPage() {
                       {[1,2,3,4,5].map((s) => (
                         <Star key={s} size={16} className={`${(localRatings[order.id] ?? order.rating ?? 0) >= s ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
                       ))}
-                      <span className="text-xs text-gray-400 ml-1">Thanks for your feedback!</span>
+                      <span className="text-xs text-gray-400 ml-1">{t('orderHistory.feedbackThanks')}</span>
                     </div>
                   ) : (
                     <FeedbackRow order={order} onDone={handleFeedbackDone} />
@@ -239,7 +242,7 @@ export function OrderHistoryPage() {
 
             {/* Session total */}
             <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-4 flex justify-between items-center">
-              <span className="font-semibold text-orange-800">Session Total</span>
+              <span className="font-semibold text-orange-800">{t('orderHistory.sessionTotal')}</span>
               <span className="text-xl font-bold text-orange-600">{fmt(session?.totalAmount ?? 0)}</span>
             </div>
           </>
@@ -254,7 +257,7 @@ export function OrderHistoryPage() {
               to={`/menu/${tableId}`}
               className="block w-full text-center bg-orange-500 hover:bg-orange-600 text-white py-3.5 rounded-2xl font-semibold transition-colors"
             >
-              + Order More
+              {t('orderHistory.orderMore')}
             </Link>
           </div>
         </div>

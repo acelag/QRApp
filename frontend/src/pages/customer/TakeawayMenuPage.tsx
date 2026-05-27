@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw, Clock, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw, Clock, Search, Package } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
@@ -9,6 +10,7 @@ import { menuService } from '../../services/menuService';
 import { restaurantService } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
 import { promoCodeService, type ValidateResult } from '../../services/promoCodeService';
+import { comboService, type Combo } from '../../services/comboService';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -24,6 +26,7 @@ const cartKey = (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) 
 
 type CartAction =
   | { type: 'ADD';       item: MenuItem; size?: Size; toppings?: SelectedTopping[]; notes?: string }
+  | { type: 'ADD_COMBO'; comboId: string; name: string; price: number; comboItems: string[] }
   | { type: 'INC';       key: string }
   | { type: 'DEC';       key: string }
   | { type: 'REMOVE';    key: string }
@@ -48,6 +51,12 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
       return state.filter((c) => cartKey(c.menuItemId, c.size, c.toppings) !== action.key);
     case 'SET_NOTES':
       return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === action.key ? { ...c, notes: action.notes || undefined } : c);
+    case 'ADD_COMBO': {
+      const key = cartKey(action.comboId, undefined, undefined);
+      const exists = state.find((c) => cartKey(c.menuItemId, c.size, c.toppings) === key);
+      if (exists) return state.map((c) => cartKey(c.menuItemId, c.size, c.toppings) === key ? { ...c, quantity: c.quantity + 1 } : c);
+      return [...state, { menuItemId: action.comboId, name: action.name, price: action.price, quantity: 1, comboId: action.comboId, comboItems: action.comboItems }];
+    }
     case 'INIT': return action.items;
     case 'CLEAR': return [];
     default: return state;
@@ -55,6 +64,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
 }
 
 export function TakeawayMenuPage() {
+  const { t } = useTranslation();
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,6 +88,7 @@ export function TakeawayMenuPage() {
   const [promoInput, setPromoInput]   = useState('');
   const [promoResult, setPromoResult] = useState<ValidateResult | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
+  const [combos, setCombos]           = useState<Combo[]>([]);
   const { fmt, loadCurrency } = useCurrency();
   const { loadTheme } = useTheme();
   const { tags: allTags, loadTags } = useTags();
@@ -87,6 +98,7 @@ export function TakeawayMenuPage() {
     setLoadError(false);
     setLoading(true);
     restaurantService.getRestaurantInfo(restaurantId).then(setRestaurantInfo).catch(() => {});
+    comboService.getCombos(restaurantId).then((c) => setCombos(c.filter((x) => x.active))).catch(() => {});
     Promise.all([
       menuService.getCategories(restaurantId),
       menuService.getItems(restaurantId),
@@ -168,7 +180,7 @@ export function TakeawayMenuPage() {
       setCartOpen(false);
       navigate(`/order-success/${order.id}`);
     } catch {
-      toast.error('Failed to place order. Please try again.');
+      toast.error(t('customer.failedOrder'));
     } finally {
       setPlacing(false);
     }
@@ -207,13 +219,13 @@ export function TakeawayMenuPage() {
             {restaurantInfo?.logo
               ? <img src={restaurantInfo.logo} alt="logo" className="w-8 h-8 object-contain rounded-md" />
               : <ShoppingBag size={20} className="text-purple-500" />}
-            <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? 'Takeaway Order'}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? t('customer.takeaway')}</h1>
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <p className="text-sm text-gray-400">Browse the menu and tap Add to get started</p>
+            <p className="text-sm text-gray-400">{t('customer.searchMenu')}</p>
             {restaurantInfo?.waitTimeMin && (
               <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
-                <Clock size={11} /> ~{restaurantInfo.waitTimeMin} min wait
+                <Clock size={11} /> {t('customer.waitTime', { n: restaurantInfo.waitTimeMin })}
               </span>
             )}
           </div>
@@ -244,7 +256,7 @@ export function TakeawayMenuPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search menu…"
+              placeholder={t('common.search')}
               className="w-full bg-gray-100 rounded-full pl-9 pr-9 py-2 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-purple-300 transition-all placeholder:text-gray-400"
             />
             {searchQuery && (
@@ -258,9 +270,45 @@ export function TakeawayMenuPage() {
 
       {/* Menu grid */}
       <main className="max-w-lg mx-auto px-4 pt-4">
+        {/* Combos & Deals strip */}
+        {combos.length > 0 && (
+          <section className="mb-5">
+            <h2 className="text-sm font-bold text-purple-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <Package size={14} /> {t('customer.combosAndDeals')}
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+              {combos.map((combo) => (
+                <div key={combo.id} className="shrink-0 w-52 bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+                  {combo.image
+                    ? <img src={combo.image} alt={combo.name} className="w-full h-28 object-cover" />
+                    : <div className="w-full h-28 bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center"><Package size={32} className="text-purple-300" /></div>}
+                  <div className="p-3">
+                    <p className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{combo.name}</p>
+                    {combo.description && <p className="text-xs text-gray-400 line-clamp-1 mb-1">{combo.description}</p>}
+                    {combo.items.length > 0 && (
+                      <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+                        {combo.items.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.menuItemName}`).join(' · ')}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-600 font-bold text-base">{fmt(combo.price)}</span>
+                      <button
+                        onClick={() => dispatch({ type: 'ADD_COMBO', comboId: combo.id, name: combo.name, price: combo.price, comboItems: combo.items.map((i) => i.menuItemName) })}
+                        className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-purple-700 active:scale-95 transition-all"
+                      >
+                        {t('customer.addToCart')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {filtered.length === 0 ? (
           <p className="text-center text-gray-400 mt-12">
-            {q ? `No items match "${searchQuery}"` : 'No items in this category'}
+            {q ? `No items match "${searchQuery}"` : t('customer.allCategories')}
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -290,7 +338,7 @@ export function TakeawayMenuPage() {
                     )}
                     {(hasToppings || hasLarge) && (
                       <span className="absolute top-2 right-2 bg-purple-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-                        {hasToppings ? '+ Extras' : 'R / L'}
+                        {hasToppings ? `+ ${t('customer.extras')}` : 'R / L'}
                       </span>
                     )}
                   </div>
@@ -309,7 +357,7 @@ export function TakeawayMenuPage() {
                           onClick={() => handleAdd(item)}
                           className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${totalInCart > 0 ? 'bg-purple-100 text-purple-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
                         >
-                          <Plus size={14} /> {totalInCart > 0 ? `Add more (${totalInCart})` : 'Add'}
+                          <Plus size={14} /> {totalInCart > 0 ? `${t('customer.addToCart')} (${totalInCart})` : t('customer.addToCart')}
                         </button>
                       </div>
                     </div>
@@ -329,19 +377,19 @@ export function TakeawayMenuPage() {
             {cartOpen && (
               <div className="bg-white rounded-t-3xl shadow-2xl border border-gray-100 mb-0 max-h-[60vh] flex flex-col">
                 <div className="px-4 pt-4 pb-2 border-b border-gray-100">
-                  <p className="font-semibold text-gray-900 mb-2">Your Order</p>
+                  <p className="font-semibold text-gray-900 mb-2">{t('customer.yourCart')}</p>
                   <input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Your name (optional)"
+                    placeholder={t('customer.notePlaceholder')}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-purple-300 mb-1"
                   />
                   <input
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="📱 Phone for WhatsApp/SMS confirmation (optional)"
+                    placeholder={t('customer.phonePlaceholder')}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-purple-300"
                   />
                 </div>
@@ -365,6 +413,7 @@ export function TakeawayMenuPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-sm text-gray-700 truncate block">{c.name}</span>
+                            {c.comboId && <span className="text-xs bg-purple-500 text-white font-semibold px-1.5 py-0.5 rounded-full">{t('customer.bundle')}</span>}
                             {c.size && <span className="text-xs text-purple-500 capitalize">{c.size}</span>}
                           </div>
                           <span className="text-sm font-semibold text-gray-800 shrink-0">{fmt((c.price + toppingsTotal) * c.quantity)}</span>
@@ -388,7 +437,7 @@ export function TakeawayMenuPage() {
                               value={c.notes ?? ''}
                               onChange={(e) => dispatch({ type: 'SET_NOTES', key, notes: e.target.value })}
                               onBlur={() => setEditingNotesKey(null)}
-                              placeholder="e.g. no onions, less spicy…"
+                              placeholder={t('customer.noteHint')}
                               className="w-full text-xs border border-purple-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-purple-300"
                             />
                           ) : (
@@ -396,7 +445,7 @@ export function TakeawayMenuPage() {
                               onClick={() => setEditingNotesKey(key)}
                               className="text-xs text-purple-400 hover:text-purple-600"
                             >
-                              {c.notes ? `📝 ${c.notes}` : '+ Add note'}
+                              {c.notes ? `📝 ${c.notes}` : `+ ${t('customer.notePlaceholder')}`}
                             </button>
                           )}
                         </div>
@@ -443,9 +492,9 @@ export function TakeawayMenuPage() {
                   {/* Total with discount */}
                   {discount > 0 && (
                     <div className="mt-2 space-y-0.5 text-xs text-gray-500">
-                      <div className="flex justify-between"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+                      <div className="flex justify-between"><span>{t('customer.subtotal')}</span><span>{fmt(subtotal)}</span></div>
                       <div className="flex justify-between text-green-600 font-medium"><span>Discount</span><span>−{fmt(discount)}</span></div>
-                      <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-100 pt-1"><span>Total</span><span>{fmt(total)}</span></div>
+                      <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-100 pt-1"><span>{t('common.total')}</span><span>{fmt(total)}</span></div>
                     </div>
                   )}
                 </div>
@@ -460,7 +509,7 @@ export function TakeawayMenuPage() {
             >
               <span className="bg-white/20 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">{itemCount}</span>
               <span className="font-semibold">
-                {placing ? 'Placing Order…' : cartOpen ? `Place Order • ${fmt(total)}` : `View Order • ${fmt(total)}`}
+                {placing ? t('customer.placingOrder') : cartOpen ? t('customer.placeOrder', { amount: fmt(total) }) : t('customer.yourCart')}
               </span>
               {cartOpen
                 ? <ChevronDown size={20} onClick={(e) => { e.stopPropagation(); setCartOpen(false); }} />

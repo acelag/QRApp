@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useTags } from '../context/TagsContext';
 import { ToppingSelectionModal } from './ToppingSelectionModal';
+import { tagPillCls } from '../services/tagService';
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -86,6 +87,18 @@ export function MenuCard({ item, view = 'grid' }: Props) {
             {item.description && (
               <p className="text-xs text-gray-400 truncate mt-0.5">{item.description}</p>
             )}
+            {(item.tags ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {(item.tags!).map((slug) => {
+                  const tag = allTags.find((t) => t.slug === slug);
+                  return tag ? (
+                    <span key={slug} className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tagPillCls(tag.category)}`}>
+                      {tag.emoji} {tag.label}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
             <div className="flex items-baseline gap-1 mt-0.5">
               {regDisc && <span className="text-[11px] text-gray-400 line-through">{fmt(regBase)}</span>}
               <span className={`text-sm font-bold ${regDisc ? 'text-green-600' : 'text-orange-600'}`}>{fmt(regPrice)}</span>
@@ -154,7 +167,7 @@ export function MenuCard({ item, view = 'grid' }: Props) {
               {(item.tags!).map((slug) => {
                 const tag = allTags.find((t) => t.slug === slug);
                 return tag ? (
-                  <span key={slug} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                  <span key={slug} className={`inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium ${tagPillCls(tag.category)}`}>
                     {tag.emoji} {tag.label}
                   </span>
                 ) : null;

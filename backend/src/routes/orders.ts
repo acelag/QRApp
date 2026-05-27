@@ -4,6 +4,7 @@ import { pool } from '../db/database';
 import { authenticate, optionalAuthenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { sendPushToAll, newOrderPayload, sendPushToOrder } from '../lib/pushNotifier';
 import { sendOrderConfirmation } from '../lib/smsNotifier';
+import { autoPrintKitchen } from '../services/printerService';
 
 const router = Router();
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
@@ -13,6 +14,7 @@ interface CartItem {
   menuItemId: string; name: string; price: number; quantity: number;
   notes?: string; size?: 'regular' | 'large';
   toppings?: SelectedTopping[];
+  comboId?: string;
 }
 
 const ITEMS_SQL = `
@@ -56,12 +58,13 @@ async function buildOrder(orderId: string) {
     items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
       notes: i.notes ?? undefined, size: (i.size as string | null) ?? undefined,
+      comboId: (i.combo_id as string | null) ?? undefined,
       toppings: ((i.toppings as SelectedTopping[] | null) ?? []).filter((t) => t.id != null),
     })),
   };
 }
 
-router.get('/', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter', 'kitchen'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const ordersRes = rid
     ? await pool.query('SELECT * FROM orders WHERE restaurant_id = $1 ORDER BY created_at DESC', [rid])
@@ -125,36 +128,11 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     return s + (i.price + toppingsTotal) * i.quantity;
   }, 0);
 
-  // Validate and apply promo code if provided
+  // Promo code validation will happen inside the transaction (with FOR UPDATE lock)
   const { promoCode } = req.body as { promoCode?: string };
   let discountAmount = 0;
   let validatedPromoCode: string | null = null;
-
-  if (promoCode?.trim()) {
-    const upperCode = promoCode.trim().toUpperCase();
-    const promoRes = await pool.query(
-      'SELECT * FROM promo_codes WHERE code = $1 AND restaurant_id = $2',
-      [upperCode, resolvedRestaurantId],
-    );
-    if (promoRes.rows.length) {
-      const p = promoRes.rows[0] as Record<string, unknown>;
-      const isValid =
-        p.active &&
-        !(p.expires_at && new Date(p.expires_at as string) < new Date()) &&
-        !(p.max_uses != null && Number(p.uses) >= Number(p.max_uses)) &&
-        subtotal >= Number(p.min_order);
-
-      if (isValid) {
-        discountAmount = p.type === 'percentage'
-          ? Math.min(subtotal * (Number(p.value) / 100), subtotal)
-          : Math.min(Number(p.value), subtotal);
-        discountAmount = Math.round(discountAmount * 100) / 100;
-        validatedPromoCode = upperCode;
-      }
-    }
-  }
-
-  const totalAmount = Math.max(0, subtotal - discountAmount);
+  let totalAmount = 0;
 
   const now = new Date().toISOString();
   const orderId = uuid();
@@ -162,6 +140,33 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Validate and apply promo code inside transaction to prevent race condition
+    if (promoCode?.trim()) {
+      const upperCode = promoCode.trim().toUpperCase();
+      const promoRes = await client.query(
+        'SELECT * FROM promo_codes WHERE code = $1 AND restaurant_id = $2 FOR UPDATE',
+        [upperCode, resolvedRestaurantId],
+      );
+      if (promoRes.rows.length) {
+        const p = promoRes.rows[0] as Record<string, unknown>;
+        const isValid =
+          p.active &&
+          !(p.expires_at && new Date(p.expires_at as string) < new Date()) &&
+          !(p.max_uses != null && Number(p.uses) >= Number(p.max_uses)) &&
+          subtotal >= Number(p.min_order);
+
+        if (isValid) {
+          discountAmount = p.type === 'percentage'
+            ? Math.min(subtotal * (Number(p.value) / 100), subtotal)
+            : Math.min(Number(p.value), subtotal);
+          discountAmount = Math.round(discountAmount * 100) / 100;
+          validatedPromoCode = upperCode;
+        }
+      }
+    }
+
+    totalAmount = Math.max(0, subtotal - discountAmount);
     const seqRes = await client.query(
       `UPDATE restaurants SET next_order_seq = next_order_seq + 1 WHERE id = $1 RETURNING next_order_seq, order_number_prefix`,
       [resolvedRestaurantId],
@@ -185,14 +190,25 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     for (const item of items) {
       const orderItemId = uuid();
       await client.query(
-        `INSERT INTO order_items (id,order_id,menu_item_id,name,price,quantity,notes,size) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [orderItemId, orderId, item.menuItemId, item.name, item.price, item.quantity, item.notes ?? null, item.size ?? null],
+        `INSERT INTO order_items (id,order_id,menu_item_id,name,price,quantity,notes,size,combo_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [orderItemId, orderId, item.menuItemId, item.name, item.price, item.quantity, item.notes ?? null, item.size ?? null, item.comboId ?? null],
       );
       for (const topping of (item.toppings ?? [])) {
         await client.query(
           `INSERT INTO order_item_toppings (id,order_item_id,topping_id,name,price) VALUES ($1,$2,$3,$4,$5)`,
           [uuid(), orderItemId, topping.id, topping.name, topping.price],
         );
+      }
+      // Check stock before decrementing to prevent overselling
+      const stockCheck = await client.query(
+        'SELECT stock, name FROM menu_items WHERE id = $1 AND track_stock = true AND stock IS NOT NULL',
+        [item.menuItemId],
+      );
+      if (stockCheck.rows.length) {
+        const stockRow = stockCheck.rows[0] as { stock: number; name: string };
+        if (stockRow.stock < item.quantity) {
+          throw Object.assign(new Error(`Insufficient stock for: ${stockRow.name}`), { statusCode: 400 });
+        }
       }
       // Decrement stock for tracked items; auto-disable when it reaches 0
       await client.query(
@@ -206,6 +222,11 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
+    const e = err as { statusCode?: number; message?: string };
+    if (e.statusCode === 400) {
+      res.status(400).json({ error: e.message });
+      return;
+    }
     throw err;
   } finally {
     client.release();
@@ -215,6 +236,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
   const label = orderType === 'takeaway' ? (customerName?.trim() ?? 'Takeaway') : orderType === 'room-service' ? (customerName?.trim() ?? `Room ${roomNumber}`) : tableNumber ?? 0;
   sendPushToAll(resolvedRestaurantId, newOrderPayload(label as number, itemCount, totalAmount, orderId)).catch(() => {});
+  autoPrintKitchen(resolvedRestaurantId, orderId);
 
   // WhatsApp / SMS confirmation
   if (customerPhone?.trim() && built) {
@@ -238,7 +260,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   res.status(201).json(built);
 });
 
-router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async (req: AuthRequest, res) => {
+router.patch('/:id/status', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter', 'kitchen'), async (req: AuthRequest, res) => {
   const { status, paymentMethod } = req.body as { status: OrderStatus; paymentMethod?: string };
   if (!['pending', 'preparing', 'ready'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
   const now = new Date().toISOString();
@@ -263,7 +285,7 @@ router.patch('/:id/status', authenticate, requireRole('admin', 'kitchen'), async
   res.json(await buildOrder(String(req.params.id)));
 });
 
-router.patch('/:id/waiter', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/waiter', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { waiterId } = req.body as { waiterId: string | null };
   const rid = req.user!.restaurantId;
   const now = new Date().toISOString();
@@ -289,7 +311,7 @@ router.patch('/:id/waiter', authenticate, requireRole('admin'), async (req: Auth
   res.json(await buildOrder(String(req.params.id)));
 });
 
-router.patch('/:id/payment-method', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/payment-method', authenticate, requireRole('admin', 'manager', 'cashier'), async (req: AuthRequest, res) => {
   const { paymentMethod } = req.body as { paymentMethod: string };
   if (!paymentMethod?.trim()) { res.status(400).json({ error: 'paymentMethod is required' }); return; }
   const rid = req.user!.restaurantId;
@@ -301,8 +323,8 @@ router.patch('/:id/payment-method', authenticate, requireRole('admin'), async (r
   res.json(await buildOrder(String(req.params.id)));
 });
 
-// PATCH /:id/cancel  — admin only: void/cancel an order (pending or preparing only)
-router.patch('/:id/cancel', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+// PATCH /:id/cancel  — admin/manager only: void/cancel an order (pending or preparing only)
+router.patch('/:id/cancel', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const now = new Date().toISOString();
 
@@ -329,8 +351,8 @@ router.patch('/:id/cancel', authenticate, requireRole('admin'), async (req: Auth
   res.json(await buildOrder(String(req.params.id)));
 });
 
-// PATCH /:id/items  — admin only: add items to a pending/preparing order
-router.patch('/:id/items', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+// PATCH /:id/items  — admin/manager/cashier/waiter: add items to a pending/preparing order
+router.patch('/:id/items', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
   const { items } = req.body as { items: CartItem[] };
   if (!items?.length) { res.status(400).json({ error: 'items are required' }); return; }
 
@@ -398,8 +420,8 @@ router.post('/:id/feedback', async (req, res) => {
   const orderRes = await pool.query('SELECT status, rating FROM orders WHERE id = $1', [req.params.id]);
   if (!orderRes.rows.length) { res.status(404).json({ error: 'Order not found' }); return; }
   const row = orderRes.rows[0] as { status: string; rating: number | null };
-  if (row.status !== 'ready') {
-    res.status(400).json({ error: 'Feedback can only be submitted for ready orders' });
+  if (row.status === 'pending' || row.status === 'cancelled') {
+    res.status(400).json({ error: 'Feedback can only be submitted for received orders' });
     return;
   }
   if (row.rating != null) {

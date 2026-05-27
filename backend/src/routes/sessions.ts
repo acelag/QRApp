@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { autoPrintReceipt } from '../services/printerService';
 
 const router = Router();
 
@@ -100,16 +101,30 @@ router.post('/', async (req, res) => {
   const { tableId, tableNumber, restaurantId } = req.body as { tableId: string; tableNumber: number; restaurantId: string; };
   if (!tableId || tableNumber == null || !restaurantId) { res.status(400).json({ error: 'tableId, tableNumber and restaurantId are required' }); return; }
 
-  const existing = await pool.query("SELECT * FROM table_sessions WHERE table_id = $1 AND restaurant_id = $2 AND status = 'open'", [tableId, restaurantId]);
-  if (existing.rows.length > 0) { res.json(rowToSession(existing.rows[0] as Record<string, unknown>)); return; }
-
-  const id = uuid(); const now = new Date().toISOString();
-  await pool.query(`INSERT INTO table_sessions (id,restaurant_id,table_id,table_number,status,created_at) VALUES ($1,$2,$3,$4,'open',$5)`,
-    [id, restaurantId, tableId, tableNumber, now]);
-  res.status(201).json({ id, restaurantId, tableId, tableNumber, status: 'open', createdAt: now, closedAt: null });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const existing = await client.query("SELECT id FROM table_sessions WHERE table_id = $1 AND status = 'open' FOR UPDATE", [tableId]);
+    if (existing.rows.length > 0) {
+      await client.query('ROLLBACK');
+      const full = await pool.query("SELECT * FROM table_sessions WHERE id = $1", [(existing.rows[0] as { id: string }).id]);
+      res.json(rowToSession(full.rows[0] as Record<string, unknown>));
+      return;
+    }
+    const id = uuid(); const now = new Date().toISOString();
+    await client.query(`INSERT INTO table_sessions (id,restaurant_id,table_id,table_number,status,created_at) VALUES ($1,$2,$3,$4,'open',$5)`,
+      [id, restaurantId, tableId, tableNumber, now]);
+    await client.query('COMMIT');
+    res.status(201).json({ id, restaurantId, tableId, tableNumber, status: 'open', createdAt: now, closedAt: null });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
-router.get('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin', 'manager', 'cashier'), async (req: AuthRequest, res) => {
   const status = req.query.status as string | undefined;
   const rid = req.user!.restaurantId;
   const result = status
@@ -125,7 +140,7 @@ router.get('/:id', async (req, res) => {
   res.json(await buildSessionDetail(result.rows[0] as Record<string, unknown>));
 });
 
-router.patch('/:id/pay', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/pay', authenticate, requireRole('admin', 'manager', 'cashier'), async (req: AuthRequest, res) => {
   const now = new Date().toISOString();
   const { paymentMethod } = req.body as { paymentMethod?: string };
   const result = await pool.query(
@@ -138,11 +153,22 @@ router.patch('/:id/pay', authenticate, requireRole('admin'), async (req: AuthReq
     [now, paymentMethod ?? null, req.params.id],
   );
   const updated = await pool.query('SELECT * FROM table_sessions WHERE id = $1', [req.params.id]);
-  res.json(await buildSessionDetail(updated.rows[0] as Record<string, unknown>));
+  const sessionDetail = await buildSessionDetail(updated.rows[0] as Record<string, unknown>);
+  res.json(sessionDetail);
+
+  // Auto-print receipt for the first order in the session (fire-and-forget)
+  if (req.user?.restaurantId) {
+    const firstOrder = await pool.query(
+      "SELECT id FROM orders WHERE session_id = $1 ORDER BY created_at ASC LIMIT 1",
+      [req.params.id],
+    ).catch(() => null);
+    const firstOrderId = (firstOrder?.rows[0] as Record<string, unknown> | undefined)?.id as string | undefined;
+    if (firstOrderId) autoPrintReceipt(req.user.restaurantId, firstOrderId);
+  }
 });
 
 // ── Merge: link session into another (secondary → primary) ────────────────────
-router.patch('/:id/merge', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/merge', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { intoSessionId } = req.body as { intoSessionId: string };
   if (!intoSessionId) { res.status(400).json({ error: 'intoSessionId is required' }); return; }
   const rid = req.user!.restaurantId;
@@ -167,7 +193,7 @@ router.patch('/:id/merge', authenticate, requireRole('admin'), async (req: AuthR
 });
 
 // ── Unmerge: detach a secondary session from its primary ──────────────────────
-router.patch('/:id/unmerge', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id/unmerge', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const sessRes = await pool.query('SELECT * FROM table_sessions WHERE id=$1 AND restaurant_id=$2', [req.params.id, rid]);
   if (!sessRes.rows.length) { res.status(404).json({ error: 'Session not found' }); return; }

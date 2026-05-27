@@ -8,13 +8,13 @@ const toTable = (row: Record<string, unknown>) => ({
   id: row.id, restaurantId: row.restaurant_id, number: row.number, seats: row.seats, active: row.active === true,
 });
 
-router.get('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
   const result = await pool.query('SELECT * FROM tables WHERE restaurant_id = $1 ORDER BY number', [req.user!.restaurantId]);
   res.json((result.rows as Record<string, unknown>[]).map(toTable));
 });
 
 // Live table status board — each table enriched with its open session & order summary
-router.get('/status', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.get('/status', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const STALE_MINUTES = 30;
 
@@ -75,7 +75,7 @@ router.get('/:id', async (req, res) => {
   res.json(toTable(result.rows[0] as Record<string, unknown>));
 });
 
-router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { number, seats } = req.body as { number: number; seats: number };
   if (!number || !seats) { res.status(400).json({ error: 'number and seats are required' }); return; }
   const dup = await pool.query('SELECT id FROM tables WHERE restaurant_id = $1 AND number = $2', [req.user!.restaurantId, number]);
@@ -86,7 +86,7 @@ router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, re
   res.status(201).json(toTable(result.rows[0] as Record<string, unknown>));
 });
 
-router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const existing = await pool.query('SELECT * FROM tables WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if (!existing.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = existing.rows[0] as Record<string, unknown>;
@@ -97,7 +97,7 @@ router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, 
   res.json(toTable(updated.rows[0] as Record<string, unknown>));
 });
 
-router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const result = await pool.query('DELETE FROM tables WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.status(204).send();

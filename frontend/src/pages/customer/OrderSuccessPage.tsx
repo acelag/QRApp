@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle, RotateCcw, Clock, ChefHat, Bell } from 'lucide-react';
 import type { Order } from '../../types';
 import type { CartItem } from '../../types/Order';
@@ -13,40 +14,47 @@ import toast from 'react-hot-toast';
 const STATUS_STEPS = ['pending', 'preparing', 'ready'] as const;
 type StatusStep = (typeof STATUS_STEPS)[number];
 
-const STEP_META: Record<StatusStep, { label: string; sublabel: string; icon: React.ReactNode; color: string; bg: string; ring: string }> = {
-  pending: {
-    label: 'Received',
-    sublabel: 'Order confirmed',
-    icon: <Clock size={15} />,
-    color: 'text-amber-600',
-    bg: 'bg-amber-500',
-    ring: 'ring-amber-300',
-  },
-  preparing: {
-    label: 'Preparing',
-    sublabel: 'Kitchen is on it',
-    icon: <ChefHat size={15} />,
-    color: 'text-orange-600',
-    bg: 'bg-orange-500',
-    ring: 'ring-orange-300',
-  },
-  ready: {
-    label: 'Ready',
-    sublabel: 'Come collect!',
-    icon: <Bell size={15} />,
-    color: 'text-blue-600',
-    bg: 'bg-blue-500',
-    ring: 'ring-blue-300',
-  },
-};
+type TFunction = (key: string) => string;
 
-const STATUS_HEADLINE: Record<StatusStep, string> = {
-  pending: 'Order placed!',
-  preparing: 'Being prepared…',
-  ready: 'Ready for you!',
-};
+function getStepMeta(t: TFunction): Record<StatusStep, { label: string; sublabel: string; icon: React.ReactNode; color: string; bg: string; ring: string }> {
+  return {
+    pending: {
+      label: t('orderSuccess.received'),
+      sublabel: t('orderSuccess.orderConfirmed'),
+      icon: <Clock size={15} />,
+      color: 'text-amber-600',
+      bg: 'bg-amber-500',
+      ring: 'ring-amber-300',
+    },
+    preparing: {
+      label: t('orderSuccess.preparing'),
+      sublabel: t('orderSuccess.kitchenOnIt'),
+      icon: <ChefHat size={15} />,
+      color: 'text-orange-600',
+      bg: 'bg-orange-500',
+      ring: 'ring-orange-300',
+    },
+    ready: {
+      label: t('orderSuccess.ready'),
+      sublabel: t('orderSuccess.comeCollect'),
+      icon: <Bell size={15} />,
+      color: 'text-blue-600',
+      bg: 'bg-blue-500',
+      ring: 'ring-blue-300',
+    },
+  };
+}
+
+function getStatusHeadline(t: TFunction): Record<StatusStep, string> {
+  return {
+    pending: t('orderSuccess.orderPlaced'),
+    preparing: t('orderSuccess.beingPrepared'),
+    ready: t('orderSuccess.readyForYou'),
+  };
+}
 
 export function OrderSuccessPage() {
+  const { t } = useTranslation();
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
@@ -93,14 +101,14 @@ export function OrderSuccessPage() {
     }));
     if (order.orderType === 'dine-in' && order.tableId) {
       bulkAdd(items);
-      toast.success('Items added to your cart!');
+      toast.success(t('orderSuccess.itemsAddedToCart'));
       navigate(`/menu/${order.tableId}`);
     } else if (order.orderType === 'takeaway' && order.restaurantId) {
       navigate(`/takeaway/${order.restaurantId}`, { state: { reorderItems: items } });
     } else if (order.orderType === 'room-service' && order.roomId) {
       navigate(`/room/${order.roomId}`, { state: { reorderItems: items } });
     } else {
-      toast.error('Cannot reorder — original order details unavailable');
+      toast.error(t('orderSuccess.cannotReorder'));
     }
   }
 
@@ -114,6 +122,8 @@ export function OrderSuccessPage() {
 
   const currentStep = order.status as StatusStep;
   const currentIdx = STATUS_STEPS.indexOf(currentStep);
+  const STEP_META = getStepMeta(t);
+  const STATUS_HEADLINE = getStatusHeadline(t);
   const meta = STEP_META[currentStep];
 
   return (
@@ -149,10 +159,10 @@ export function OrderSuccessPage() {
             </h1>
             <p className="text-gray-400 text-sm mt-1">
               {order.orderType === 'room-service'
-                ? `Room ${order.roomNumber}`
+                ? t('customer.room', { number: order.roomNumber })
                 : order.orderType === 'takeaway'
-                ? order.customerName ?? 'Takeaway'
-                : `Table ${order.tableNumber}`}
+                ? order.customerName ?? t('customer.takeaway')
+                : t('customer.tableNumber', { number: order.tableNumber })}
               {order.orderNumber && (
                 <span className="ml-2 font-semibold text-orange-500">#{order.orderNumber}</span>
               )}
@@ -208,8 +218,8 @@ export function OrderSuccessPage() {
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
             <Clock size={18} className="text-amber-500 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-amber-700">Est. wait: ~{waitTimeMin} min</p>
-              <p className="text-xs text-amber-500">We'll get started on your order shortly</p>
+              <p className="text-sm font-semibold text-amber-700">{t('orderSuccess.estWait', { n: waitTimeMin })}</p>
+              <p className="text-xs text-amber-500">{t('orderSuccess.startingSoon')}</p>
             </div>
           </div>
         )}
@@ -221,7 +231,7 @@ export function OrderSuccessPage() {
 
         {/* Order items */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-4">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Your Order</h2>
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{t('orderSuccess.yourOrder')}</h2>
           <ul className="space-y-2">
             {order.items.map((item, idx) => {
               const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
@@ -258,17 +268,17 @@ export function OrderSuccessPage() {
             {(order.discountAmount ?? 0) > 0 && (
               <>
                 <div className="flex justify-between text-sm text-gray-400">
-                  <span>Subtotal</span>
+                  <span>{t('common.subtotal')}</span>
                   <span>{fmt(order.totalAmount + (order.discountAmount ?? 0))}</span>
                 </div>
                 <div className="flex justify-between text-sm text-green-600 font-medium">
-                  <span>Discount {order.promoCode ? `(${order.promoCode})` : ''}</span>
+                  <span>{order.promoCode ? t('orderSuccess.discount', { code: order.promoCode }) : t('common.discount')}</span>
                   <span>−{fmt(order.discountAmount ?? 0)}</span>
                 </div>
               </>
             )}
             <div className="flex justify-between font-bold text-gray-900">
-              <span>Total</span>
+              <span>{t('common.total')}</span>
               <span>{fmt(order.totalAmount)}</span>
             </div>
           </div>
@@ -279,18 +289,18 @@ export function OrderSuccessPage() {
           onClick={handleReorder}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm bg-orange-500 text-white hover:bg-orange-600 active:scale-[0.98] transition-all"
         >
-          <RotateCcw size={16} /> Order Again
+          <RotateCcw size={16} /> {t('orderSuccess.orderAgain')}
         </button>
 
         <Link
           to="/my-orders"
           className="block text-center text-sm text-orange-500 font-medium hover:underline py-1"
         >
-          View past orders →
+          {t('orderSuccess.viewPastOrders')}
         </Link>
 
         <p className="text-center text-xs text-gray-300 pb-2">
-          Updates automatically every 5 seconds
+          {t('orderSuccess.autoUpdates')}
         </p>
       </div>
     </div>

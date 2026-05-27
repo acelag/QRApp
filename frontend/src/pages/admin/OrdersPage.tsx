@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, ShoppingBag } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { NotificationBell } from '../../components/NotificationBell';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { SoundAlertToggle } from '../../components/SoundAlertToggle';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
@@ -12,16 +14,19 @@ import { AddItemsModal } from '../../components/AddItemsModal';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 
-const STATUS_TABS: { label: string; value: OrderStatus | 'all' | 'takeaway' }[] = [
-  { label: 'All',       value: 'all' },
-  { label: 'Takeaway',  value: 'takeaway' },
-  { label: 'Pending',   value: 'pending' },
-  { label: 'Preparing', value: 'preparing' },
-  { label: 'Ready',     value: 'ready' },
-  { label: 'Cancelled', value: 'cancelled' },
-];
 
 export function OrdersPage() {
+  const { t } = useTranslation();
+
+  const STATUS_TABS: { label: string; value: OrderStatus | 'all' | 'takeaway' }[] = [
+    { label: t('orders.tabAll'),       value: 'all' },
+    { label: t('orders.tabTakeaway'),  value: 'takeaway' },
+    { label: t('orders.tabPending'),   value: 'pending' },
+    { label: t('orders.tabPreparing'), value: 'preparing' },
+    { label: t('orders.tabReady'),     value: 'ready' },
+    { label: t('orders.tabCancelled'), value: 'cancelled' },
+  ];
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [tab, setTab] = useState<OrderStatus | 'all' | 'takeaway'>('all');
@@ -50,9 +55,9 @@ export function OrdersPage() {
     try {
       const updated = await orderService.updateStatus(id, status);
       setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
-      toast.success(`Order marked as ${status}`);
+      toast.success(t('orders.statusUpdated', { status }));
     } catch {
-      toast.error('Failed to update status');
+      toast.error(t('orders.statusFailed'));
     }
   }
 
@@ -61,9 +66,9 @@ export function OrdersPage() {
       const updated = await orderService.assignWaiter(id, waiterId);
       setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
       const w = waiters.find((x) => x.id === waiterId);
-      toast.success(w ? `Assigned to ${w.name}` : 'Waiter unassigned');
+      toast.success(w ? t('orders.assignedTo', { name: w.name }) : t('orders.waiterUnassigned'));
     } catch {
-      toast.error('Failed to assign waiter');
+      toast.error(t('orders.assignFailed'));
     }
   }
 
@@ -71,9 +76,9 @@ export function OrdersPage() {
     try {
       const updated = await orderService.cancelOrder(id);
       setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
-      toast.success('Order voided');
+      toast.success(t('orders.orderVoided'));
     } catch {
-      toast.error('Failed to cancel order');
+      toast.error(t('orders.cancelFailed'));
     }
   }
 
@@ -97,13 +102,8 @@ export function OrdersPage() {
           <Link to="/admin" className="text-gray-600">
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Live Orders</h1>
-          <Link
-            to="/admin/takeaway"
-            className="flex items-center gap-1.5 text-xs bg-purple-600 text-white px-3 py-1.5 rounded-full font-medium hover:bg-purple-700 transition-colors"
-          >
-            <ShoppingBag size={13} /> Takeaway
-          </Link>
+          <h1 className="text-xl font-bold text-gray-900 flex-1">{t('orders.title')}</h1>
+          <LanguageSwitcher variant="select" className="shrink-0" />
           <SoundAlertToggle />
           <NotificationBell />
           <button onClick={fetch} className="text-gray-400 hover:text-gray-600">
@@ -141,7 +141,7 @@ export function OrdersPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-center text-gray-400 pt-12">No orders</p>
+          <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
         ) : (
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
             {filtered.map((order) => (

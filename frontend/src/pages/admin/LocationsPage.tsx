@@ -120,13 +120,13 @@ export function LocationsPage() {
   function printOneTable(table: Table) {
     const svg = getTableSvg(table.id);
     if (!svg) return toast.error('QR not ready, try again');
-    openPrintWindow(tableCardHtml(table.number, table.seats, `${origin}/menu/${table.id}`, svg), 'Table QR');
+    openPrintWindow(tableCardHtml(table.number, table.seats, `${origin}/welcome/${table.id}`, svg), 'Table QR');
   }
 
   function printAllTables() {
     if (!tables.length) return toast.error('No tables to print');
     openPrintWindow(
-      tables.map((t) => { const s = getTableSvg(t.id); return s ? tableCardHtml(t.number, t.seats, `${origin}/menu/${t.id}`, s) : ''; }).join(''),
+      tables.map((t) => { const s = getTableSvg(t.id); return s ? tableCardHtml(t.number, t.seats, `${origin}/welcome/${t.id}`, s) : ''; }).join(''),
       'Table QR Codes',
     );
   }
@@ -187,7 +187,7 @@ export function LocationsPage() {
       <div className="hidden" aria-hidden>
         {tables.map((t) => (
           <div key={t.id} ref={(el) => { if (el) tableQrRefs.current.set(t.id, el); else tableQrRefs.current.delete(t.id); }}>
-            <QRCodeSVG value={`${origin}/menu/${t.id}`} size={220} />
+            <QRCodeSVG value={`${origin}/welcome/${t.id}`} size={220} />
           </div>
         ))}
         {takeawayUrl && <div ref={takeawayQrRef}><QRCodeSVG value={takeawayUrl} size={220} /></div>}
@@ -408,8 +408,8 @@ export function LocationsPage() {
           <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-gray-900 text-lg">Table {tableQrPreview.number}</h2>
             <p className="text-xs text-gray-400 -mt-2">{tableQrPreview.seats} seats</p>
-            <QRCodeSVG value={`${origin}/menu/${tableQrPreview.id}`} size={200} />
-            <p className="text-xs text-gray-300 text-center break-all">{origin}/menu/{tableQrPreview.id}</p>
+            <QRCodeSVG value={`${origin}/welcome/${tableQrPreview.id}`} size={200} />
+            <p className="text-xs text-gray-300 text-center break-all">{origin}/welcome/{tableQrPreview.id}</p>
             <div className="flex gap-2 w-full">
               <button onClick={() => { printOneTable(tableQrPreview); setTableQrPreview(null); }} className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-900 transition-colors">
                 <Printer size={15} /> Print

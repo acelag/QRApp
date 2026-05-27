@@ -22,7 +22,7 @@ function toPromoCode(r: Record<string, unknown>) {
 }
 
 /** Admin — list all promo codes for the restaurant */
-router.get('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const result = await pool.query(
     'SELECT * FROM promo_codes WHERE restaurant_id = $1 ORDER BY created_at DESC',
@@ -32,7 +32,7 @@ router.get('/', authenticate, requireRole('admin'), async (req: AuthRequest, res
 });
 
 /** Admin — create promo code */
-router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const { code, type, value, minOrder = 0, maxUses = null, expiresAt = null } =
     req.body as {
@@ -67,7 +67,7 @@ router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, re
 });
 
 /** Admin — update promo code */
-router.patch('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.patch('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const { active, value, minOrder, maxUses, expiresAt } =
     req.body as {
@@ -98,7 +98,7 @@ router.patch('/:id', authenticate, requireRole('admin'), async (req: AuthRequest
 });
 
 /** Admin — delete promo code */
-router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const result = await pool.query(
     'DELETE FROM promo_codes WHERE id = $1 AND restaurant_id = $2',
@@ -115,6 +115,9 @@ router.post('/validate', async (req, res) => {
 
   if (!code || !restaurantId) {
     res.status(400).json({ valid: false, message: 'code and restaurantId are required' }); return;
+  }
+  if (!orderAmount || orderAmount <= 0) {
+    res.status(400).json({ error: 'orderAmount must be a positive number' }); return;
   }
 
   const upperCode = code.trim().toUpperCase();

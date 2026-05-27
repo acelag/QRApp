@@ -3,11 +3,16 @@ import jwt from 'jsonwebtoken';
 
 export const JWT_SECRET = process.env.JWT_SECRET ?? 'qra-super-secret-change-in-production';
 
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable must be set in production');
+  process.exit(1);
+}
+
 export interface AuthPayload {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'kitchen' | 'super_admin';
+  role: 'super_admin' | 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
   restaurantId: string | null;  // null for super_admin
 }
 

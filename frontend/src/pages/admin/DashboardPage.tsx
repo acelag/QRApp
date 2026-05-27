@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Activity, Banknote, ClipboardList,
@@ -20,6 +20,9 @@ import {
 } from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
+import { SoundAlertToggle } from '../../components/SoundAlertToggle';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 const PIE_COLORS = ['#f97316', '#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899'];
 
@@ -77,6 +80,8 @@ export function DashboardPage() {
   const [cats,    setCats]    = useState<CategoryRow[]>([]);
   const [heatmap, setHeatmap] = useState<HeatmapCell[]>([]);
 
+  useOrderSoundAlert(orders);
+
   // Poll active orders every 5 seconds
   useEffect(() => {
     const fetch = () => orderService.getOrders().then(setOrders).catch(() => {});
@@ -101,7 +106,7 @@ export function DashboardPage() {
   const todayStr     = new Date().toLocaleDateString('en-CA');
   const todayOrders  = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
   const activeOrders = orders.filter((o) => o.status !== 'cancelled');
-  const todayRevenue = todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
+  const todayRevenue = today?.revenue ?? todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
 
   // ── Chart data ──────────────────────────────────────────────────────────────
 
@@ -122,8 +127,8 @@ export function DashboardPage() {
 
   const hourlyData = Array.from({ length: 14 }, (_, i) => {
     const h = i + 8; // 8 AM → 9 PM
-    const orders = heatmap.filter((c) => c.hour === h).reduce((s, c) => s + c.orderCount, 0);
-    return { hour: `${h > 12 ? h - 12 : h}${h >= 12 ? 'PM' : 'AM'}`, orders };
+    const hourOrders = heatmap.filter((c) => c.hour === h).reduce((s, c) => s + c.orderCount, 0);
+    return { hour: `${h > 12 ? h - 12 : h}${h >= 12 ? 'PM' : 'AM'}`, orders: hourOrders };
   });
 
   const activities = buildActivities(orders);

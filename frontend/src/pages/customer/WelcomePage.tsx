@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { UtensilsCrossed, Clock } from 'lucide-react';
 import { tableService } from '../../services/tableService';
 import { restaurantService } from '../../services/restaurantService';
 import { menuService } from '../../services/menuService';
 import { sessionService } from '../../services/sessionService';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 // Default hero — a warm, vibrant restaurant atmosphere shot from Unsplash
 const DEFAULT_HERO =
@@ -28,6 +30,7 @@ function InstagramIcon({ className }: { className?: string }) {
 }
 
 export function WelcomePage() {
+  const { t } = useTranslation();
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
 
@@ -39,7 +42,6 @@ export function WelcomePage() {
   const [instagramUrl, setInstagramUrl] = useState<string | null>(null);
   const [heroUrl, setHeroUrl] = useState(DEFAULT_HERO);
   const [tableNumber, setTableNumber] = useState<number | null>(null);
-  const [loaded, setLoaded] = useState(false);
   // Track whether background prefetch has finished so we can skip the loader
   const prefetchDone = useRef(false);
 
@@ -57,7 +59,6 @@ export function WelcomePage() {
         if (info.facebookUrl) setFacebookUrl(info.facebookUrl);
         if (info.instagramUrl) setInstagramUrl(info.instagramUrl);
         if (info.welcomeImageUrl) setHeroUrl(info.welcomeImageUrl);
-        setLoaded(true);
 
         // Kick off the heavy menu fetches in the background while the
         // user reads the welcome screen — result stored in the cache so
@@ -79,7 +80,7 @@ export function WelcomePage() {
           prefetchDone.current = true;
         }).catch(() => { /* MenuPage will fall back to its own fetch */ });
       });
-    }).catch(() => setLoaded(true));
+    }).catch(() => {});
   }, [tableId]);
 
   const hasSocial = facebookUrl || instagramUrl;
@@ -90,7 +91,7 @@ export function WelcomePage() {
       {/* ── Full-screen background image ── */}
       <img
         src={heroUrl}
-        alt="Restaurant ambiance"
+        alt={t('customer.restaurantAmbiance')}
         className="absolute inset-0 w-full h-full object-cover"
         style={{ filter: 'brightness(0.65)' }}
       />
@@ -100,6 +101,11 @@ export function WelcomePage() {
 
       {/* ── Foreground content ── */}
       <div className="relative z-10 min-h-screen flex flex-col px-5 pt-12 pb-8">
+
+        {/* Language switcher — top right */}
+        <div className="flex justify-end mb-2">
+          <LanguageSwitcher className="shrink-0" />
+        </div>
 
         {/* Logo + restaurant name — vertically centered in remaining space */}
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
@@ -116,7 +122,7 @@ export function WelcomePage() {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white leading-tight drop-shadow-lg">{restaurantName}</h1>
             {tableNumber !== null && (
-              <p className="text-sm text-white/60 mt-0.5">Table {tableNumber}</p>
+              <p className="text-sm text-white/60 mt-0.5">{t('customer.tableNumber', { number: tableNumber })}</p>
             )}
           </div>
         </div>
@@ -134,7 +140,7 @@ export function WelcomePage() {
         >
           {/* Tagline */}
           <p className="text-center text-white/80 text-sm leading-relaxed">
-            Scan. Order. Enjoy — all from your table.
+            {t('customer.scanEnjoy')}
           </p>
 
           {/* Wait time badge */}
@@ -145,7 +151,7 @@ export function WelcomePage() {
                 style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)' }}
               >
                 <Clock size={14} />
-                <span>Approx. {waitTimeMin} min wait time</span>
+                <span>{t('customer.waitTime', { n: waitTimeMin })}</span>
               </div>
             </div>
           )}
@@ -159,13 +165,13 @@ export function WelcomePage() {
               boxShadow: `0 4px 20px ${themeColor}66`,
             }}
           >
-            View Menu
+            {t('customer.viewMenu')}
           </button>
 
           {/* Social links */}
           {hasSocial && (
             <div className="flex flex-col items-center gap-3">
-              <p className="text-xs text-white/40 uppercase tracking-widest">Follow us</p>
+              <p className="text-xs text-white/40 uppercase tracking-widest">{t('customer.followUs')}</p>
               <div className="flex items-center gap-3">
                 {facebookUrl && (
                   <a
@@ -197,7 +203,7 @@ export function WelcomePage() {
 
           {/* Footer note */}
           <p className="text-center text-xs text-white/25">
-            Powered by QRA System
+            {t('customer.poweredBy')}
           </p>
         </div>
       </div>
