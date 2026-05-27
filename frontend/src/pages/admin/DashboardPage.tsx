@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Activity, Banknote, ClipboardList,
   PlusCircle, ChefHat, CheckCircle2, Package,
@@ -21,8 +21,6 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
-import { SoundAlertToggle } from '../../components/SoundAlertToggle';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 const PIE_COLORS = ['#f97316', '#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899'];
 
@@ -242,7 +240,7 @@ export function DashboardPage() {
                     <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                     <Tooltip
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}
-                      formatter={(v: number) => [fmt(v), 'Revenue']}
+                      formatter={(v) => [fmt(Number(v ?? 0)), 'Revenue']}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fill="url(#revGrad)" />
                   </AreaChart>
@@ -295,7 +293,7 @@ export function DashboardPage() {
                   <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}
-                    formatter={(v: number) => [v, 'Orders']}
+                    formatter={(v) => [Number(v ?? 0), 'Orders']}
                   />
                   <Bar dataKey="orders" fill="#f97316" radius={[4, 4, 0, 0]} />
                 </BarChart>
