@@ -10,6 +10,7 @@ import {
 import type { Shift, ShiftInput, ShiftStatus } from '../../services/rosterService';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -176,8 +177,9 @@ export function RosterPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50">
-
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
@@ -220,7 +222,7 @@ export function RosterPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
         {/* ── Stats bar ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-2">
@@ -391,7 +393,7 @@ export function RosterPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
 
       {/* ── Add / Edit Modal ──────────────────────────────────────────────── */}
       {showModal && (
@@ -547,6 +549,7 @@ export function RosterPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

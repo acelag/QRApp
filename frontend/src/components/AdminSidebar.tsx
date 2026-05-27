@@ -4,6 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
+  Package, Calendar, CalendarDays, FileText,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { orderService } from '../services/orderService';
@@ -20,6 +21,10 @@ const NAV = [
   { label: 'Ready Display',    icon: MonitorPlay,     to: '/admin/ready-display' },
   { label: 'Promo Codes',      icon: Tag,             to: '/admin/promo-codes' },
   { label: 'Room Charges',     icon: CreditCard,      to: '/admin/room-charges' },
+  { label: 'Combo Deals',      icon: Package,         to: '/admin/combos' },
+  { label: 'Menu Schedules',   icon: Calendar,        to: '/admin/menu-schedules' },
+  { label: 'Roster',           icon: CalendarDays,    to: '/admin/roster' },
+  { label: 'Shift Report',     icon: FileText,        to: '/admin/shift-close' },
   { label: 'Waiters',          icon: UserCheck,       to: '/admin/waiters' },
   { label: 'Staff Performance',icon: Trophy,          to: '/admin/staff-performance' },
   { label: 'Staff',            icon: Users,           to: '/admin/users' },

@@ -8,6 +8,7 @@ import {
 import { reportService, type ShiftCloseReport } from '../../services/reportService';
 import { refundMethodLabel } from '../../services/refundService';
 import { useCurrency } from '../../context/CurrencyContext';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 const PAYMENT_ICONS: Record<string, string> = {
   cash: '💵', card: '💳', qr: '📱', bank_transfer: '🏦', other: '📋', unpaid: '⏳',
@@ -53,7 +54,9 @@ export function ShiftCloseReportPage() {
   const s = report?.summary;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       {/* Header — hidden on print */}
       <header className="bg-white shadow-sm sticky top-0 z-40 print:hidden">
         <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
@@ -291,6 +294,7 @@ export function ShiftCloseReportPage() {
           .print\\:block  { display: block  !important; }
         }
       `}</style>
+      </main>
     </div>
   );
 }

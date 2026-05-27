@@ -9,6 +9,7 @@ import {
 } from '../../services/menuScheduleService';
 import type { MenuSchedule, ScheduleInput } from '../../services/menuScheduleService';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -161,8 +162,9 @@ export function MenuSchedulesPage() {
   void nowStr; // used indirectly via isScheduleNowActive
 
   return (
-    <div className="min-h-screen bg-gray-50">
-
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
@@ -182,7 +184,7 @@ export function MenuSchedulesPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-3xl mx-auto">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-3xl mx-auto">
 
         {/* ── Info banner ───────────────────────────────────────────────── */}
         <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 text-sm text-blue-700">
@@ -290,7 +292,7 @@ export function MenuSchedulesPage() {
             })}
           </div>
         )}
-      </main>
+      </div>
 
       {/* ── Add / Edit Modal ──────────────────────────────────────────────── */}
       {showModal && (
@@ -426,6 +428,7 @@ export function MenuSchedulesPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }
