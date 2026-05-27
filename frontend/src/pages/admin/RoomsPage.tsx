@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import type { Room } from '../../types';
 import { roomService } from '../../services/roomService';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 // ── Print helpers ─────────────────────────────────────────────────────────────
 
@@ -111,7 +112,9 @@ export function RoomsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       {/* Hidden QR renders */}
       <div className="hidden" aria-hidden>
         {rooms.map((r) => (
@@ -143,7 +146,7 @@ export function RoomsPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {/* Add room */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h2 className="font-semibold text-gray-700 mb-3 text-sm">Add Room</h2>
@@ -213,7 +216,7 @@ export function RoomsPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* QR Preview modal */}
       {qrPreview && (
@@ -254,6 +257,7 @@ export function RoomsPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Users,
+  Eye, EyeOff, Loader2, CheckCircle2, Users,
   DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock,
 } from 'lucide-react';
+import { AdminSidebar } from '../../components/AdminSidebar';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
 import { uploadImage } from '../../services/uploadService';
@@ -232,18 +233,17 @@ export function SettingsPage() {
   const previewTotal = 100 + previewSC + previewTax;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top nav */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-600">
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="text-lg font-bold text-gray-900">Settings</h1>
-        </div>
-      </header>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
 
-      <main className="px-3 sm:px-4 lg:px-6 py-6 space-y-4">
+      <main className="flex-1 overflow-y-auto">
+      <div className="w-full px-6 py-6 space-y-4">
+
+        {/* Page header */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Manage your restaurant configuration</p>
+        </div>
 
         {/* ── Hero profile card ─────────────────────────────────────────── */}
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
@@ -833,6 +833,7 @@ export function SettingsPage() {
         </button>
 
         <div className="h-4" />
+      </div>
       </main>
     </div>
   );

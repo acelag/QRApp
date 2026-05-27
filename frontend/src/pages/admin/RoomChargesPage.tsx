@@ -6,6 +6,7 @@ import { orderService } from '../../services/orderService';
 import { PaymentMethodModal, paymentMethodLabel, type PaymentMethod } from '../../components/PaymentMethodModal';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 export function RoomChargesPage() {
   const { fmt } = useCurrency();
@@ -49,7 +50,9 @@ export function RoomChargesPage() {
   const rooms = Object.entries(byRoom).sort(([a], [b]) => Number(a) - Number(b));
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-4 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
@@ -60,7 +63,7 @@ export function RoomChargesPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
         {loading ? (
           <div className="flex justify-center pt-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
@@ -146,7 +149,7 @@ export function RoomChargesPage() {
             );
           })
         )}
-      </main>
+      </div>
 
       {/* Settle modal for a single order */}
       {settling && (
@@ -157,6 +160,7 @@ export function RoomChargesPage() {
           onClose={() => setSettling(null)}
         />
       )}
+      </main>
     </div>
   );
 }

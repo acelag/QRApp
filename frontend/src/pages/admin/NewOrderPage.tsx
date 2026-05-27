@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 type OrderMode = 'takeaway' | 'dine-in' | 'room-service';
 type Size = 'regular' | 'large';
@@ -195,7 +196,9 @@ export function NewOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
@@ -679,6 +682,7 @@ export function NewOrderPage() {
           onClose={() => setToppingModal(null)}
         />
       )}
+      </main>
     </div>
   );
 }

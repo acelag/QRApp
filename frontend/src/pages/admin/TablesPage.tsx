@@ -6,6 +6,7 @@ import type { Table } from '../../types';
 import { tableService } from '../../services/tableService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 // ── Print helpers ─────────────────────────────────────────────────────────────
 
@@ -138,7 +139,9 @@ export function TablesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       {/* Hidden QR renders — used only to grab SVG HTML */}
       <div className="hidden" aria-hidden>
         {tables.map((t) => (
@@ -175,7 +178,7 @@ export function TablesPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {/* Takeaway QR card */}
         {takeawayUrl && (
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
@@ -270,7 +273,7 @@ export function TablesPage() {
             </div>
           ))}
         </div>
-      </main>
+      </div>
 
       {/* Takeaway QR Preview modal */}
       {takeawayQrOpen && takeawayUrl && (
@@ -346,6 +349,7 @@ export function TablesPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

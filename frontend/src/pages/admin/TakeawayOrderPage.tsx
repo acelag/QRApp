@@ -11,6 +11,7 @@ import { orderService } from '../../services/orderService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import toast from 'react-hot-toast';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 type Size = 'regular' | 'large';
 
@@ -99,7 +100,9 @@ export function TakeawayOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
           <Link to="/admin/orders" className="text-gray-600"><ArrowLeft size={20} /></Link>
@@ -291,6 +294,7 @@ export function TakeawayOrderPage() {
           onClose={() => setToppingModal(null)}
         />
       )}
+      </main>
     </div>
   );
 }

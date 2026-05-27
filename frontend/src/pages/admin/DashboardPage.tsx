@@ -1,27 +1,83 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ClipboardList, UtensilsCrossed, ChefHat, LogOut, Settings,
-  Receipt, BarChart2, LayoutList, LayoutGrid, PlusCircle, MonitorPlay,
-  BedDouble, Tag, CreditCard, UserCheck, Trophy, ShoppingBag, MapPin,
-  Medal, LayoutDashboard, Eye, Activity, Banknote, QrCode,
+  Activity, Banknote, ClipboardList,
+  PlusCircle, ChefHat, CheckCircle2, Package,
 } from 'lucide-react';
+import { AdminSidebar } from '../../components/AdminSidebar';
+import {
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
-import { reportService, type TodaySummary } from '../../services/reportService';
+import {
+  reportService,
+  type TodaySummary,
+  type DailyRow,
+  type CategoryRow,
+  type HeatmapCell,
+} from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 
+const PIE_COLORS = ['#f97316', '#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899'];
+
+type ActivityItem = {
+  id: string;
+  orderNum: string;
+  type: 'kitchen' | 'payment' | 'order' | 'customer';
+  title: string;
+  time: string;
+};
+
+function relativeTime(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60)  return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function buildActivities(orders: Order[]): ActivityItem[] {
+  return [...orders]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 12)
+    .map((o): ActivityItem => {
+      const num = o.orderNumber ?? o.id.slice(-4).toUpperCase();
+      const loc = o.tableNumber ? `Table ${o.tableNumber}` : o.roomNumber ? `Room ${o.roomNumber}` : 'Takeaway';
+      const time = relativeTime(o.updatedAt);
+      if (o.status === 'preparing') {
+        return { id: o.id, orderNum: num, type: 'kitchen',  title: 'Kitchen update: Order in progress', time };
+      }
+      if (o.status === 'ready') {
+        return { id: o.id, orderNum: num, type: 'payment',  title: `${loc} order ready for pickup`, time };
+      }
+      if (o.status === 'cancelled') {
+        return { id: o.id, orderNum: num, type: 'customer', title: 'Order cancelled', time };
+      }
+      return { id: o.id, orderNum: num, type: 'order', title: 'New order received', time };
+    });
+}
+
+const ACTIVITY_ICON: Record<ActivityItem['type'], { icon: React.ElementType; bg: string; color: string }> = {
+  kitchen:  { icon: ChefHat,       bg: 'bg-pink-100',   color: 'text-pink-500' },
+  payment:  { icon: CheckCircle2,  bg: 'bg-green-100',  color: 'text-green-500' },
+  order:    { icon: Package,       bg: 'bg-orange-100', color: 'text-orange-500' },
+  customer: { icon: Package,       bg: 'bg-gray-100',   color: 'text-gray-500' },
+};
+
 export function DashboardPage() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const { fmt } = useCurrency();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [today, setToday]   = useState<TodaySummary | null>(null);
-  const [gridView, setGridView] = useState(() => localStorage.getItem('dash-view') === 'grid');
 
-  function handleLogout() { logout(); navigate('/login', { replace: true }); }
+  const [orders,  setOrders]  = useState<Order[]>([]);
+  const [today,   setToday]   = useState<TodaySummary | null>(null);
+  const [daily,   setDaily]   = useState<DailyRow[]>([]);
+  const [cats,    setCats]    = useState<CategoryRow[]>([]);
+  const [heatmap, setHeatmap] = useState<HeatmapCell[]>([]);
 
+  // Poll active orders every 5 seconds
   useEffect(() => {
     const fetch = () => orderService.getOrders().then(setOrders).catch(() => {});
     fetch();
@@ -29,253 +85,273 @@ export function DashboardPage() {
     return () => clearInterval(id);
   }, []);
 
+  // Fetch today summary + last-7-days report once
   useEffect(() => {
     reportService.getToday().then(setToday).catch(() => {});
+
+    const to   = new Date().toLocaleDateString('en-CA');
+    const from = new Date(Date.now() - 6 * 86_400_000).toLocaleDateString('en-CA');
+    reportService.get(from, to).then((r) => {
+      setDaily(r.daily);
+      setCats(r.categories);
+      setHeatmap(r.heatmap);
+    }).catch(() => {});
   }, []);
 
-  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayStr     = new Date().toLocaleDateString('en-CA');
   const todayOrders  = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
-  const activeOrders = orders.filter((o) => o.status !== 'served');
+  const activeOrders = orders.filter((o) => o.status !== 'cancelled');
   const todayRevenue = todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
 
-  const stats = [
-    {
-      label: "Today's Orders",
-      value: todayOrders.length,
-      icon: ClipboardList,
-      iconCls: 'bg-blue-50 text-blue-500',
-      bar: 'bg-blue-400',
-      valueCls: 'text-blue-600',
-    },
-    {
-      label: 'Active Orders',
-      value: activeOrders.length,
-      icon: Activity,
-      iconCls: 'bg-red-50 text-red-500',
-      bar: 'bg-red-400',
-      valueCls: 'text-red-600',
-    },
-    {
-      label: "Today's Revenue",
-      value: fmt(todayRevenue),
-      icon: Banknote,
-      iconCls: 'bg-green-50 text-green-600',
-      bar: 'bg-green-400',
-      valueCls: 'text-green-700',
-    },
-  ];
+  // ── Chart data ──────────────────────────────────────────────────────────────
 
-  const navItems: {
-    to: string;
-    href?: string;
-    label: string;
-    icon: React.ElementType;
-    desc: string;
-    primary?: boolean;
-    badge?: number;
-  }[] = [
-    { to: '/admin/new-order',          label: 'New Order',          icon: PlusCircle,     desc: 'Place takeaway or dine-in order',       primary: true },
-    { to: '/admin/orders',             label: 'Live Orders',        icon: ClipboardList,  desc: 'Manage incoming orders',                primary: true, badge: activeOrders.length },
-    { to: '/admin/bills',              label: 'Bills',              icon: Receipt,        desc: 'Table bills & takeaway receipts' },
-    { to: '/admin/reports',            label: 'Reports',            icon: BarChart2,      desc: 'Sales & item performance' },
-    { to: '/admin/menu',               label: 'Menu Items',         icon: UtensilsCrossed, desc: 'Add, edit, delete items' },
-    { to: '/admin/locations',          label: 'Tables & Rooms',     icon: QrCode,         desc: 'Manage tables, rooms & QR codes' },
-    { to: '/admin/table-status',       label: 'Table Status',       icon: LayoutDashboard, desc: 'Live grid — open / occupied / stale' },
-    { to: '/kitchen',                  label: 'Kitchen Display',    icon: ChefHat,        desc: 'Live kitchen order view' },
-    { to: '/admin/ready-display',      label: 'Ready Display',      icon: MonitorPlay,    desc: 'Show orders ready for pickup' },
-    { to: '/admin/promo-codes',        label: 'Promo Codes',        icon: Tag,            desc: 'Discount & promo codes' },
-    { to: '/admin/room-charges',       label: 'Room Charges',       icon: CreditCard,     desc: 'Pending charge-to-room bills' },
-    { to: '/admin/waiters',            label: 'Waiters',            icon: UserCheck,      desc: 'Manage waiter staff list' },
-    { to: '/admin/staff-performance',  label: 'Staff Performance',  icon: Trophy,         desc: 'Waiter leaderboard & stats' },
-    ...(user?.restaurantId ? [{
-      to: '#',
-      href: `/takeaway/${user.restaurantId}`,
-      label: 'Preview Menu',
-      icon: Eye,
-      desc: 'Open live menu as a customer',
-    }] : []),
-  ];
+  // Fill in all 7 days even if API returned sparse data
+  const weeklyData: { day: string; revenue: number }[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 86_400_000);
+    const key = d.toLocaleDateString('en-CA');
+    const row = daily.find((r) => r.date === key);
+    return {
+      day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      revenue: row?.revenue ?? 0,
+    };
+  });
+
+  const pieData = cats.length > 0
+    ? cats.slice(0, 6).map((c) => ({ name: c.name, value: c.quantity }))
+    : [];
+
+  const hourlyData = Array.from({ length: 14 }, (_, i) => {
+    const h = i + 8; // 8 AM → 9 PM
+    const orders = heatmap.filter((c) => c.hour === h).reduce((s, c) => s + c.orderCount, 0);
+    return { hour: `${h > 12 ? h - 12 : h}${h >= 12 ? 'PM' : 'AM'}`, orders };
+  });
+
+  const activities = buildActivities(orders);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Welcome, {user?.name}</p>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setGridView((v) => { const next = !v; localStorage.setItem('dash-view', next ? 'grid' : 'list'); return next; })}
-                className="p-2 rounded-xl text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
-                title={gridView ? 'Switch to list view' : 'Switch to grid view'}
-              >
-                {gridView ? <LayoutList size={18} /> : <LayoutGrid size={18} />}
-              </button>
-              <Link
-                to="/admin/settings"
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-orange-500 transition-colors px-3 py-1.5 rounded-xl hover:bg-orange-50"
-              >
-                <Settings size={16} />
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 transition-colors px-3 py-1.5 rounded-xl hover:bg-red-50"
-              >
-                <LogOut size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <AdminSidebar />
 
-        {/* ── Stat cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-          {stats.map((s, i) => (
-            <div
-              key={s.label}
-              className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 min-w-0 ${
-                i === 2 ? 'col-span-2 sm:col-span-1' : ''
-              }`}
-            >
-              <div className={`h-1 ${s.bar}`} />
-              <div className="p-3 sm:p-4">
-                <div className={`inline-flex p-2 rounded-xl mb-2 ${s.iconCls}`}>
-                  <s.icon size={18} />
-                </div>
-                <p className={`text-xl font-bold truncate ${s.valueCls}`}>{s.value}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* ── Main Content ─────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
 
-        {/* ── Today's breakdown ──────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <Medal size={16} className="text-orange-500" />
-              <h2 className="font-bold text-gray-900 text-sm">Today's Breakdown</h2>
-            </div>
-            <Link to="/admin/reports" className="text-xs text-orange-500 font-medium hover:underline">
-              Full Report →
-            </Link>
+          {/* Header */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Welcome, {user?.name ?? 'Restaurant Admin'}</p>
           </div>
 
-          <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
+          {/* ── Stat Cards ───────────────────────────────────────────────── */}
+          <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Dine-in',   value: today?.dineIn      ?? '—', icon: MapPin,    color: 'text-orange-500' },
-              { label: 'Takeaway',  value: today?.takeaway    ?? '—', icon: ShoppingBag, color: 'text-purple-500' },
-              { label: 'Room Svc',  value: today?.roomService ?? '—', icon: BedDouble,  color: 'text-blue-500' },
-            ].map((t) => (
-              <div key={t.label} className="flex flex-col items-center py-3 gap-0.5">
-                <t.icon size={13} className={t.color} />
-                <span className="text-lg font-bold text-gray-900">{t.value}</span>
-                <span className="text-xs text-gray-400">{t.label}</span>
+              {
+                label: "Today's Orders",
+                value: todayOrders.length,
+                icon: ClipboardList,
+                iconBg: 'bg-blue-50',
+                iconColor: 'text-blue-500',
+                valueCls: 'text-gray-900',
+              },
+              {
+                label: 'Active Orders',
+                value: activeOrders.length,
+                icon: Activity,
+                iconBg: 'bg-orange-50',
+                iconColor: 'text-orange-500',
+                valueCls: 'text-gray-900',
+              },
+              {
+                label: "Today's Revenue",
+                value: fmt(todayRevenue),
+                icon: Banknote,
+                iconBg: 'bg-green-50',
+                iconColor: 'text-green-600',
+                valueCls: 'text-green-600',
+              },
+            ].map((s) => (
+              <div key={s.label} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <div className={`inline-flex p-2 rounded-xl mb-3 ${s.iconBg}`}>
+                  <s.icon size={18} className={s.iconColor} />
+                </div>
+                <p className={`text-2xl font-bold ${s.valueCls}`}>{s.value}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
 
-          <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100 text-sm">
-            <span className="text-gray-500">Avg. order value</span>
-            <span className="font-semibold text-gray-900">
-              {today ? fmt(today.avgOrderValue) : '—'}
-            </span>
+          {/* ── Quick Actions ─────────────────────────────────────────────── */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <Link
+                to="/admin/new-order"
+                className="flex items-center gap-4 bg-amber-900 hover:bg-amber-800 transition-colors rounded-2xl px-6 py-5 shadow-md"
+              >
+                <div className="bg-white/15 p-2.5 rounded-xl">
+                  <PlusCircle size={22} className="text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-white text-sm">New Order</p>
+                  <p className="text-xs text-amber-200 mt-0.5">Place takeaway or dine-in order</p>
+                </div>
+              </Link>
+              <Link
+                to="/admin/orders"
+                className="relative flex items-center gap-4 bg-amber-900 hover:bg-amber-800 transition-colors rounded-2xl px-6 py-5 shadow-md"
+              >
+                <div className="bg-white/15 p-2.5 rounded-xl">
+                  <ClipboardList size={22} className="text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-white text-sm">Live Orders</p>
+                  <p className="text-xs text-amber-200 mt-0.5">Manage incoming orders</p>
+                </div>
+                {activeOrders.length > 0 && (
+                  <span className="absolute top-3 right-3 text-xs font-bold bg-white text-amber-900 rounded-full min-w-[22px] px-1.5 py-0.5 text-center leading-none">
+                    {activeOrders.length}
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
 
-          <div className="px-5 py-3">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Top Items Today</p>
-            {!today || today.topItems.length === 0 ? (
-              <p className="text-xs text-gray-300 py-2 text-center">No orders yet today</p>
-            ) : (
-              <ol className="space-y-1.5">
-                {today.topItems.map((item, i) => (
-                  <li key={item.name} className="flex items-center gap-2.5 text-sm">
-                    <span className={`text-xs font-bold w-5 text-center shrink-0 ${
-                      i === 0 ? 'text-amber-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-orange-400' : 'text-gray-300'
-                    }`}>{i + 1}</span>
-                    <span className="flex-1 text-gray-700 truncate">{item.name}</span>
-                    <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full shrink-0">
-                      ×{item.quantity}
-                    </span>
-                    <span className="text-xs text-gray-400 tabular-nums shrink-0 w-20 text-right">{fmt(item.revenue)}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
+          {/* ── Analytics & Insights ──────────────────────────────────────── */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Analytics &amp; Insights</h2>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {/* Weekly Revenue */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 mb-3">Weekly Revenue Trend</p>
+                <ResponsiveContainer width="100%" height={140}>
+                  <AreaChart data={weeklyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}
+                      formatter={(v: number) => [fmt(v), 'Revenue']}
+                    />
+                    <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fill="url(#revGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Sales by Category */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 mb-3">Sales by Category</p>
+                {pieData.length === 0 ? (
+                  <div className="h-[140px] flex items-center justify-center text-xs text-gray-300">No data yet</div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <ResponsiveContainer width="55%" height={140}>
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={60} dataKey="value" paddingAngle={2}>
+                          {pieData.map((_, i) => (
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      {pieData.map((d, i) => {
+                        const total = pieData.reduce((s, x) => s + x.value, 0);
+                        const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
+                        return (
+                          <div key={d.name} className="flex items-center gap-1.5 text-xs">
+                            <span className="w-2 h-2 rounded-full flex-none" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                            <span className="truncate text-gray-600 flex-1">{d.name}</span>
+                            <span className="font-semibold text-gray-700 flex-none">{pct}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Hourly Order Distribution */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 mb-3">Hourly Order Distribution</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={hourlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}
+                    formatter={(v: number) => [v, 'Orders']}
+                  />
+                  <Bar dataKey="orders" fill="#f97316" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
-
-        {/* ── Navigation grid / list ─────────────────────────────────── */}
-        {gridView ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-            {navItems.map((item) => {
-              const isPrimary = !!item.primary;
-              const cls = isPrimary
-                ? 'relative bg-orange-500 rounded-2xl p-4 shadow-md shadow-orange-200 border border-orange-400 flex flex-col items-center text-center gap-3 hover:bg-orange-600 transition-colors'
-                : 'relative bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center gap-3 hover:border-orange-200 transition-colors';
-              const inner = (
-                <>
-                  <div className={isPrimary ? 'bg-white/20 p-3 rounded-xl text-white' : 'bg-orange-50 p-3 rounded-xl text-orange-600'}>
-                    <item.icon size={24} />
-                  </div>
-                  <div>
-                    <p className={`font-semibold text-sm leading-tight ${isPrimary ? 'text-white' : 'text-gray-900'}`}>
-                      {item.label}
-                    </p>
-                    <p className={`text-xs mt-0.5 leading-tight ${isPrimary ? 'text-orange-100' : 'text-gray-400'}`}>
-                      {item.desc}
-                    </p>
-                  </div>
-                  {item.badge != null && item.badge > 0 && (
-                    <span className={`absolute top-2 right-2 text-xs font-bold rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none ${
-                      isPrimary ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'
-                    }`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              );
-              return item.href
-                ? <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
-                : <Link key={item.label} to={item.to} className={cls}>{inner}</Link>;
-            })}
-          </div>
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {navItems.map((item) => {
-              const isPrimary = !!item.primary;
-              const cls = isPrimary
-                ? 'relative bg-orange-500 rounded-2xl p-4 shadow-md shadow-orange-200 border border-orange-400 flex items-center gap-4 hover:bg-orange-600 transition-colors'
-                : 'relative bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:border-orange-200 transition-colors';
-              const inner = (
-                <>
-                  <div className={isPrimary ? 'bg-white/20 p-3 rounded-xl text-white' : 'bg-orange-50 p-3 rounded-xl text-orange-600'}>
-                    <item.icon size={22} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-semibold ${isPrimary ? 'text-white' : 'text-gray-900'}`}>{item.label}</p>
-                    <p className={`text-sm ${isPrimary ? 'text-orange-100' : 'text-gray-500'}`}>{item.desc}</p>
-                  </div>
-                  {item.badge != null && item.badge > 0 && (
-                    <span className={`text-xs font-bold rounded-full px-2.5 py-1 shrink-0 ${
-                      isPrimary ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'
-                    }`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              );
-              return item.href
-                ? <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
-                : <Link key={item.label} to={item.to} className={cls}>{inner}</Link>;
-            })}
-          </div>
-        )}
       </main>
+
+      {/* ── Right Activities Panel ────────────────────────────────────────── */}
+      <aside className="w-72 flex-none bg-white border-l border-gray-100 flex flex-col">
+        <div className="px-5 py-5 border-b border-gray-100">
+          <p className="text-sm font-bold text-gray-900">Current Activities</p>
+          <p className="text-xs text-gray-400 mt-0.5">Real-time updates</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
+          {activities.length === 0 ? (
+            <p className="text-xs text-gray-300 text-center py-8">No recent activity</p>
+          ) : (
+            activities.map((a) => {
+              const cfg = ACTIVITY_ICON[a.type];
+              return (
+                <Link
+                  key={a.id}
+                  to="/admin/orders"
+                  className="flex items-start gap-3 py-2 px-2 rounded-xl hover:bg-gray-50 transition-colors group"
+                >
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-none ${cfg.bg}`}>
+                    <cfg.icon size={13} className={cfg.color} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-gray-700 leading-tight">
+                      {a.title}
+                    </p>
+                    <p className="text-xs mt-0.5 flex items-center gap-1">
+                      <span className="font-semibold text-orange-500 group-hover:underline">
+                        #{a.orderNum}
+                      </span>
+                      <span className="text-gray-400">· {a.time}</span>
+                    </p>
+                  </div>
+                </Link>
+              );
+            })
+          )}
+        </div>
+
+        {/* Bottom stats */}
+        <div className="border-t border-gray-100 px-5 py-4 grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-lg font-bold text-teal-500">{activeOrders.length}</p>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Active</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-teal-500">{todayOrders.length}</p>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Today</p>
+          </div>
+        </div>
+      </aside>
+
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   Tooltip,
   Cell,
 } from 'recharts';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 // ── CSV helpers ──────────────────────────────────────────────────────────────
 function csvCell(v: string | number): string {
@@ -552,7 +553,9 @@ export function ReportsPage() {
   const s = report?.summary;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
@@ -561,7 +564,7 @@ export function ReportsPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-5">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5">
 
         {/* Date range picker */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
@@ -1421,6 +1424,7 @@ export function ReportsPage() {
             )}
           </>
         )}
+      </div>
       </main>
     </div>
   );

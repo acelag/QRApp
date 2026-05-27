@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, 
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 interface User { id: string; username: string; name: string; role: 'admin' | 'kitchen'; }
 
@@ -102,7 +103,9 @@ export function UsersPage() {
   const kitchen = users.filter((u) => u.role === 'kitchen');
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <Link to="/admin/settings" className="text-gray-600"><ArrowLeft size={20} /></Link>
@@ -116,7 +119,7 @@ export function UsersPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
         {loading ? (
           <div className="flex justify-center pt-16">
             <Loader2 size={28} className="animate-spin text-orange-500" />
@@ -140,7 +143,7 @@ export function UsersPage() {
             </Section>
           </>
         )}
-      </main>
+      </div>
 
       {/* Form modal */}
       {showForm && (
@@ -239,6 +242,7 @@ export function UsersPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

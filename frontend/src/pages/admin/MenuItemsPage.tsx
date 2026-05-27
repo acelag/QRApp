@@ -27,6 +27,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
 const EMPTY: Omit<MenuItem, 'id'> = {
   name: '',
@@ -417,7 +418,9 @@ export function MenuItemsPage() {
   const isFiltered = !!q || catFilter !== 'all' || availFilter !== 'all';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
@@ -454,7 +457,7 @@ export function MenuItemsPage() {
         </div>
       </header>
 
-      <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
         {/* ── Search & filter bar ──────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 flex flex-wrap gap-2 items-center">
@@ -966,7 +969,7 @@ export function MenuItemsPage() {
           ))}
         </div>
         )}
-      </main>
+      </div>
 
       {/* Form modal */}
       {showForm && (
@@ -1236,6 +1239,7 @@ export function MenuItemsPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }
