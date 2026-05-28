@@ -93,7 +93,7 @@ export function StaffPerformancePage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Staff Performance</h1>
           <button onClick={load} className="text-gray-400 hover:text-gray-600 p-1.5">
@@ -102,7 +102,7 @@ export function StaffPerformancePage() {
         </div>
 
         {/* Range tabs */}
-        <div className="max-w-2xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
+        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2 overflow-x-auto">
           {RANGE_TABS.map((t) => (
             <button
               key={t.value}
@@ -117,7 +117,7 @@ export function StaffPerformancePage() {
         </div>
 
         {range === 'custom' && (
-          <div className="max-w-2xl mx-auto px-4 pb-3 flex items-center gap-2">
+          <div className="px-3 sm:px-4 lg:px-6 pb-3 flex items-center gap-2">
             <input type="date" value={customFrom} onChange={(e) => setFrom(e.target.value)}
               className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-300 text-gray-700" />
             <span className="text-gray-400 text-sm">→</span>
@@ -127,7 +127,7 @@ export function StaffPerformancePage() {
         )}
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {loading ? (
           <div className="flex justify-center pt-16"><Loader2 size={28} className="animate-spin text-orange-500" /></div>
         ) : (

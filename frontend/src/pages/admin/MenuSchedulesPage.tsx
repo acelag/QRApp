@@ -184,7 +184,7 @@ export function MenuSchedulesPage() {
         </div>
       </header>
 
-      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-3xl mx-auto">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
         {/* ── Info banner ───────────────────────────────────────────────── */}
         <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 text-sm text-blue-700">

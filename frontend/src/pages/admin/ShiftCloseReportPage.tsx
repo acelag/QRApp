@@ -93,7 +93,7 @@ export function ShiftCloseReportPage() {
           <p className="text-red-500">{error}</p>
         </div>
       ) : report && s ? (
-        <div ref={printRef} className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <div ref={printRef} className="px-3 sm:px-4 lg:px-6 py-6 space-y-6">
 
           {/* ── Print header ─────────────────────────────── */}
           <div className="hidden print:block mb-6 border-b border-gray-300 pb-4">
