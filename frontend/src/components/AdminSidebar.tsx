@@ -4,37 +4,131 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
-  Package, Calendar, CalendarDays, FileText,
+  Package, Calendar, CalendarDays, FileText, Wallet,
+  LayoutGrid, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { orderService } from '../services/orderService';
 
-const NAV = [
-  { label: 'Dashboard',        icon: LayoutDashboard, to: '/admin',                exact: true },
-  { label: 'Orders',           icon: ShoppingCart,    to: '/admin/orders',         badge: true },
-  { label: 'Menu',             icon: UtensilsCrossed, to: '/admin/menu' },
-  { label: 'Bills',            icon: Receipt,         to: '/admin/bills' },
-  { label: 'Reports',          icon: BarChart2,       to: '/admin/reports',        matchPrefix: '/admin/reports' },
-  { label: 'Tables & Rooms',   icon: QrCode,          to: '/admin/locations' },
-  { label: 'Table Status',     icon: LayoutDashboard, to: '/admin/table-status' },
-  { label: 'Kitchen Display',  icon: ChefHat,         to: '/kitchen' },
-  { label: 'Ready Display',    icon: MonitorPlay,     to: '/admin/ready-display' },
-  { label: 'Promo Codes',      icon: Tag,             to: '/admin/promo-codes' },
-  { label: 'Room Charges',     icon: CreditCard,      to: '/admin/room-charges' },
-  { label: 'Combo Deals',      icon: Package,         to: '/admin/combos' },
-  { label: 'Menu Schedules',   icon: Calendar,        to: '/admin/menu-schedules' },
-  { label: 'Roster',           icon: CalendarDays,    to: '/admin/roster' },
-  { label: 'Shift Report',     icon: FileText,        to: '/admin/shift-close' },
-  { label: 'Waiters',          icon: UserCheck,       to: '/admin/waiters' },
-  { label: 'Staff Performance',icon: Trophy,          to: '/admin/staff-performance' },
-  { label: 'Staff',            icon: Users,           to: '/admin/users' },
-  { label: 'Settings',         icon: Settings,        to: '/admin/settings' },
+interface NavItem {
+  label: string;
+  icon: React.ElementType;
+  to: string;
+  exact?: boolean;
+  badge?: boolean;
+  matchPrefix?: string;
+}
+
+interface NavGroup {
+  type: 'group';
+  label: string;
+  icon: React.ElementType;
+  children: NavItem[];
+}
+
+interface NavSingle extends NavItem {
+  type: 'item';
+}
+
+type NavEntry = NavSingle | NavGroup;
+
+const NAV: NavEntry[] = [
+  { type: 'item', label: 'Dashboard', icon: LayoutDashboard, to: '/admin', exact: true },
+  { type: 'item', label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders', badge: true },
+
+  {
+    type: 'group',
+    label: 'Menu',
+    icon: UtensilsCrossed,
+    children: [
+      { label: 'Menu Items',     icon: UtensilsCrossed, to: '/admin/menu' },
+      { label: 'Combo Deals',    icon: Package,         to: '/admin/combos' },
+      { label: 'Menu Schedules', icon: Calendar,        to: '/admin/menu-schedules' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Floor',
+    icon: QrCode,
+    children: [
+      { label: 'Tables & Rooms', icon: QrCode,        to: '/admin/locations' },
+      { label: 'Table Status',   icon: LayoutGrid,    to: '/admin/table-status' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Displays',
+    icon: MonitorPlay,
+    children: [
+      { label: 'Kitchen Display', icon: ChefHat,      to: '/kitchen' },
+      { label: 'Ready Display',   icon: MonitorPlay,  to: '/admin/ready-display' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Finance',
+    icon: Wallet,
+    children: [
+      { label: 'Bills',         icon: Receipt,    to: '/admin/bills' },
+      { label: 'Room Charges',  icon: CreditCard, to: '/admin/room-charges' },
+      { label: 'Promo Codes',   icon: Tag,        to: '/admin/promo-codes' },
+      { label: 'Reports',       icon: BarChart2,  to: '/admin/reports', matchPrefix: '/admin/reports' },
+      { label: 'Shift Report',  icon: FileText,   to: '/admin/shift-close' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Staff',
+    icon: Users,
+    children: [
+      { label: 'Staff',             icon: Users,      to: '/admin/users' },
+      { label: 'Waiters',           icon: UserCheck,  to: '/admin/waiters' },
+      { label: 'Staff Performance', icon: Trophy,     to: '/admin/staff-performance' },
+      { label: 'Roster',            icon: CalendarDays, to: '/admin/roster' },
+    ],
+  },
+
+  { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ];
+
+function isItemActive(item: NavItem, pathname: string) {
+  return item.exact
+    ? pathname === item.to
+    : pathname.startsWith(item.matchPrefix ?? item.to);
+}
+
+function groupHasActiveChild(group: NavGroup, pathname: string) {
+  return group.children.some((c) => isItemActive(c, pathname));
+}
 
 export function AdminSidebar() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [activeCount, setActiveCount] = useState(0);
+
+  // Track which groups are open; auto-open groups whose child is active
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    NAV.forEach((entry) => {
+      if (entry.type === 'group' && groupHasActiveChild(entry, location.pathname)) {
+        initial.add(entry.label);
+      }
+    });
+    return initial;
+  });
+
+  // Re-open group on navigation (e.g. deep-link)
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      NAV.forEach((entry) => {
+        if (entry.type === 'group' && groupHasActiveChild(entry, location.pathname)) {
+          next.add(entry.label);
+        }
+      });
+      return next;
+    });
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetch = () =>
@@ -45,6 +139,14 @@ export function AdminSidebar() {
     const id = setInterval(fetch, 10_000);
     return () => clearInterval(id);
   }, []);
+
+  function toggleGroup(label: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      next.has(label) ? next.delete(label) : next.add(label);
+      return next;
+    });
+  }
 
   function handleLogout() { logout(); window.location.href = '/login'; }
 
@@ -58,27 +160,68 @@ export function AdminSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {NAV.map((item) => {
-          const active = item.exact
-            ? location.pathname === item.to
-            : location.pathname.startsWith(item.matchPrefix ?? item.to);
+        {NAV.map((entry) => {
+          if (entry.type === 'item') {
+            const active = isItemActive(entry, location.pathname);
+            return (
+              <Link
+                key={entry.label}
+                to={entry.to}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <entry.icon size={16} className={active ? 'text-blue-600' : 'text-gray-400'} />
+                <span className="flex-1">{entry.label}</span>
+                {entry.badge && activeCount > 0 && (
+                  <span className="text-xs font-bold bg-orange-500 text-white rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none">
+                    {activeCount}
+                  </span>
+                )}
+              </Link>
+            );
+          }
+
+          // Group
+          const isOpen = openGroups.has(entry.label);
+          const hasActive = groupHasActiveChild(entry, location.pathname);
 
           return (
-            <Link
-              key={item.label + item.to}
-              to={item.to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <item.icon size={16} className={active ? 'text-blue-600' : 'text-gray-400'} />
-              <span className="flex-1">{item.label}</span>
-              {item.badge && activeCount > 0 && (
-                <span className="text-xs font-bold bg-orange-500 text-white rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none">
-                  {activeCount}
-                </span>
+            <div key={entry.label}>
+              <button
+                onClick={() => toggleGroup(entry.label)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  hasActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <entry.icon size={16} className={hasActive ? 'text-blue-600' : 'text-gray-400'} />
+                <span className="flex-1 text-left">{entry.label}</span>
+                {isOpen
+                  ? <ChevronDown size={14} className="text-gray-400" />
+                  : <ChevronRight size={14} className="text-gray-400" />
+                }
+              </button>
+
+              {isOpen && (
+                <div className="ml-4 mt-0.5 space-y-0.5 border-l border-gray-100 pl-3">
+                  {entry.children.map((child) => {
+                    const active = isItemActive(child, location.pathname);
+                    return (
+                      <Link
+                        key={child.label}
+                        to={child.to}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                          active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        }`}
+                      >
+                        <child.icon size={14} className={active ? 'text-blue-600' : 'text-gray-400'} />
+                        <span className="flex-1">{child.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            </Link>
+            </div>
           );
         })}
       </nav>

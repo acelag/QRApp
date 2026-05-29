@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem(TOKEN_KEY);
     if (stored) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${stored}`;
-      axios.get<AuthUser>('/api/auth/me')
+      axios.get<AuthUser>('/api/auth/me', { timeout: 10000 })
         .then((res) => { setToken(stored); setUser(res.data); })
         .catch(() => { localStorage.removeItem(TOKEN_KEY); delete axios.defaults.headers.common['Authorization']; })
         .finally(() => setLoading(false));

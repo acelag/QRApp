@@ -35,12 +35,15 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [slowRequest, setSlowRequest] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!username.trim() || !password) return;
     setError('');
+    setSlowRequest(false);
     setLoading(true);
+    const slowTimer = setTimeout(() => setSlowRequest(true), 5000);
     try {
       await login(username.trim(), password);
       navigate('/', { replace: true }); // RootRedirect handles role-based routing
@@ -48,6 +51,8 @@ export function LoginPage() {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setError(msg ?? t('auth.loginFailed'));
     } finally {
+      clearTimeout(slowTimer);
+      setSlowRequest(false);
       setLoading(false);
     }
   }
@@ -121,6 +126,12 @@ export function LoginPage() {
               {loading && <Loader2 size={18} className="animate-spin" />}
               {loading ? t('auth.signingIn') : t('auth.signIn')}
             </button>
+
+            {slowRequest && (
+              <p className="text-center text-xs text-amber-600 animate-pulse">
+                Server is warming up, please wait…
+              </p>
+            )}
           </form>
         </div>
 
