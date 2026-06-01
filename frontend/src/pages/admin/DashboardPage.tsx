@@ -137,11 +137,11 @@ export function DashboardPage() {
       <AdminSidebar />
 
       {/* ── Scrollable wrapper (main + activities stacked on mobile) ─────── */}
-      <div className="flex-1 overflow-y-auto pt-14 md:pt-0 flex flex-col md:flex-row md:overflow-hidden">
+      <div className="flex-1 overflow-y-auto pt-14 md:pt-0 flex flex-col lg:flex-row lg:overflow-hidden">
 
       {/* ── Main Content ─────────────────────────────────────────────────── */}
-      <main className="flex-1 md:overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+      <main className="flex-1 lg:overflow-y-auto">
+        <div className="px-4 md:px-6 py-6 space-y-6">
 
           {/* Header */}
           <div>
@@ -193,26 +193,26 @@ export function DashboardPage() {
             <div className="grid grid-cols-2 gap-4">
               <Link
                 to="/admin/new-order"
-                className="flex items-center gap-4 bg-amber-900 hover:bg-amber-800 transition-colors rounded-2xl px-6 py-5 shadow-md"
+                className="flex items-center gap-4 bg-amber-900 hover:bg-amber-800 transition-colors rounded-2xl px-5 py-5 shadow-md min-w-0"
               >
-                <div className="bg-white/15 p-2.5 rounded-xl">
+                <div className="bg-white/15 p-2.5 rounded-xl flex-none">
                   <PlusCircle size={22} className="text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold text-white text-sm">New Order</p>
-                  <p className="text-xs text-amber-200 mt-0.5">Place takeaway or dine-in order</p>
+                  <p className="text-xs text-amber-200 mt-0.5 hidden sm:block">Place takeaway or dine-in order</p>
                 </div>
               </Link>
               <Link
                 to="/admin/orders"
-                className="relative flex items-center gap-4 bg-amber-900 hover:bg-amber-800 transition-colors rounded-2xl px-6 py-5 shadow-md"
+                className="relative flex items-center gap-4 bg-amber-900 hover:bg-amber-800 transition-colors rounded-2xl px-5 py-5 shadow-md min-w-0"
               >
-                <div className="bg-white/15 p-2.5 rounded-xl">
+                <div className="bg-white/15 p-2.5 rounded-xl flex-none">
                   <ClipboardList size={22} className="text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold text-white text-sm">Live Orders</p>
-                  <p className="text-xs text-amber-200 mt-0.5">Manage incoming orders</p>
+                  <p className="text-xs text-amber-200 mt-0.5 hidden sm:block">Manage incoming orders</p>
                 </div>
                 {activeOrders.length > 0 && (
                   <span className="absolute top-3 right-3 text-xs font-bold bg-white text-amber-900 rounded-full min-w-[22px] px-1.5 py-0.5 text-center leading-none">
@@ -307,7 +307,7 @@ export function DashboardPage() {
       </main>
 
       {/* ── Right Activities Panel ────────────────────────────────────────── */}
-      <aside className="w-full md:w-72 flex-none bg-white border-t md:border-t-0 md:border-l border-gray-100 flex flex-col md:overflow-hidden">
+      <aside className="w-full lg:w-72 flex-none bg-white border-t lg:border-t-0 lg:border-l border-gray-100 flex flex-col lg:overflow-hidden">
         <div className="px-5 py-5 border-b border-gray-100">
           <p className="text-sm font-bold text-gray-900">Current Activities</p>
           <p className="text-xs text-gray-400 mt-0.5">Real-time updates</p>
