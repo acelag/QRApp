@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import axios from 'axios';
 
 export interface AuthUser {
@@ -9,9 +9,32 @@ export interface AuthUser {
   restaurantId: string | null;
 }
 
+export interface RestaurantFeatures {
+  combos: boolean;
+  menuSchedules: boolean;
+  roomCharges: boolean;
+  promoCodes: boolean;
+  reports: boolean;
+  roster: boolean;
+  shiftReport: boolean;
+  staffPerformance: boolean;
+  tableStatus: boolean;
+  readyDisplay: boolean;
+  kitchenDisplay: boolean;
+  bills: boolean;
+}
+
+export const ALL_FEATURES_ON: RestaurantFeatures = {
+  combos: true, menuSchedules: true, roomCharges: true, promoCodes: true,
+  reports: true, roster: true, shiftReport: true, staffPerformance: true,
+  tableStatus: true, readyDisplay: true, kitchenDisplay: true, bills: true,
+};
+
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
+  features: RestaurantFeatures;
+  refreshFeatures: () => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   updateProfile: (payload: {
@@ -26,9 +49,19 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 const TOKEN_KEY = 'qra_token';
 
+async function fetchFeatures(restaurantId: string): Promise<RestaurantFeatures> {
+  try {
+    const res = await axios.get<{ features: RestaurantFeatures }>(`/api/restaurants/${restaurantId}`);
+    return res.data.features ?? ALL_FEATURES_ON;
+  } catch {
+    return ALL_FEATURES_ON;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [features, setFeatures] = useState<RestaurantFeatures>(ALL_FEATURES_ON);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,7 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (stored) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${stored}`;
       axios.get<AuthUser>('/api/auth/me', { timeout: 10000 })
-        .then((res) => { setToken(stored); setUser(res.data); })
+        .then(async (res) => {
+          setToken(stored);
+          setUser(res.data);
+          if (res.data.restaurantId) {
+            const f = await fetchFeatures(res.data.restaurantId);
+            setFeatures(f);
+          }
+        })
         .catch(() => { localStorage.removeItem(TOKEN_KEY); delete axios.defaults.headers.common['Authorization']; })
         .finally(() => setLoading(false));
     } else {
@@ -44,9 +84,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshFeatures = useCallback(async () => {
+    if (user?.restaurantId) {
+      const f = await fetchFeatures(user.restaurantId);
+      setFeatures(f);
+    }
+  }, [user]);
+
   async function login(username: string, password: string) {
     const res = await axios.post<{ token: string; user: AuthUser }>('/api/auth/login', { username, password });
-    applyToken(res.data.token, res.data.user);
+    await applyToken(res.data.token, res.data.user);
   }
 
   async function updateProfile(payload: {
@@ -56,14 +103,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     newPassword?: string;
   }) {
     const res = await axios.patch<{ token: string; user: AuthUser }>('/api/auth/profile', payload);
-    applyToken(res.data.token, res.data.user);
+    await applyToken(res.data.token, res.data.user);
   }
 
-  function applyToken(t: string, u: AuthUser) {
+  async function applyToken(t: string, u: AuthUser) {
     localStorage.setItem(TOKEN_KEY, t);
     axios.defaults.headers.common['Authorization'] = `Bearer ${t}`;
     setToken(t);
     setUser(u);
+    if (u.restaurantId) {
+      const f = await fetchFeatures(u.restaurantId);
+      setFeatures(f);
+    } else {
+      // super_admin — all features on
+      setFeatures(ALL_FEATURES_ON);
+    }
   }
 
   function logout() {
@@ -71,10 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     delete axios.defaults.headers.common['Authorization'];
     setToken(null);
     setUser(null);
+    setFeatures(ALL_FEATURES_ON);
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, token, features, refreshFeatures, login, logout, updateProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );
