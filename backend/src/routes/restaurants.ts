@@ -7,6 +7,31 @@ import { authenticate, requireRole, AuthRequest, JWT_SECRET } from '../middlewar
 
 const router = Router();
 
+// All feature keys that can be toggled per restaurant
+export const ALL_FEATURES = [
+  'combos', 'menuSchedules', 'roomCharges', 'promoCodes',
+  'reports', 'roster', 'shiftReport', 'staffPerformance',
+  'tableStatus', 'readyDisplay', 'kitchenDisplay', 'bills',
+] as const;
+
+export type FeatureKey = typeof ALL_FEATURES[number];
+export type RestaurantFeatures = Record<FeatureKey, boolean>;
+
+const DEFAULT_FEATURES: RestaurantFeatures = {
+  combos: true, menuSchedules: true, roomCharges: true, promoCodes: true,
+  reports: true, roster: true, shiftReport: true, staffPerformance: true,
+  tableStatus: true, readyDisplay: true, kitchenDisplay: true, bills: true,
+};
+
+function parseFeatures(raw: unknown): RestaurantFeatures {
+  const stored = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<RestaurantFeatures>;
+  const out = { ...DEFAULT_FEATURES };
+  for (const k of ALL_FEATURES) {
+    if (typeof stored[k] === 'boolean') out[k] = stored[k] as boolean;
+  }
+  return out;
+}
+
 const toRestaurant = (row: Record<string, unknown>) => ({
   id: row.id, name: row.name, slug: row.slug, active: row.active === true, createdAt: row.created_at,
   serviceChargePct: Number(row.service_charge_pct ?? 0), taxPct: Number(row.tax_pct ?? 0),
@@ -24,6 +49,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   printerType:        ((row.printer_type as string | null) ?? 'epson') as 'epson' | 'star',
   autoPrintKitchen:   row.auto_print_kitchen === true,
   autoPrintReceipt:   row.auto_print_receipt === true,
+  features: parseFeatures(row.features),
 });
 
 // ── Public endpoints — no auth required ──────────────────────────────────────
@@ -208,6 +234,20 @@ router.patch('/:id/printer', authenticate, requireRole('admin', 'manager'), asyn
   );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/features', authenticate, requireRole('super_admin'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const incoming = req.body as Partial<Record<string, boolean>>;
+  // Load existing features then merge
+  const existing = await pool.query('SELECT features FROM restaurants WHERE id = $1', [id]);
+  if (!existing.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  const current = parseFeatures((existing.rows[0] as Record<string, unknown>).features);
+  for (const k of ALL_FEATURES) {
+    if (typeof incoming[k] === 'boolean') current[k] = incoming[k] as boolean;
+  }
+  await pool.query('UPDATE restaurants SET features = $1 WHERE id = $2', [JSON.stringify(current), id]);
+  res.json({ features: current });
 });
 
 router.patch('/:id/active', authenticate, requireRole('super_admin'), async (req: AuthRequest, res) => {

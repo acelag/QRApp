@@ -8,6 +8,7 @@ import {
   LayoutGrid, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import type { RestaurantFeatures } from '../context/AuthContext';
 import { orderService } from '../services/orderService';
 
 interface NavItem {
@@ -17,6 +18,7 @@ interface NavItem {
   exact?: boolean;
   badge?: boolean;
   matchPrefix?: string;
+  featureKey?: keyof RestaurantFeatures;
 }
 
 interface NavGroup {
@@ -42,8 +44,8 @@ const NAV: NavEntry[] = [
     icon: UtensilsCrossed,
     children: [
       { label: 'Menu Items',     icon: UtensilsCrossed, to: '/admin/menu' },
-      { label: 'Combo Deals',    icon: Package,         to: '/admin/combos' },
-      { label: 'Menu Schedules', icon: Calendar,        to: '/admin/menu-schedules' },
+      { label: 'Combo Deals',    icon: Package,         to: '/admin/combos',         featureKey: 'combos' },
+      { label: 'Menu Schedules', icon: Calendar,        to: '/admin/menu-schedules', featureKey: 'menuSchedules' },
     ],
   },
   {
@@ -52,7 +54,7 @@ const NAV: NavEntry[] = [
     icon: QrCode,
     children: [
       { label: 'Tables & Rooms', icon: QrCode,        to: '/admin/locations' },
-      { label: 'Table Status',   icon: LayoutGrid,    to: '/admin/table-status' },
+      { label: 'Table Status',   icon: LayoutGrid,    to: '/admin/table-status', featureKey: 'tableStatus' },
     ],
   },
   {
@@ -60,8 +62,8 @@ const NAV: NavEntry[] = [
     label: 'Displays',
     icon: MonitorPlay,
     children: [
-      { label: 'Kitchen Display', icon: ChefHat,      to: '/kitchen' },
-      { label: 'Ready Display',   icon: MonitorPlay,  to: '/admin/ready-display' },
+      { label: 'Kitchen Display', icon: ChefHat,      to: '/kitchen',             featureKey: 'kitchenDisplay' },
+      { label: 'Ready Display',   icon: MonitorPlay,  to: '/admin/ready-display', featureKey: 'readyDisplay' },
     ],
   },
   {
@@ -69,11 +71,11 @@ const NAV: NavEntry[] = [
     label: 'Finance',
     icon: Wallet,
     children: [
-      { label: 'Bills',         icon: Receipt,    to: '/admin/bills' },
-      { label: 'Room Charges',  icon: CreditCard, to: '/admin/room-charges' },
-      { label: 'Promo Codes',   icon: Tag,        to: '/admin/promo-codes' },
-      { label: 'Reports',       icon: BarChart2,  to: '/admin/reports', matchPrefix: '/admin/reports' },
-      { label: 'Shift Report',  icon: FileText,   to: '/admin/shift-close' },
+      { label: 'Bills',         icon: Receipt,    to: '/admin/bills',       featureKey: 'bills' },
+      { label: 'Room Charges',  icon: CreditCard, to: '/admin/room-charges',featureKey: 'roomCharges' },
+      { label: 'Promo Codes',   icon: Tag,        to: '/admin/promo-codes', featureKey: 'promoCodes' },
+      { label: 'Reports',       icon: BarChart2,  to: '/admin/reports', matchPrefix: '/admin/reports', featureKey: 'reports' },
+      { label: 'Shift Report',  icon: FileText,   to: '/admin/shift-close', featureKey: 'shiftReport' },
     ],
   },
   {
@@ -83,8 +85,8 @@ const NAV: NavEntry[] = [
     children: [
       { label: 'Staff',             icon: Users,      to: '/admin/users' },
       { label: 'Waiters',           icon: UserCheck,  to: '/admin/waiters' },
-      { label: 'Staff Performance', icon: Trophy,     to: '/admin/staff-performance' },
-      { label: 'Roster',            icon: CalendarDays, to: '/admin/roster' },
+      { label: 'Staff Performance', icon: Trophy,     to: '/admin/staff-performance', featureKey: 'staffPerformance' },
+      { label: 'Roster',            icon: CalendarDays, to: '/admin/roster',          featureKey: 'roster' },
     ],
   },
 
@@ -102,9 +104,14 @@ function groupHasActiveChild(group: NavGroup, pathname: string) {
 }
 
 export function AdminSidebar() {
-  const { user, logout } = useAuth();
+  const { user, logout, features } = useAuth();
   const location = useLocation();
   const [activeCount, setActiveCount] = useState(0);
+
+  function isVisible(item: NavItem): boolean {
+    if (!item.featureKey) return true;
+    return features[item.featureKey] !== false;
+  }
 
   // Track which groups are open; auto-open groups whose child is active
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
@@ -182,9 +189,12 @@ export function AdminSidebar() {
             );
           }
 
-          // Group
+          // Group — filter children by feature flags
+          const visibleChildren = entry.children.filter(isVisible);
+          if (visibleChildren.length === 0) return null;
+
           const isOpen = openGroups.has(entry.label);
-          const hasActive = groupHasActiveChild(entry, location.pathname);
+          const hasActive = visibleChildren.some((c) => isItemActive(c, location.pathname));
 
           return (
             <div key={entry.label}>
@@ -204,7 +214,7 @@ export function AdminSidebar() {
 
               {isOpen && (
                 <div className="ml-4 mt-0.5 space-y-0.5 border-l border-gray-100 pl-3">
-                  {entry.children.map((child) => {
+                  {visibleChildren.map((child) => {
                     const active = isItemActive(child, location.pathname);
                     return (
                       <Link

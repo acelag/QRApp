@@ -227,6 +227,9 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'auto_print_kitchen',    'BOOLEAN NOT NULL DEFAULT FALSE');
   await addCol('restaurants', 'auto_print_receipt',    'BOOLEAN NOT NULL DEFAULT FALSE');
 
+  // Per-restaurant feature flags (super_admin can toggle per restaurant)
+  await addCol('restaurants', 'features', "JSONB NOT NULL DEFAULT '{}'::jsonb");
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS refunds (
       id               VARCHAR(36)   NOT NULL PRIMARY KEY,

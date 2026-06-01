@@ -1,13 +1,34 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Pencil, Check, X, Store, LogOut,
-  ChevronDown, ChevronUp, LogIn, Users,
+  Plus, Pencil, Check, X, Store, LogOut,
+  ChevronDown, ChevronUp, LogIn, Users, Sliders,
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
-import { AdminSidebar } from '../../components/AdminSidebar';
+import type { RestaurantFeatures } from '../../context/AuthContext';
+
+const FEATURE_LABELS: { key: keyof RestaurantFeatures; label: string; description: string }[] = [
+  { key: 'combos',          label: 'Combo Deals',       description: 'Bundle menu items into combo packages' },
+  { key: 'menuSchedules',   label: 'Menu Schedules',    description: 'Time-based menus (breakfast, lunch, dinner)' },
+  { key: 'bills',           label: 'Bills',             description: 'Bill management and payment processing' },
+  { key: 'roomCharges',     label: 'Room Charges',      description: 'Charge orders to hotel room accounts' },
+  { key: 'promoCodes',      label: 'Promo Codes',       description: 'Discount codes and promotional offers' },
+  { key: 'reports',         label: 'Reports',           description: 'Sales analytics and revenue reports' },
+  { key: 'shiftReport',     label: 'Shift Report',      description: 'End-of-shift summary and close reports' },
+  { key: 'tableStatus',     label: 'Table Status',      description: 'Live table occupancy overview' },
+  { key: 'kitchenDisplay',  label: 'Kitchen Display',   description: 'KDS screen for kitchen staff' },
+  { key: 'readyDisplay',    label: 'Ready Display',     description: 'Order-ready notification screen' },
+  { key: 'staffPerformance',label: 'Staff Performance', description: 'Staff productivity and tips tracking' },
+  { key: 'roster',          label: 'Roster',            description: 'Staff shift scheduling' },
+];
+
+const ALL_FEATURES_ON: RestaurantFeatures = {
+  combos: true, menuSchedules: true, roomCharges: true, promoCodes: true,
+  reports: true, roster: true, shiftReport: true, staffPerformance: true,
+  tableStatus: true, readyDisplay: true, kitchenDisplay: true, bills: true,
+};
 
 interface Restaurant {
   id: string;
@@ -15,6 +36,7 @@ interface Restaurant {
   slug: string;
   active: boolean;
   createdAt: string;
+  features?: RestaurantFeatures;
 }
 
 interface RestaurantUser {
@@ -52,6 +74,10 @@ export function RestaurantsPage() {
   const [usersLoading, setUsersLoading] = useState(false);
   const [impersonating, setImpersonating] = useState<string | null>(null); // userId
 
+  // features panel
+  const [featuresOpenId, setFeaturesOpenId] = useState<string | null>(null);
+  const [togglingFeature, setTogglingFeature] = useState<string | null>(null);
+
   const [form, setForm] = useState<CreatePayload>({
     name: '', adminUsername: '', adminPassword: '', adminName: '',
   });
@@ -73,6 +99,23 @@ export function RestaurantsPage() {
       toast.success(`"${r.name}" ${next ? 'activated' : 'deactivated'}`);
     } catch {
       toast.error('Failed to update status');
+    }
+  }
+
+  // ── Toggle feature flag ──────────────────────────────────────────────────────
+  async function toggleFeature(r: Restaurant, key: keyof RestaurantFeatures) {
+    const current = r.features ?? ALL_FEATURES_ON;
+    const next = !current[key];
+    setTogglingFeature(`${r.id}:${key}`);
+    try {
+      const res = await axios.patch<{ features: RestaurantFeatures }>(
+        `/api/restaurants/${r.id}/features`, { [key]: next },
+      );
+      setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, features: res.data.features } : x));
+    } catch {
+      toast.error('Failed to update feature');
+    } finally {
+      setTogglingFeature(null);
     }
   }
 
@@ -172,16 +215,17 @@ export function RestaurantsPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-gray-600">
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Restaurants</h1>
+          <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+            <Store size={16} className="text-orange-500" />
+          </div>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">Restaurants</h1>
+            <p className="text-xs text-gray-400">Super Admin</p>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowForm(true)}
@@ -211,7 +255,9 @@ export function RestaurantsPage() {
         ) : (
           restaurants.map((r) => {
             const isExpanded = expandedId === r.id;
+            const isFeaturesOpen = featuresOpenId === r.id;
             const users = usersMap[r.id] ?? [];
+            const rFeatures = r.features ?? ALL_FEATURES_ON;
 
             return (
               <div
@@ -273,6 +319,15 @@ export function RestaurantsPage() {
                         <Pencil size={16} />
                       </button>
                     )}
+
+                    {/* Features toggle */}
+                    <button
+                      onClick={() => setFeaturesOpenId(isFeaturesOpen ? null : r.id)}
+                      className={`transition-colors ${isFeaturesOpen ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'}`}
+                      title="Manage features"
+                    >
+                      <Sliders size={16} />
+                    </button>
 
                     {/* Expand users */}
                     <button
@@ -338,6 +393,49 @@ export function RestaurantsPage() {
                         ))}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* ── Features panel ── */}
+                {isFeaturesOpen && (
+                  <div className="border-t border-gray-100 px-4 pb-4 pt-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sliders size={13} className="text-blue-500" />
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Features</p>
+                      <span className="ml-auto text-xs text-gray-400">Toggle modules for this restaurant</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {FEATURE_LABELS.map(({ key, label, description }) => {
+                        const enabled = rFeatures[key] !== false;
+                        const isToggling = togglingFeature === `${r.id}:${key}`;
+                        return (
+                          <div
+                            key={key}
+                            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors ${
+                              enabled ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50 border-gray-100'
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium truncate ${enabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                                {label}
+                              </p>
+                              <p className="text-xs text-gray-400 truncate">{description}</p>
+                            </div>
+                            <button
+                              onClick={() => toggleFeature(r, key)}
+                              disabled={isToggling}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none shrink-0 disabled:opacity-50 ${
+                                enabled ? 'bg-blue-500' : 'bg-gray-300'
+                              }`}
+                            >
+                              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                                enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                              }`} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -408,7 +506,6 @@ export function RestaurantsPage() {
           </div>
         </div>
       )}
-      </main>
     </div>
   );
 }
