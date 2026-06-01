@@ -735,13 +735,13 @@ export function ReportsPage() {
             <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-2xl w-fit">
               {([
                 { key: 'sales',      label: t('reports.salesByDay') },
-                { key: 'heatmap',    label: `🔥 ${t('reports.heatmap')}` },
+                { key: 'heatmap',    label: t('reports.heatmap') },
                 { key: 'categories', label: t('reports.categories') },
                 { key: 'items',      label: t('reports.items') },
                 ...(report.toppings.length > 0 ? [{ key: 'extras', label: t('reports.extras') }] : []),
-                { key: 'promos',     label: `🏷️ ${t('reports.promoCodes')}` },
-                { key: 'payment',    label: `💳 ${t('reports.payment')}` },
-                { key: 'turns',      label: `⏱️ ${t('reports.tableTurns')}` },
+                { key: 'promos',     label: t('reports.promoCodes') },
+                { key: 'payment',    label: t('reports.payment') },
+                { key: 'turns',      label: t('reports.tableTurns') },
               ] as { key: Tab; label: string }[]).map((tabItem) => (
                 <button
                   key={tabItem.key}
