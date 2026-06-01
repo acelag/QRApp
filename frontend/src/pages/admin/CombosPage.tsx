@@ -161,7 +161,7 @@ export function CombosPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

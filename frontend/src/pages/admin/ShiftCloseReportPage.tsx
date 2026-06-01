@@ -56,7 +56,7 @@ export function ShiftCloseReportPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
       {/* Header — hidden on print */}
       <header className="bg-white shadow-sm sticky top-0 z-40 print:hidden">
         <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">

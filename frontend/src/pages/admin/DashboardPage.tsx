@@ -136,8 +136,11 @@ export function DashboardPage() {
 
       <AdminSidebar />
 
+      {/* ── Scrollable wrapper (main + activities stacked on mobile) ─────── */}
+      <div className="flex-1 overflow-y-auto pt-14 md:pt-0 flex flex-col md:flex-row md:overflow-hidden">
+
       {/* ── Main Content ─────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 md:overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
 
           {/* Header */}
@@ -147,7 +150,7 @@ export function DashboardPage() {
           </div>
 
           {/* ── Stat Cards ───────────────────────────────────────────────── */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               {
                 label: "Today's Orders",
@@ -304,7 +307,7 @@ export function DashboardPage() {
       </main>
 
       {/* ── Right Activities Panel ────────────────────────────────────────── */}
-      <aside className="w-72 flex-none bg-white border-l border-gray-100 flex flex-col">
+      <aside className="w-full md:w-72 flex-none bg-white border-t md:border-t-0 md:border-l border-gray-100 flex flex-col md:overflow-hidden">
         <div className="px-5 py-5 border-b border-gray-100">
           <p className="text-sm font-bold text-gray-900">Current Activities</p>
           <p className="text-xs text-gray-400 mt-0.5">Real-time updates</p>
@@ -355,6 +358,7 @@ export function DashboardPage() {
         </div>
       </aside>
 
+      </div>{/* end scrollable wrapper */}
     </div>
   );
 }
