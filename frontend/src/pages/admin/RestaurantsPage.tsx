@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Pencil, Check, X, Store, LogOut,
+  Plus, Pencil, Check, X, Store, LogOut,
   ChevronDown, ChevronUp, LogIn, Users, Sliders,
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import type { RestaurantFeatures } from '../../context/AuthContext';
-import { AdminSidebar } from '../../components/AdminSidebar';
 
 const FEATURE_LABELS: { key: keyof RestaurantFeatures; label: string; description: string }[] = [
   { key: 'combos',          label: 'Combo Deals',       description: 'Bundle menu items into combo packages' },
@@ -216,16 +215,17 @@ export function RestaurantsPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-gray-600">
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Restaurants</h1>
+          <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+            <Store size={16} className="text-orange-500" />
+          </div>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">Restaurants</h1>
+            <p className="text-xs text-gray-400">Super Admin</p>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowForm(true)}
@@ -506,7 +506,6 @@ export function RestaurantsPage() {
           </div>
         </div>
       )}
-      </main>
     </div>
   );
 }
