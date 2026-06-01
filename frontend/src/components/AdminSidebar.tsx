@@ -236,6 +236,11 @@ export function AdminSidebar() {
         })}
       </nav>
 
+      {/* Version */}
+      <div className="px-5 py-1.5 text-center flex-none">
+        <span className="text-[10px] text-gray-300 font-mono">v{__APP_VERSION__}</span>
+      </div>
+
       {/* User */}
       <div className="px-4 py-4 border-t border-gray-100 flex items-center gap-3 flex-none">
         <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-none">
