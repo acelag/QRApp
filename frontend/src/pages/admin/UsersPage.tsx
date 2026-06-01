@@ -131,7 +131,7 @@ export function UsersPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
           <Link to="/admin/settings" className="text-gray-600"><ArrowLeft size={20} /></Link>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Manage Users</h1>
           <button
@@ -143,7 +143,7 @@ export function UsersPage() {
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {loading ? (
           <div className="flex justify-center pt-16">
             <Loader2 size={28} className="animate-spin text-orange-500" />

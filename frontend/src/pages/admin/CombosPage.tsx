@@ -163,7 +163,7 @@ export function CombosPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto">
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/admin" className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></Link>
             <div>
@@ -180,7 +180,7 @@ export function CombosPage() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="px-3 sm:px-4 lg:px-6 py-6">
         {combos.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <Package size={48} className="mx-auto text-gray-200" />

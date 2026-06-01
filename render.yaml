@@ -1,0 +1,30 @@
+services:
+  # ── Frontend static site ──────────────────────────────────────────────────
+  - type: web
+    name: qrapp-frontend
+    env: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    headers:
+      # index.html must never be cached — it references content-hashed assets
+      # and needs to update immediately after every deploy
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      # Service worker must also be uncached so the browser detects SW updates
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      # Workbox manifest — same reason as sw.js
+      - path: /sw.mjs
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      # Content-hashed assets: safe to cache forever
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      # SPA fallback — all non-asset routes serve index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

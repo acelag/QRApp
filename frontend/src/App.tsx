@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -49,7 +50,11 @@ import { CombosPage } from './pages/admin/CombosPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
+      <Loader2 size={32} className="animate-spin text-orange-500" />
+    </div>
+  );
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'kitchen') return <Navigate to="/kitchen" replace />;
   if (user.role === 'super_admin') return <Navigate to="/admin/restaurants" replace />;
