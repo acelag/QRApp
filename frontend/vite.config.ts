@@ -2,8 +2,21 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+const appVersion = (() => {
+  try {
+    return readFileSync(resolve(__dirname, '../VERSION'), 'utf8').trim();
+  } catch {
+    return 'dev';
+  }
+})();
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   plugins: [
     react(),
     tailwindcss(),

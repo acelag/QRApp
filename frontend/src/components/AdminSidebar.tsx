@@ -5,7 +5,7 @@ import {
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
   Package, Calendar, CalendarDays, FileText, Wallet,
-  LayoutGrid, ChevronDown, ChevronRight,
+  LayoutGrid, ChevronDown, ChevronRight, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { RestaurantFeatures } from '../context/AuthContext';
@@ -107,6 +107,7 @@ export function AdminSidebar() {
   const { user, logout, features } = useAuth();
   const location = useLocation();
   const [activeCount, setActiveCount] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   function isVisible(item: NavItem): boolean {
     if (!item.featureKey) return true;
@@ -124,8 +125,9 @@ export function AdminSidebar() {
     return initial;
   });
 
-  // Re-open group on navigation (e.g. deep-link)
+  // Re-open group on navigation + close mobile drawer
   useEffect(() => {
+    setMobileOpen(false);
     setOpenGroups((prev) => {
       const next = new Set(prev);
       NAV.forEach((entry) => {
@@ -157,102 +159,171 @@ export function AdminSidebar() {
 
   function handleLogout() { logout(); window.location.href = '/login'; }
 
-  return (
-    <aside className="w-56 flex-none bg-white border-r border-gray-100 flex flex-col h-full">
-      {/* Brand */}
-      <div className="px-5 py-5 border-b border-gray-100 flex-none">
-        <p className="text-base font-bold text-gray-900 leading-tight">Restaurant POS</p>
-        <p className="text-xs text-gray-400 mt-0.5">Admin Portal</p>
-      </div>
+  // Shared nav content used in both desktop sidebar and mobile drawer
+  function NavContent() {
+    return (
+      <>
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          {NAV.map((entry) => {
+            if (entry.type === 'item') {
+              const active = isItemActive(entry, location.pathname);
+              return (
+                <Link
+                  key={entry.label}
+                  to={entry.to}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <entry.icon size={16} className={active ? 'text-blue-600' : 'text-gray-400'} />
+                  <span className="flex-1">{entry.label}</span>
+                  {entry.badge && activeCount > 0 && (
+                    <span className="text-xs font-bold bg-orange-500 text-white rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none">
+                      {activeCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            }
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {NAV.map((entry) => {
-          if (entry.type === 'item') {
-            const active = isItemActive(entry, location.pathname);
+            // Group — filter children by feature flags
+            const visibleChildren = entry.children.filter(isVisible);
+            if (visibleChildren.length === 0) return null;
+
+            const isOpen = openGroups.has(entry.label);
+            const hasActive = visibleChildren.some((c) => isItemActive(c, location.pathname));
+
             return (
-              <Link
-                key={entry.label}
-                to={entry.to}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <entry.icon size={16} className={active ? 'text-blue-600' : 'text-gray-400'} />
-                <span className="flex-1">{entry.label}</span>
-                {entry.badge && activeCount > 0 && (
-                  <span className="text-xs font-bold bg-orange-500 text-white rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none">
-                    {activeCount}
-                  </span>
+              <div key={entry.label}>
+                <button
+                  onClick={() => toggleGroup(entry.label)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    hasActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <entry.icon size={16} className={hasActive ? 'text-blue-600' : 'text-gray-400'} />
+                  <span className="flex-1 text-left">{entry.label}</span>
+                  {isOpen
+                    ? <ChevronDown size={14} className="text-gray-400" />
+                    : <ChevronRight size={14} className="text-gray-400" />
+                  }
+                </button>
+
+                {isOpen && (
+                  <div className="ml-4 mt-0.5 space-y-0.5 border-l border-gray-100 pl-3">
+                    {visibleChildren.map((child) => {
+                      const active = isItemActive(child, location.pathname);
+                      return (
+                        <Link
+                          key={child.label}
+                          to={child.to}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                            active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                          }`}
+                        >
+                          <child.icon size={14} className={active ? 'text-blue-600' : 'text-gray-400'} />
+                          <span className="flex-1">{child.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              </Link>
+              </div>
             );
-          }
+          })}
+        </nav>
 
-          // Group — filter children by feature flags
-          const visibleChildren = entry.children.filter(isVisible);
-          if (visibleChildren.length === 0) return null;
-
-          const isOpen = openGroups.has(entry.label);
-          const hasActive = visibleChildren.some((c) => isItemActive(c, location.pathname));
-
-          return (
-            <div key={entry.label}>
-              <button
-                onClick={() => toggleGroup(entry.label)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  hasActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <entry.icon size={16} className={hasActive ? 'text-blue-600' : 'text-gray-400'} />
-                <span className="flex-1 text-left">{entry.label}</span>
-                {isOpen
-                  ? <ChevronDown size={14} className="text-gray-400" />
-                  : <ChevronRight size={14} className="text-gray-400" />
-                }
-              </button>
-
-              {isOpen && (
-                <div className="ml-4 mt-0.5 space-y-0.5 border-l border-gray-100 pl-3">
-                  {visibleChildren.map((child) => {
-                    const active = isItemActive(child, location.pathname);
-                    return (
-                      <Link
-                        key={child.label}
-                        to={child.to}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                          active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        }`}
-                      >
-                        <child.icon size={14} className={active ? 'text-blue-600' : 'text-gray-400'} />
-                        <span className="flex-1">{child.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* User */}
-      <div className="px-4 py-4 border-t border-gray-100 flex items-center gap-3 flex-none">
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-none">
-          {user?.name?.slice(0, 2).toUpperCase() ?? 'RA'}
+        {/* Version */}
+        <div className="px-5 py-1.5 text-center flex-none">
+          <span className="text-[10px] text-gray-300 font-mono">v{__APP_VERSION__}</span>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-gray-900 truncate">{user?.name ?? 'Restaurant Admin'}</p>
-          <p className="text-xs text-gray-400 truncate">{user?.username ?? ''}</p>
+
+        {/* User */}
+        <div className="px-4 py-4 border-t border-gray-100 flex items-center gap-3 flex-none">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-none">
+            {user?.name?.slice(0, 2).toUpperCase() ?? 'RA'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-gray-900 truncate">{user?.name ?? 'Restaurant Admin'}</p>
+            <p className="text-xs text-gray-400 truncate">{user?.username ?? ''}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-gray-400 hover:text-red-500 transition-colors flex-none"
+            title="Logout"
+          >
+            <LogOut size={14} />
+          </button>
         </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {/* ── Mobile top bar ───────────────────────────────────────────────────── */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-100 z-40 flex items-center px-4 gap-3">
         <button
-          onClick={handleLogout}
-          className="text-gray-400 hover:text-red-500 transition-colors flex-none"
-          title="Logout"
+          onClick={() => setMobileOpen(true)}
+          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+          aria-label="Open menu"
         >
-          <LogOut size={14} />
+          <Menu size={20} />
         </button>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-gray-900 leading-tight">Restaurant POS</p>
+          <p className="text-[10px] text-gray-400">Admin Portal</p>
+        </div>
+        {activeCount > 0 && (
+          <Link to="/admin/orders">
+            <span className="text-xs font-bold bg-orange-500 text-white rounded-full min-w-[22px] px-1.5 py-0.5 text-center leading-none block">
+              {activeCount}
+            </span>
+          </Link>
+        )}
       </div>
-    </aside>
+
+      {/* ── Mobile drawer backdrop ───────────────────────────────────────────── */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/40 z-40"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* ── Mobile drawer ────────────────────────────────────────────────────── */}
+      <div
+        className={`md:hidden fixed top-0 left-0 h-full w-64 bg-white z-50 flex flex-col shadow-xl
+          transform transition-transform duration-300 ease-in-out
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        {/* Drawer header */}
+        <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between flex-none">
+          <div>
+            <p className="text-base font-bold text-gray-900 leading-tight">Restaurant POS</p>
+            <p className="text-xs text-gray-400 mt-0.5">Admin Portal</p>
+          </div>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <NavContent />
+      </div>
+
+      {/* ── Desktop sidebar (hidden on mobile) ──────────────────────────────── */}
+      <aside className="hidden md:flex w-56 flex-none bg-white border-r border-gray-100 flex-col h-full">
+        {/* Brand */}
+        <div className="px-5 py-5 border-b border-gray-100 flex-none">
+          <p className="text-base font-bold text-gray-900 leading-tight">Restaurant POS</p>
+          <p className="text-xs text-gray-400 mt-0.5">Admin Portal</p>
+        </div>
+        <NavContent />
+      </aside>
+    </>
   );
 }
