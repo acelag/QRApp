@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Eye, EyeOff, Loader2, CheckCircle2, Users,
   DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock, Printer,
+  Store, Smartphone,
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +12,8 @@ import { printService } from '../../services/printService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { applyTheme } from '../../context/ThemeContext';
+
+type TabId = 'account' | 'restaurant' | 'operations' | 'content' | 'printers';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -23,10 +26,37 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const input = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors";
 
+const TABS: { id: TabId; label: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
+  { id: 'account',     label: 'Account',     Icon: User },
+  { id: 'restaurant',  label: 'Restaurant',  Icon: Store },
+  { id: 'operations',  label: 'Operations',  Icon: Clock },
+  { id: 'content',     label: 'Content',     Icon: Smartphone },
+  { id: 'printers',    label: 'Printers',    Icon: Printer },
+];
+
 export function SettingsPage() {
   const { user, updateProfile, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [activeTab, setActiveTab] = useState<TabId>('account');
+
+  // isDirty per tab (account and restaurant track form edits; content and printers too)
+  const [isDirty, setIsDirty] = useState<Record<TabId, boolean>>({
+    account: false,
+    restaurant: false,
+    operations: false,
+    content: false,
+    printers: false,
+  });
+
+  function markDirty(tab: TabId) {
+    setIsDirty((prev) => prev[tab] ? prev : { ...prev, [tab]: true });
+  }
+  function markClean(tab: TabId) {
+    setIsDirty((prev) => ({ ...prev, [tab]: false }));
+  }
+
+  // ── Account state ──────────────────────────────────────────────────────────
   const [currentPassword, setCurrentPassword] = useState('');
   const [newUsername, setNewUsername] = useState(user?.username ?? '');
   const [newName, setNewName] = useState(user?.name ?? '');
@@ -38,6 +68,7 @@ export function SettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  // ── Restaurant state ───────────────────────────────────────────────────────
   const [restaurant, setRestaurant] = useState<RestaurantSettings | null>(null);
   const [serviceChargePct, setServiceChargePct] = useState('0');
   const [taxPct, setTaxPct] = useState('0');
@@ -49,7 +80,8 @@ export function SettingsPage() {
   const [themeSaving, setThemeSaving] = useState(false);
   const [orderPrefix, setOrderPrefix] = useState('ORD');
   const [prefixSaving, setPrefixSaving] = useState(false);
-  const [prefixSuccess, setPrefixSuccess] = useState(false);
+
+  // ── Operations state ───────────────────────────────────────────────────────
   const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
   const [waitTimeSaving, setWaitTimeSaving] = useState(false);
   const [rsOpen, setRsOpen]   = useState('');
@@ -57,13 +89,15 @@ export function SettingsPage() {
   const [rsEnabled, setRsEnabled] = useState(false);
   const [rsSaving, setRsSaving] = useState(false);
   const [rsSuccess, setRsSuccess] = useState(false);
+
+  // ── Content state ──────────────────────────────────────────────────────────
   const [facebookUrl, setFacebookUrl] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
   const [welcomeImageUrl, setWelcomeImageUrl] = useState('');
   const [socialSaving, setSocialSaving] = useState(false);
   const [socialSuccess, setSocialSuccess] = useState(false);
 
-  // Printer settings
+  // ── Printer state ──────────────────────────────────────────────────────────
   const [receiptPrinterIp,   setReceiptPrinterIp]   = useState('');
   const [receiptPrinterPort, setReceiptPrinterPort] = useState('9100');
   const [kitchenPrinterIp,   setKitchenPrinterIp]   = useState('');
@@ -105,6 +139,7 @@ export function SettingsPage() {
     });
   }, []);
 
+  // ── Logo handlers ──────────────────────────────────────────────────────────
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!restaurant || !e.target.files?.[0]) return;
     setLogoUploading(true);
@@ -126,10 +161,11 @@ export function SettingsPage() {
     setRestaurant(updated);
   }
 
+  // ── Save functions (all existing, untouched logic) ─────────────────────────
   async function saveTheme(hex: string) {
     if (!restaurant) return;
     setThemeColor(hex);
-    applyTheme(hex); // instant preview
+    applyTheme(hex);
     setThemeSaving(true);
     try {
       const updated = await restaurantService.updateTheme(restaurant.id, hex);
@@ -144,13 +180,10 @@ export function SettingsPage() {
     const clean = orderPrefix.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
     if (!clean) return;
     setPrefixSaving(true);
-    setPrefixSuccess(false);
     try {
       const updated = await restaurantService.updateOrderPrefix(restaurant.id, clean);
       setRestaurant(updated);
       setOrderPrefix(updated.orderNumberPrefix ?? clean);
-      setPrefixSuccess(true);
-      setTimeout(() => setPrefixSuccess(false), 3000);
     } finally {
       setPrefixSaving(false);
     }
@@ -197,6 +230,7 @@ export function SettingsPage() {
       );
       setRestaurant(updated);
       setSocialSuccess(true);
+      markClean('content');
       setTimeout(() => setSocialSuccess(false), 3000);
     } finally {
       setSocialSaving(false);
@@ -217,6 +251,7 @@ export function SettingsPage() {
       });
       setRestaurant(updated);
       setPrinterSuccess(true);
+      markClean('printers');
       setTimeout(() => setPrinterSuccess(false), 3000);
     } finally {
       setPrinterSaving(false);
@@ -252,6 +287,13 @@ export function SettingsPage() {
     }
   }
 
+  // Restaurant tab combined save (billing + prefix)
+  async function saveRestaurant() {
+    await saveBilling();
+    await saveOrderPrefix();
+    markClean('restaurant');
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
@@ -268,6 +310,7 @@ export function SettingsPage() {
         newPassword: newPassword || undefined,
       });
       setSuccess(true);
+      markClean('account');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -284,75 +327,24 @@ export function SettingsPage() {
   const previewTax = (100 + previewSC) * (parseFloat(taxPct) || 0) / 100;
   const previewTotal = 100 + previewSC + previewTax;
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
+  // ── Sticky save bar handler per active tab ─────────────────────────────────
+  function handleStickyBarSave() {
+    if (activeTab === 'account') {
+      document.getElementById('account-form-submit')?.click();
+    } else if (activeTab === 'restaurant') {
+      void saveRestaurant();
+    } else if (activeTab === 'content') {
+      void saveSocial();
+    } else if (activeTab === 'printers') {
+      void savePrinter();
+    }
+  }
 
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <div className="w-full px-6 py-6 space-y-4">
+  // ── Tab content renderers ──────────────────────────────────────────────────
 
-        {/* Page header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage your restaurant configuration</p>
-        </div>
-
-        {/* ── Hero profile card ─────────────────────────────────────────── */}
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
-          <div className="flex items-center gap-5">
-            {/* Logo / avatar */}
-            <label className="relative cursor-pointer group flex-shrink-0">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center shadow-inner">
-                {restaurant?.logo
-                  ? <img src={restaurant.logo} alt="logo" className="w-full h-full object-contain" />
-                  : <span className="text-white font-bold text-3xl">{user?.name.charAt(0).toUpperCase()}</span>}
-              </div>
-              {/* Hover overlay */}
-              <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                {logoUploading
-                  ? <Loader2 size={18} className="animate-spin text-white" />
-                  : <><ImagePlus size={18} className="text-white" /><span className="text-white text-[10px] font-medium">Upload</span></>}
-              </div>
-              <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
-            </label>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xl font-bold truncate">{user?.name}</p>
-              <p className="text-sm text-orange-100 truncate">@{user?.username}</p>
-              {restaurant && (
-                <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur rounded-full px-3 py-1">
-                  <span className="text-xs font-medium text-white truncate">{restaurant.name}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Remove logo */}
-            {restaurant?.logo && (
-              <button
-                onClick={handleLogoRemove}
-                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
-                title="Remove logo"
-              >
-                <X size={13} className="text-white" />
-              </button>
-            )}
-          </div>
-
-          {!restaurant?.logo && (
-            <p className="text-xs text-orange-200 mt-3 text-center">
-              Tap the avatar to upload your restaurant logo
-            </p>
-          )}
-        </div>
-
-        {/* ── Two-column grid on lg+, right side splits again on xl ──── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-
-          {/* ══ COL 1 — Account ══════════════════════════════════════════ */}
-          <div className="space-y-4">
-
-        {/* ── Account credentials ───────────────────────────────────────── */}
+  function renderAccountTab() {
+    return (
+      <div className="space-y-4 max-w-2xl">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
             <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -361,7 +353,7 @@ export function SettingsPage() {
             <h2 className="font-semibold text-gray-800">Account</h2>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <form id="account-form" onSubmit={handleSubmit} className="p-5 space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
                 <X size={14} /> {error}
@@ -373,12 +365,23 @@ export function SettingsPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Display Name">
-                <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className={input} />
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => { setNewName(e.target.value); markDirty('account'); }}
+                  className={input}
+                />
               </Field>
               <Field label="Username">
-                <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoComplete="username" className={input} />
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => { setNewUsername(e.target.value); markDirty('account'); }}
+                  autoComplete="username"
+                  className={input}
+                />
               </Field>
             </div>
 
@@ -393,7 +396,7 @@ export function SettingsPage() {
                   <input
                     type={showNew ? 'text' : 'password'}
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+                    onChange={(e) => { setNewPassword(e.target.value); markDirty('account'); }}
                     autoComplete="new-password"
                     placeholder="Leave blank to keep current"
                     className={input + ' pr-11'}
@@ -410,7 +413,7 @@ export function SettingsPage() {
                   <input
                     type={showNew ? 'text' : 'password'}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => { setConfirmPassword(e.target.value); markDirty('account'); }}
                     autoComplete="new-password"
                     placeholder="Repeat new password"
                     className={`${input} ${confirmPassword && confirmPassword !== newPassword ? 'border-red-300 bg-red-50' : ''}`}
@@ -428,7 +431,7 @@ export function SettingsPage() {
                   <input
                     type={showCurrent ? 'text' : 'password'}
                     value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    onChange={(e) => { setCurrentPassword(e.target.value); markDirty('account'); }}
                     autoComplete="current-password"
                     placeholder="Required to save changes"
                     required
@@ -442,6 +445,9 @@ export function SettingsPage() {
               </Field>
             </div>
 
+            {/* Hidden submit trigger for sticky bar */}
+            <button id="account-form-submit" type="submit" className="hidden" />
+
             <button
               type="submit"
               disabled={loading}
@@ -453,412 +459,387 @@ export function SettingsPage() {
             </button>
           </form>
         </div>
+      </div>
+    );
+  }
 
-          </div>{/* end LEFT column */}
+  function renderRestaurantTab() {
+    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+    return (
+      <div className="space-y-4">
 
-          {/* ══ COL 2+3 — nested grid: splits into 2 on xl ══════════════ */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        {/* Billing */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
+              <DollarSign size={15} className="text-green-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800">Billing</h2>
+              <p className="text-xs text-gray-400">Service charge: dine-in only · Tax: all orders</p>
+            </div>
+          </div>
 
-          {/* ── COL 2 — Billing + Order Number ───────────────────────── */}
-          <div className="space-y-4">
-
-        {/* ── Billing configuration ─────────────────────────────────────── */}
-        {restaurant && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
-                <DollarSign size={15} className="text-green-500" />
+          <div className="p-5 space-y-4">
+            {billingSuccess && (
+              <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                <CheckCircle2 size={14} /> Billing settings saved!
               </div>
-              <div>
-                <h2 className="font-semibold text-gray-800">Billing</h2>
-                <p className="text-xs text-gray-400">Service charge: dine-in only · Tax: all orders</p>
-              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Service Charge', value: serviceChargePct, set: setServiceChargePct },
+                { label: 'Tax',            value: taxPct,            set: setTaxPct },
+              ].map(({ label, value, set }) => (
+                <Field key={label} label={label}>
+                  <div className="relative">
+                    <input
+                      type="number" min="0" max="100" step="0.01"
+                      value={value}
+                      onChange={(e) => { set(e.target.value); markDirty('restaurant'); }}
+                      className={input + ' pr-8'}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">%</span>
+                  </div>
+                </Field>
+              ))}
             </div>
 
-            <div className="p-5 space-y-4">
-              {billingSuccess && (
-                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                  <CheckCircle2 size={14} /> Billing settings saved!
-                </div>
-              )}
+            <Field label="Currency">
+              <select
+                value={currency}
+                onChange={(e) => { setCurrency(e.target.value); markDirty('restaurant'); }}
+                className={input}
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.symbol} — {c.name} ({c.code})</option>
+                ))}
+              </select>
+            </Field>
 
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Service Charge', value: serviceChargePct, set: setServiceChargePct },
-                  { label: 'Tax',            value: taxPct,            set: setTaxPct },
-                ].map(({ label, value, set }) => (
-                  <Field key={label} label={label}>
-                    <div className="relative">
-                      <input
-                        type="number" min="0" max="100" step="0.01"
-                        value={value} onChange={(e) => set(e.target.value)}
-                        className={input + ' pr-8'}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">%</span>
-                    </div>
-                  </Field>
+            {/* Live preview */}
+            <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+              <div className="px-4 py-2.5 bg-gray-100/60 border-b border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Preview · {sym}100 subtotal</p>
+              </div>
+              <div className="px-4 py-3 space-y-1.5 text-sm">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span><span>{sym}100.00</span>
+                </div>
+                {previewSC > 0 && (
+                  <div className="flex justify-between text-gray-500 text-xs">
+                    <span>Service Charge ({serviceChargePct}%)</span><span>+{sym}{previewSC.toFixed(2)}</span>
+                  </div>
+                )}
+                {previewTax > 0 && (
+                  <div className="flex justify-between text-gray-500 text-xs">
+                    <span>Tax ({taxPct}%)</span><span>+{sym}{previewTax.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 mt-1">
+                  <span>Total</span><span className="text-orange-600">{sym}{previewTotal.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Order Number Prefix */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Hash size={15} className="text-blue-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800">Order Number</h2>
+              <p className="text-xs text-gray-400">Prefix for sequential 6-digit order numbers</p>
+            </div>
+          </div>
+
+          <div className="p-5 space-y-4">
+            <Field label="Prefix (letters / numbers only)">
+              <input
+                type="text"
+                value={orderPrefix}
+                onChange={(e) => {
+                  setOrderPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10));
+                  markDirty('restaurant');
+                }}
+                placeholder="e.g. ORD"
+                maxLength={10}
+                className={input}
+              />
+            </Field>
+
+            <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3">
+              <p className="text-xs text-gray-500 mb-1.5 font-semibold uppercase tracking-wide">Preview</p>
+              <div className="flex gap-2 flex-wrap">
+                {[1, 2, 3].map((n) => (
+                  <span key={n} className="bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wide">
+                    {(orderPrefix || 'ORD')}{String(n).padStart(3, '0')}
+                  </span>
                 ))}
               </div>
-
-              <Field label="Currency">
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className={input}
-                >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.symbol} — {c.name} ({c.code})</option>
-                  ))}
-                </select>
-              </Field>
-
-              {/* Live preview */}
-              <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
-                <div className="px-4 py-2.5 bg-gray-100/60 border-b border-gray-100">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Preview · {sym}100 subtotal</p>
-                </div>
-                <div className="px-4 py-3 space-y-1.5 text-sm">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Subtotal</span><span>{sym}100.00</span>
-                  </div>
-                  {previewSC > 0 && (
-                    <div className="flex justify-between text-gray-500 text-xs">
-                      <span>Service Charge ({serviceChargePct}%)</span><span>+{sym}{previewSC.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {previewTax > 0 && (
-                    <div className="flex justify-between text-gray-500 text-xs">
-                      <span>Tax ({taxPct}%)</span><span>+{sym}{previewTax.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 mt-1">
-                    <span>Total</span><span className="text-orange-600">{sym}{previewTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={saveBilling}
-                disabled={billingLoading}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
-              >
-                {billingLoading && <Loader2 size={15} className="animate-spin" />}
-                {billingLoading ? 'Saving…' : 'Save Billing Settings'}
-              </button>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* ── Order Number Prefix ──────────────────────────────────────── */}
-        {restaurant && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Hash size={15} className="text-blue-500" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-gray-800">Order Number</h2>
-                <p className="text-xs text-gray-400">Prefix for sequential 6-digit order numbers</p>
-              </div>
+        {/* Theme Colour */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '22' }}>
+              <Palette size={15} style={{ color: themeColor }} />
             </div>
-
-            <div className="p-5 space-y-4">
-              {prefixSuccess && (
-                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                  <CheckCircle2 size={14} /> Order prefix saved!
-                </div>
-              )}
-
-              <Field label="Prefix (letters / numbers only)">
-                <input
-                  type="text"
-                  value={orderPrefix}
-                  onChange={(e) => setOrderPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))}
-                  placeholder="e.g. ORD"
-                  maxLength={10}
-                  className={input}
-                />
-              </Field>
-
-              <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3">
-                <p className="text-xs text-gray-500 mb-1.5 font-semibold uppercase tracking-wide">Preview</p>
-                <div className="flex gap-2 flex-wrap">
-                  {[1, 2, 3].map((n) => (
-                    <span key={n} className="bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wide">
-                      {(orderPrefix || 'ORD')}{String(n).padStart(3, '0')}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={saveOrderPrefix}
-                disabled={prefixSaving || !orderPrefix.trim()}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
-              >
-                {prefixSaving && <Loader2 size={15} className="animate-spin" />}
-                {prefixSaving ? 'Saving…' : 'Save Order Prefix'}
-              </button>
+            <div className="flex-1">
+              <h2 className="font-semibold text-gray-800">Theme Colour</h2>
+              <p className="text-xs text-gray-400">Applied to buttons, icons and accents across the app</p>
             </div>
           </div>
-        )}
 
-          </div>{/* end COL 2 */}
-
-          {/* ── COL 3 — Wait Time + Room Service + Theme ─────────────── */}
-          <div className="space-y-4">
-
-        {/* ── Estimated Wait Time ───────────────────────────────────────── */}
-        {restaurant && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
-                <Clock size={15} className="text-orange-500" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-gray-800">Estimated Wait Time</h2>
-                <p className="text-xs text-gray-400">Shown to customers on the order success page</p>
-              </div>
-              {waitTimeSaving && <Loader2 size={14} className="animate-spin text-gray-400 ml-auto" />}
-            </div>
-
-            <div className="p-5 space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {[null, 10, 15, 20, 25, 30, 45, 60].map((val) => (
-                  <button
-                    key={val ?? 'off'}
-                    onClick={() => saveWaitTime(val)}
-                    disabled={waitTimeSaving}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
-                      waitTimeMin === val
-                        ? 'bg-orange-500 text-white border-orange-500'
-                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-orange-200 hover:bg-orange-50'
-                    }`}
-                  >
-                    {val == null ? 'Off' : `${val} min`}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">Custom:</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="180"
-                  value={waitTimeMin ?? ''}
-                  onChange={(e) => setWaitTimeMin(e.target.value ? Number(e.target.value) : null)}
-                  onBlur={() => saveWaitTime(waitTimeMin)}
-                  placeholder="e.g. 35"
-                  className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-gray-50 focus:bg-white"
-                />
-                <span className="text-xs text-gray-400">min</span>
-              </div>
-
-              <div className={`rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2 ${
-                waitTimeMin ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-gray-50 text-gray-400'
-              }`}>
-                <Clock size={14} />
-                {waitTimeMin
-                  ? `Customers will see "Est. wait: ~${waitTimeMin} min" after ordering`
-                  : 'No wait time shown to customers'}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Room Service Hours ───────────────────────────────────────── */}
-        {restaurant && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
-                <Clock size={15} className="text-orange-500" />
-              </div>
-              <div className="flex-1">
-                <h2 className="font-semibold text-gray-800">Room Service Hours</h2>
-                <p className="text-xs text-gray-400">Customers cannot order outside these hours</p>
-              </div>
-              {rsSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
-            </div>
-
-            <div className="p-5 space-y-4">
-              {rsSuccess && (
-                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                  <CheckCircle2 size={14} /> Room service hours saved!
-                </div>
-              )}
-
-              {/* Enable toggle */}
-              <label className="flex items-center gap-3 cursor-pointer">
+          <div className="p-5">
+            <div className="flex items-center gap-3">
+              <label className="relative cursor-pointer group flex-shrink-0">
                 <div
-                  onClick={() => setRsEnabled((p) => !p)}
-                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${rsEnabled ? 'bg-orange-500' : 'bg-gray-200'}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${rsEnabled ? 'translate-x-5' : ''}`} />
-                </div>
-                <span className="text-sm font-medium text-gray-700">
-                  {rsEnabled ? 'Restricted hours enabled' : 'Always open (no restriction)'}
-                </span>
+                  className="w-14 h-14 rounded-2xl shadow-sm border-2 border-white ring-1 ring-gray-200 transition-transform group-hover:scale-105 overflow-hidden"
+                  style={{ backgroundColor: themeColor }}
+                />
+                <input
+                  type="color"
+                  value={themeColor}
+                  onChange={(e) => { applyTheme(e.target.value); setThemeColor(e.target.value); }}
+                  onBlur={(e) => saveTheme(e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
               </label>
-
-              {rsEnabled && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Opens at">
-                    <input
-                      type="time"
-                      value={rsOpen}
-                      onChange={(e) => setRsOpen(e.target.value)}
-                      className={input}
-                    />
-                  </Field>
-                  <Field label="Closes at">
-                    <input
-                      type="time"
-                      value={rsClose}
-                      onChange={(e) => setRsClose(e.target.value)}
-                      className={input}
-                    />
-                  </Field>
-                </div>
-              )}
-
-              {rsEnabled && rsOpen && rsClose && (
-                <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 text-sm text-orange-600 flex items-center gap-2">
-                  <Clock size={14} />
-                  Room service available {rsOpen} – {rsClose}
-                  {rsOpen > rsClose ? ' (wraps midnight)' : ''}
-                </div>
-              )}
-
-              <button
-                onClick={saveRoomServiceHours}
-                disabled={rsSaving || (rsEnabled && (!rsOpen || !rsClose))}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
-              >
-                {rsSaving && <Loader2 size={15} className="animate-spin" />}
-                {rsSaving ? 'Saving…' : 'Save Room Service Hours'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Social Media & Welcome Screen ───────────────────────────── */}
-        {restaurant && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center flex-shrink-0">
-                <span className="text-base">📱</span>
-              </div>
               <div className="flex-1">
-                <h2 className="font-semibold text-gray-800">Social Media & Welcome Screen</h2>
-                <p className="text-xs text-gray-400">Links shown on the QR welcome page</p>
-              </div>
-              {socialSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
-              {socialSuccess && <CheckCircle2 size={14} className="text-green-500" />}
-            </div>
-            <div className="p-5 space-y-4">
-              <Field label="Facebook URL">
-                <input
-                  className={input}
-                  type="url"
-                  placeholder="https://facebook.com/yourpage"
-                  value={facebookUrl}
-                  onChange={(e) => setFacebookUrl(e.target.value)}
-                />
-              </Field>
-              <Field label="Instagram URL">
-                <input
-                  className={input}
-                  type="url"
-                  placeholder="https://instagram.com/yourhandle"
-                  value={instagramUrl}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
-                />
-              </Field>
-              <Field label="Welcome Screen Hero Image URL">
-                <input
-                  className={input}
-                  type="url"
-                  placeholder="https://… (leave blank for default)"
-                  value={welcomeImageUrl}
-                  onChange={(e) => setWelcomeImageUrl(e.target.value)}
-                />
-                <p className="text-xs text-gray-400 mt-1">Custom photo shown behind the restaurant name on the QR welcome screen.</p>
-              </Field>
-              <button
-                onClick={saveSocial}
-                disabled={socialSaving}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
-              >
-                {socialSaving && <Loader2 size={15} className="animate-spin" />}
-                {socialSaving ? 'Saving…' : 'Save Social & Welcome'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Theme colour ─────────────────────────────────────────────── */}
-        {restaurant && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '22' }}>
-                <Palette size={15} style={{ color: themeColor }} />
-              </div>
-              <div className="flex-1">
-                <h2 className="font-semibold text-gray-800">Theme Colour</h2>
-                <p className="text-xs text-gray-400">Applied to buttons, icons and accents across the app</p>
-              </div>
-            </div>
-
-            <div className="p-5">
-              <div className="flex items-center gap-3">
-                <label className="relative cursor-pointer group flex-shrink-0">
-                  <div
-                    className="w-14 h-14 rounded-2xl shadow-sm border-2 border-white ring-1 ring-gray-200 transition-transform group-hover:scale-105 overflow-hidden"
-                    style={{ backgroundColor: themeColor }}
-                  />
+                <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-3 bg-gray-50">
+                  <span className="text-gray-400 text-sm font-mono">#</span>
                   <input
-                    type="color"
-                    value={themeColor}
-                    onChange={(e) => { applyTheme(e.target.value); setThemeColor(e.target.value); }}
-                    onBlur={(e) => saveTheme(e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    type="text"
+                    value={themeColor.replace('#', '')}
+                    onChange={(e) => {
+                      const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+                      setThemeColor(hex);
+                      if (/^#[0-9a-fA-F]{6}$/.test(hex)) applyTheme(hex);
+                    }}
+                    onBlur={(e) => {
+                      const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '');
+                      if (/^#[0-9a-fA-F]{6}$/.test(hex)) saveTheme(hex);
+                    }}
+                    maxLength={6}
+                    className="flex-1 bg-transparent text-sm font-mono text-gray-700 outline-none uppercase tracking-wider"
+                    placeholder="f97316"
                   />
-                </label>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-3 bg-gray-50">
-                    <span className="text-gray-400 text-sm font-mono">#</span>
-                    <input
-                      type="text"
-                      value={themeColor.replace('#', '')}
-                      onChange={(e) => {
-                        const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
-                        setThemeColor(hex);
-                        if (/^#[0-9a-fA-F]{6}$/.test(hex)) applyTheme(hex);
-                      }}
-                      onBlur={(e) => {
-                        const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '');
-                        if (/^#[0-9a-fA-F]{6}$/.test(hex)) saveTheme(hex);
-                      }}
-                      maxLength={6}
-                      className="flex-1 bg-transparent text-sm font-mono text-gray-700 outline-none uppercase tracking-wider"
-                      placeholder="f97316"
-                    />
-                    {themeSaving && <Loader2 size={13} className="animate-spin text-gray-400 flex-shrink-0" />}
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1.5">Click the swatch to open the colour picker, or type a hex code</p>
+                  {themeSaving && <Loader2 size={13} className="animate-spin text-gray-400 flex-shrink-0" />}
                 </div>
+                <p className="text-xs text-gray-400 mt-1.5">Click the swatch to open the colour picker, or type a hex code. Theme auto-saves on blur.</p>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-          </div>{/* end COL 3 */}
+      </div>
+    );
+  }
 
-          </div>{/* end nested xl:grid-cols-2 */}
-        </div>{/* end outer lg:grid-cols-2 */}
+  function renderOperationsTab() {
+    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+    return (
+      <div className="space-y-4 max-w-2xl">
 
-        {/* ── Printer Settings (full width) ────────────────────────────── */}
+        {/* Estimated Wait Time */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
+              <Clock size={15} className="text-orange-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800">Estimated Wait Time</h2>
+              <p className="text-xs text-gray-400">Shown to customers on the order success page</p>
+            </div>
+            {waitTimeSaving && <Loader2 size={14} className="animate-spin text-gray-400 ml-auto" />}
+          </div>
+
+          <div className="p-5 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {[null, 10, 15, 20, 25, 30, 45, 60].map((val) => (
+                <button
+                  key={val ?? 'off'}
+                  onClick={() => saveWaitTime(val)}
+                  disabled={waitTimeSaving}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
+                    waitTimeMin === val
+                      ? 'bg-orange-500 text-white border-orange-500'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-orange-200 hover:bg-orange-50'
+                  }`}
+                >
+                  {val == null ? 'Off' : `${val} min`}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Custom:</span>
+              <input
+                type="number"
+                min="1"
+                max="180"
+                value={waitTimeMin ?? ''}
+                onChange={(e) => setWaitTimeMin(e.target.value ? Number(e.target.value) : null)}
+                onBlur={() => saveWaitTime(waitTimeMin)}
+                placeholder="e.g. 35"
+                className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-gray-50 focus:bg-white"
+              />
+              <span className="text-xs text-gray-400">min</span>
+            </div>
+
+            <div className={`rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2 ${
+              waitTimeMin ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-gray-50 text-gray-400'
+            }`}>
+              <Clock size={14} />
+              {waitTimeMin
+                ? `Customers will see "Est. wait: ~${waitTimeMin} min" after ordering`
+                : 'No wait time shown to customers'}
+            </div>
+          </div>
+        </div>
+
+        {/* Room Service Hours */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
+              <Clock size={15} className="text-orange-500" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-semibold text-gray-800">Room Service Hours</h2>
+              <p className="text-xs text-gray-400">Customers cannot order outside these hours</p>
+            </div>
+            {rsSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
+          </div>
+
+          <div className="p-5 space-y-4">
+            {rsSuccess && (
+              <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                <CheckCircle2 size={14} /> Room service hours saved!
+              </div>
+            )}
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                onClick={() => setRsEnabled((p) => !p)}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${rsEnabled ? 'bg-orange-500' : 'bg-gray-200'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${rsEnabled ? 'translate-x-5' : ''}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">
+                {rsEnabled ? 'Restricted hours enabled' : 'Always open (no restriction)'}
+              </span>
+            </label>
+
+            {rsEnabled && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Opens at">
+                  <input
+                    type="time"
+                    value={rsOpen}
+                    onChange={(e) => setRsOpen(e.target.value)}
+                    className={input}
+                  />
+                </Field>
+                <Field label="Closes at">
+                  <input
+                    type="time"
+                    value={rsClose}
+                    onChange={(e) => setRsClose(e.target.value)}
+                    className={input}
+                  />
+                </Field>
+              </div>
+            )}
+
+            {rsEnabled && rsOpen && rsClose && (
+              <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 text-sm text-orange-600 flex items-center gap-2">
+                <Clock size={14} />
+                Room service available {rsOpen} – {rsClose}
+                {rsOpen > rsClose ? ' (wraps midnight)' : ''}
+              </div>
+            )}
+
+            <button
+              onClick={saveRoomServiceHours}
+              disabled={rsSaving || (rsEnabled && (!rsOpen || !rsClose))}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+            >
+              {rsSaving && <Loader2 size={15} className="animate-spin" />}
+              {rsSaving ? 'Saving…' : 'Save Room Service Hours'}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  function renderContentTab() {
+    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+    return (
+      <div className="space-y-4 max-w-2xl">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center flex-shrink-0">
+              <Smartphone size={15} className="text-pink-500" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-semibold text-gray-800">Social Media &amp; Welcome Screen</h2>
+              <p className="text-xs text-gray-400">Links shown on the QR welcome page</p>
+            </div>
+            {socialSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
+            {socialSuccess && <CheckCircle2 size={14} className="text-green-500" />}
+          </div>
+          <div className="p-5 space-y-4">
+            {socialSuccess && (
+              <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                <CheckCircle2 size={14} /> Social &amp; welcome settings saved!
+              </div>
+            )}
+            <Field label="Facebook URL">
+              <input
+                className={input}
+                type="url"
+                placeholder="https://facebook.com/yourpage"
+                value={facebookUrl}
+                onChange={(e) => { setFacebookUrl(e.target.value); markDirty('content'); }}
+              />
+            </Field>
+            <Field label="Instagram URL">
+              <input
+                className={input}
+                type="url"
+                placeholder="https://instagram.com/yourhandle"
+                value={instagramUrl}
+                onChange={(e) => { setInstagramUrl(e.target.value); markDirty('content'); }}
+              />
+            </Field>
+            <Field label="Welcome Screen Hero Image URL">
+              <input
+                className={input}
+                type="url"
+                placeholder="https://… (leave blank for default)"
+                value={welcomeImageUrl}
+                onChange={(e) => { setWelcomeImageUrl(e.target.value); markDirty('content'); }}
+              />
+              <p className="text-xs text-gray-400 mt-1">Custom photo shown behind the restaurant name on the QR welcome screen.</p>
+            </Field>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderPrintersTab() {
+    return (
+      <div className="space-y-4 max-w-2xl">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
@@ -870,6 +851,12 @@ export function SettingsPage() {
             </div>
           </div>
 
+          {printerSuccess && (
+            <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+              <CheckCircle2 size={14} /> Printer settings saved!
+            </div>
+          )}
+
           {/* Printer type */}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Printer Protocol</label>
@@ -878,7 +865,7 @@ export function SettingsPage() {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setPrinterType(t)}
+                  onClick={() => { setPrinterType(t); markDirty('printers'); }}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
                     printerType === t ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 text-gray-600 hover:border-orange-200'
                   }`}
@@ -895,13 +882,13 @@ export function SettingsPage() {
             <div className="flex gap-2">
               <input
                 value={receiptPrinterIp}
-                onChange={(e) => setReceiptPrinterIp(e.target.value)}
+                onChange={(e) => { setReceiptPrinterIp(e.target.value); markDirty('printers'); }}
                 placeholder="192.168.1.100"
                 className={`${input} flex-1`}
               />
               <input
                 value={receiptPrinterPort}
-                onChange={(e) => setReceiptPrinterPort(e.target.value)}
+                onChange={(e) => { setReceiptPrinterPort(e.target.value); markDirty('printers'); }}
                 placeholder="9100"
                 className={`${input} w-24`}
               />
@@ -923,13 +910,13 @@ export function SettingsPage() {
             <div className="flex gap-2">
               <input
                 value={kitchenPrinterIp}
-                onChange={(e) => setKitchenPrinterIp(e.target.value)}
+                onChange={(e) => { setKitchenPrinterIp(e.target.value); markDirty('printers'); }}
                 placeholder="192.168.1.101"
                 className={`${input} flex-1`}
               />
               <input
                 value={kitchenPrinterPort}
-                onChange={(e) => setKitchenPrinterPort(e.target.value)}
+                onChange={(e) => { setKitchenPrinterPort(e.target.value); markDirty('printers'); }}
                 placeholder="9100"
                 className={`${input} w-24`}
               />
@@ -958,7 +945,7 @@ export function SettingsPage() {
                   type="button"
                   role="switch"
                   aria-checked={value}
-                  onClick={() => set(!value)}
+                  onClick={() => { set(!value); markDirty('printers'); }}
                   className={`relative shrink-0 w-10 h-5 rounded-full transition-colors ${value ? 'bg-orange-500' : 'bg-gray-200'}`}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${value ? 'translate-x-5' : ''}`} />
@@ -966,46 +953,156 @@ export function SettingsPage() {
               </label>
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={savePrinter}
-            disabled={printerSaving}
-            className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
-          >
-            {printerSaving ? <Loader2 size={15} className="animate-spin" /> : printerSuccess ? <CheckCircle2 size={15} /> : <Printer size={15} />}
-            {printerSuccess ? 'Saved!' : 'Save Printer Settings'}
-          </button>
         </div>
-
-        {/* ── Quick links (full width below grid) ──────────────────────── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
-          <Link
-            to="/admin/users"
-            className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
-              <Users size={17} className="text-purple-500" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-gray-800 text-sm">Manage Users</p>
-              <p className="text-xs text-gray-400">Add, edit or remove admin &amp; kitchen accounts</p>
-            </div>
-            <ChevronRight size={16} className="text-gray-300" />
-          </Link>
-        </div>
-
-        {/* ── Sign out ──────────────────────────────────────────────────── */}
-        <button
-          onClick={() => { logout(); navigate('/login', { replace: true }); }}
-          className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-500 hover:bg-red-50 py-3.5 rounded-2xl text-sm font-semibold transition-colors"
-        >
-          <LogOut size={16} />
-          Log out of this device
-        </button>
-
-        <div className="h-4" />
       </div>
+    );
+  }
+
+  const tabContentMap: Record<TabId, () => React.ReactNode> = {
+    account:     renderAccountTab,
+    restaurant:  renderRestaurantTab,
+    operations:  renderOperationsTab,
+    content:     renderContentTab,
+    printers:    renderPrintersTab,
+  };
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+
+      <main className="flex-1 overflow-y-auto pt-14 md:pt-0 flex flex-col">
+        <div className="w-full px-4 sm:px-6 py-6 space-y-4 flex-1">
+
+          {/* Page header */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Manage your restaurant configuration</p>
+          </div>
+
+          {/* ── Hero profile card ──────────────────────────────────────────── */}
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
+            <div className="flex items-center gap-5">
+              {/* Logo / avatar */}
+              <label className="relative cursor-pointer group flex-shrink-0">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center shadow-inner">
+                  {restaurant?.logo
+                    ? <img src={restaurant.logo} alt="logo" className="w-full h-full object-contain" />
+                    : <span className="text-white font-bold text-3xl">{user?.name.charAt(0).toUpperCase()}</span>}
+                </div>
+                <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                  {logoUploading
+                    ? <Loader2 size={18} className="animate-spin text-white" />
+                    : <><ImagePlus size={18} className="text-white" /><span className="text-white text-[10px] font-medium">Upload</span></>}
+                </div>
+                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+              </label>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xl font-bold truncate">{user?.name}</p>
+                <p className="text-sm text-orange-100 truncate">@{user?.username}</p>
+                {restaurant && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur rounded-full px-3 py-1">
+                    <span className="text-xs font-medium text-white truncate">{restaurant.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Remove logo */}
+              {restaurant?.logo && (
+                <button
+                  onClick={handleLogoRemove}
+                  className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
+                  title="Remove logo"
+                >
+                  <X size={13} className="text-white" />
+                </button>
+              )}
+            </div>
+
+            {!restaurant?.logo && (
+              <p className="text-xs text-orange-200 mt-3 text-center">
+                Tap the avatar to upload your restaurant logo
+              </p>
+            )}
+          </div>
+
+          {/* ── Tab bar ───────────────────────────────────────────────────── */}
+          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none border-b border-gray-100 mb-6">
+            {TABS.map((tab) => {
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    active
+                      ? 'border-orange-500 text-orange-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <tab.Icon size={15} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Tab content ───────────────────────────────────────────────── */}
+          {tabContentMap[activeTab]()}
+
+          {/* ── Footer links (always visible below tab content) ───────────── */}
+          <div className="pt-4 space-y-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
+              <Link
+                to="/admin/users"
+                className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                  <Users size={17} className="text-purple-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-800 text-sm">Manage Users</p>
+                  <p className="text-xs text-gray-400">Add, edit or remove admin &amp; kitchen accounts</p>
+                </div>
+                <ChevronRight size={16} className="text-gray-300" />
+              </Link>
+            </div>
+
+            <button
+              onClick={() => { logout(); navigate('/login', { replace: true }); }}
+              className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-500 hover:bg-red-50 py-3.5 rounded-2xl text-sm font-semibold transition-colors"
+            >
+              <LogOut size={16} />
+              Log out of this device
+            </button>
+
+            <div className="h-4" />
+          </div>
+
+        </div>
+
+        {/* ── Sticky save bar ───────────────────────────────────────────── */}
+        {isDirty[activeTab] && activeTab !== 'operations' && (
+          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between shadow-md">
+            <p className="text-sm text-gray-500">You have unsaved changes</p>
+            <button
+              onClick={handleStickyBarSave}
+              disabled={
+                (activeTab === 'account' && loading) ||
+                (activeTab === 'restaurant' && (billingLoading || prefixSaving)) ||
+                (activeTab === 'content' && socialSaving) ||
+                (activeTab === 'printers' && printerSaving)
+              }
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+            >
+              {(loading || billingLoading || prefixSaving || socialSaving || printerSaving) && (
+                <Loader2 size={14} className="animate-spin" />
+              )}
+              Save Changes
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
