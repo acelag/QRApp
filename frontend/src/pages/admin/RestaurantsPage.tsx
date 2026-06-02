@@ -296,7 +296,7 @@ export function RestaurantsPage() {
                         )}
                       </p>
                     )}
-                    <p className="text-xs text-gray-400 mt-0.5">ID: {r.id.slice(0, 8)}…</p>
+                    <p className="text-xs text-gray-400 mt-0.5 font-mono select-all">{r.id}</p>
                   </div>
 
                   {/* Controls */}
