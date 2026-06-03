@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Check, Loader2, CreditCard } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useSubscriptionConfig } from '../../context/SubscriptionConfigContext';
 import {
   subscriptionService, daysUntil,
   type Plan, type MySubscription, type PlanCode,
@@ -17,6 +18,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 export function BillingPage() {
   const { user } = useAuth();
+  const { enabled } = useSubscriptionConfig();
   const [sub, setSub] = useState<MySubscription | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,13 @@ export function BillingPage() {
         </header>
 
         <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-5xl">
-          {loading ? (
+          {!enabled ? (
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500">
+              <CreditCard size={32} className="mx-auto mb-3 text-gray-300" />
+              <p className="font-medium text-gray-700">Subscriptions are turned off</p>
+              <p className="text-sm mt-1">Billing is currently disabled for this system.</p>
+            </div>
+          ) : loading ? (
             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
           ) : (
             <>

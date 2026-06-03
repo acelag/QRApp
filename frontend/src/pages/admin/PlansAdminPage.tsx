@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Check, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { subscriptionService, FEATURE_OPTIONS, type Plan } from '../../services/subscriptionService';
+import { useSubscriptionConfig } from '../../context/SubscriptionConfigContext';
 
 type Draft = {
   name: string; tagline: string; priceLkr: string; priceUsd: string;
@@ -26,10 +27,25 @@ function toDraft(p: Plan): Draft {
 
 export function PlansAdminPage() {
   const navigate = useNavigate();
+  const { enabled, refresh } = useSubscriptionConfig();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [togglingSystem, setTogglingSystem] = useState(false);
+
+  async function toggleSystem() {
+    setTogglingSystem(true);
+    try {
+      await subscriptionService.adminSetConfig(!enabled);
+      await refresh();
+      toast.success(`Subscriptions ${!enabled ? 'enabled' : 'disabled'}`);
+    } catch {
+      toast.error('Failed to update');
+    } finally {
+      setTogglingSystem(false);
+    }
+  }
 
   useEffect(() => {
     subscriptionService.adminGetPlans()
@@ -87,7 +103,27 @@ export function PlansAdminPage() {
         </div>
       </header>
 
-      <div className="px-4 lg:px-6 py-6 max-w-6xl mx-auto">
+      <div className="px-4 lg:px-6 py-6 max-w-6xl mx-auto space-y-5">
+        {/* Master switch */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
+          <div className="flex-1">
+            <h2 className="font-semibold text-gray-800">Subscription system</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {enabled
+                ? 'On — marketing site, signup, trials and billing are active.'
+                : 'Off — pricing/signup are hidden and all restaurants have full access.'}
+            </p>
+          </div>
+          <button
+            onClick={toggleSystem}
+            disabled={togglingSystem}
+            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors disabled:opacity-50 ${enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+            title={enabled ? 'Turn off' : 'Turn on'}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
         ) : (

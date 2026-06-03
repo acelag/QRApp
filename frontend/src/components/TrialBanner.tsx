@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useSubscriptionConfig } from '../context/SubscriptionConfigContext';
 import { subscriptionService, daysUntil, type MySubscription } from '../services/subscriptionService';
 
 /**
@@ -10,13 +11,15 @@ import { subscriptionService, daysUntil, type MySubscription } from '../services
  */
 export function TrialBanner() {
   const { user } = useAuth();
+  const { enabled } = useSubscriptionConfig();
   const [sub, setSub] = useState<MySubscription | null>(null);
 
   useEffect(() => {
-    if (!user?.restaurantId) return;
+    if (!user?.restaurantId || !enabled) return;
     subscriptionService.getMine().then(setSub).catch(() => {});
-  }, [user?.restaurantId]);
+  }, [user?.restaurantId, enabled]);
 
+  if (!enabled) return null;
   if (!sub) return null;
   if (sub.status === 'active') return null;
 

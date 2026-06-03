@@ -51,6 +51,14 @@ export interface SignupPayload {
 }
 
 export const subscriptionService = {
+  /** Public — whether the subscription system is enabled, + trial length. */
+  getConfig: (): Promise<{ enabled: boolean; trialDays: number }> =>
+    axios.get<{ enabled: boolean; trialDays: number }>(`${BASE}/subscription/config`).then((r) => r.data),
+
+  /** Super-admin — turn the whole subscription system on/off. */
+  adminSetConfig: (enabled: boolean): Promise<{ enabled: boolean }> =>
+    axios.patch<{ enabled: boolean }>(`${BASE}/subscription/admin/config`, { enabled }).then((r) => r.data),
+
   /** Public — pricing data for the marketing site. */
   getPlans: (): Promise<{ trialDays: number; plans: Plan[] }> =>
     axios.get<{ trialDays: number; plans: Plan[] }>(`${BASE}/subscription/plans`).then((r) => r.data),

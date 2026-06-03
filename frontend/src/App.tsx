@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SubscriptionConfigProvider, useSubscriptionConfig } from './context/SubscriptionConfigContext';
 import { CartProvider } from './context/CartContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -57,12 +58,15 @@ import { CombosPage } from './pages/admin/CombosPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
-  if (loading) return (
+  const { enabled, loading: cfgLoading } = useSubscriptionConfig();
+  if (loading || cfgLoading) return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
       <Loader2 size={32} className="animate-spin text-orange-500" />
     </div>
   );
-  if (!user) return <LandingPage />;
+  // Anonymous: show the marketing landing only when subscriptions are enabled;
+  // otherwise behave like before (straight to login).
+  if (!user) return enabled ? <LandingPage /> : <Navigate to="/login" replace />;
   if (user.role === 'kitchen') return <Navigate to="/kitchen" replace />;
   if (user.role === 'super_admin') return <Navigate to="/admin/restaurants" replace />;
   return <Navigate to="/admin" replace />;
@@ -72,6 +76,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <SubscriptionConfigProvider>
         <CurrencyProvider>
         <ThemeProvider>
         <TagsProvider>
@@ -135,6 +140,7 @@ export default function App() {
         </TagsProvider>
         </ThemeProvider>
         </CurrencyProvider>
+        </SubscriptionConfigProvider>
       </AuthProvider>
     </BrowserRouter>
   );

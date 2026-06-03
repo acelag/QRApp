@@ -1,7 +1,11 @@
+import { Navigate } from 'react-router-dom';
 import { MarketingNav, MarketingFooter } from '../../components/marketing/MarketingNav';
 import { PricingGrid } from '../../components/marketing/PricingGrid';
+import { useSubscriptionConfig } from '../../context/SubscriptionConfigContext';
 
 export function PricingPage() {
+  const { enabled, loading } = useSubscriptionConfig();
+  if (!loading && !enabled) return <Navigate to="/login" replace />;
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <MarketingNav />

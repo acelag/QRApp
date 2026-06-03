@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { RestaurantFeatures } from '../context/AuthContext';
+import { useSubscriptionConfig } from '../context/SubscriptionConfigContext';
 import { orderService } from '../services/orderService';
 
 interface NavItem {
@@ -108,10 +109,13 @@ function groupHasActiveChild(group: NavGroup, pathname: string) {
 export function AdminSidebar() {
   const { user, logout, features } = useAuth();
   const location = useLocation();
+  const { enabled: subsEnabled } = useSubscriptionConfig();
   const [activeCount, setActiveCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   function isVisible(item: NavItem): boolean {
+    // The Subscription/billing link only shows when the system is enabled.
+    if (item.to === '/admin/billing') return subsEnabled;
     if (!item.featureKey) return true;
     return features[item.featureKey] !== false;
   }

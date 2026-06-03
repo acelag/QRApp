@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { QrCode, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useSubscriptionConfig } from '../../context/SubscriptionConfigContext';
 import type { PlanCode } from '../../services/subscriptionService';
 
 const PLAN_LABELS: Record<PlanCode, string> = { free: 'Free', starter: 'Starter', pro: 'Pro' };
@@ -9,6 +10,7 @@ const isPlan = (v: string | null): v is PlanCode => v === 'free' || v === 'start
 
 export function SignupPage() {
   const { signup } = useAuth();
+  const { enabled, loading: cfgLoading } = useSubscriptionConfig();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const initialPlan = isPlan(params.get('plan')) ? (params.get('plan') as PlanCode) : 'starter';
@@ -39,6 +41,8 @@ export function SignupPage() {
   }
 
   const input = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors';
+
+  if (!cfgLoading && !enabled) return <Navigate to="/login" replace />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex flex-col items-center justify-center px-5 py-10">

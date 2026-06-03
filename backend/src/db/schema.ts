@@ -263,6 +263,14 @@ export async function createSchema(): Promise<void> {
   await addCol('plans', 'price_lkr_year', 'INTEGER NOT NULL DEFAULT 0');
   await addCol('plans', 'price_usd_year', 'INTEGER NOT NULL DEFAULT 0');
 
+  // Global system settings (key/value) — e.g. subscriptions master switch
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key   VARCHAR(60)  NOT NULL PRIMARY KEY,
+      value TEXT         NOT NULL
+    );
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS subscription_events (
       id            SERIAL        PRIMARY KEY,

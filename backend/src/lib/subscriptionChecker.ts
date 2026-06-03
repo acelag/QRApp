@@ -8,12 +8,14 @@
  */
 
 import { pool } from '../db/database';
+import { subscriptionsEnabled } from './appSettings';
 
 const CHECK_INTERVAL = 60 * 60 * 1000; // hourly
 const INITIAL_DELAY  = 20 * 1000;
 const GRACE_DAYS     = 7; // past_due window before access is cut
 
 async function sweep(): Promise<void> {
+  if (!subscriptionsEnabled()) return; // master switch off — never auto-expire
   const nowIso = new Date().toISOString();
   const graceCutoff = new Date(Date.now() - GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString();
 

@@ -8,9 +8,23 @@ import { isPlanCode, TRIAL_DAYS, type PlanCode } from '../lib/plans';
 import { getVisiblePlans, getAllPlans, getPlan, updatePlan } from '../lib/planStore';
 import { getBillingProvider } from '../lib/billing';
 import { handleBillingEvent, startTrial, applyPlan } from '../lib/subscription';
+import { subscriptionsEnabled, setSubscriptionsEnabled } from '../lib/appSettings';
 import type { SubscriptionStatus } from '../lib/billing/types';
 
 const router = Router();
+
+// ── Public: master switch + trial length (drives the whole UI) ────────────────
+router.get('/config', (_req, res) => {
+  res.json({ enabled: subscriptionsEnabled(), trialDays: TRIAL_DAYS });
+});
+
+// ── Super-admin: turn the subscription system on/off globally ─────────────────
+router.patch('/admin/config', authenticate, requireRole('super_admin'), async (req, res) => {
+  const { enabled } = req.body as { enabled?: boolean };
+  if (typeof enabled !== 'boolean') { res.status(400).json({ error: 'enabled (boolean) is required' }); return; }
+  await setSubscriptionsEnabled(enabled);
+  res.json({ enabled });
+});
 
 // ── Public: pricing data for the marketing site ──────────────────────────────
 router.get('/plans', (_req, res) => {
@@ -41,6 +55,7 @@ router.patch('/admin/plans/:code', authenticate, requireRole('super_admin'), asy
 
 // ── Public: self-serve signup → provision restaurant + admin + start trial ────
 router.post('/signup', async (req, res) => {
+  if (!subscriptionsEnabled()) { res.status(403).json({ error: 'Self-serve signup is currently disabled' }); return; }
   const { restaurantName, adminName, adminUsername, adminPassword, plan } = req.body as {
     restaurantName?: string; adminName?: string; adminUsername?: string; adminPassword?: string; plan?: string;
   };

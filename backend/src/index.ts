@@ -36,6 +36,7 @@ import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
 import { startSubscriptionChecker } from './lib/subscriptionChecker';
 import { seedPlansIfEmpty, ensureAnnualPrices, reloadPlans } from './lib/planStore';
+import { loadAppSettings } from './lib/appSettings';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -137,6 +138,7 @@ async function start() {
     await seedPlansIfEmpty();
     await ensureAnnualPrices();
     await reloadPlans();
+    await loadAppSettings();
     app.listen(PORT, () => {
       console.log(`Backend running on http://localhost:${PORT} [${isProd ? 'production' : 'development'}]`);
       startStaleOrderChecker();
