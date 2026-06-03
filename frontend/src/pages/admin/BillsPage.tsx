@@ -23,7 +23,10 @@ function elapsed(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (diff < 60) return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m`;
+  const h = Math.floor(diff / 3600);
+  if (h < 24) return `${h}h ${Math.floor((diff % 3600) / 60)}m`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
 }
 
 type Tab = 'table' | 'takeaway' | 'refunds';
@@ -495,28 +498,31 @@ export function BillsPage() {
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
                   {activeTakeaway.map((order) => (
                     <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className="flex items-center justify-between px-5 py-3 bg-purple-50 border-b border-purple-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center">
-                            <ShoppingBag size={18} />
+                      <div className="px-5 py-3 bg-purple-50 border-b border-purple-100">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
+                              <ShoppingBag size={18} />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="inline-block font-mono font-bold text-sm text-purple-700 bg-white/70 px-2 py-0.5 rounded-md tracking-wide">
+                                #{order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                              </span>
+                              {order.customerName && <p className="text-xs text-gray-600 truncate mt-1">{order.customerName}</p>}
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
-                            </p>
-                            {order.customerName && <p className="text-xs text-gray-500">{order.customerName}</p>}
-                            <p className="text-xs text-gray-400 flex items-center gap-1">
-                              <Clock size={11} /> {elapsed(order.createdAt)} ago
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-purple-600">{fmt(order.totalAmount)}</p>
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+                          <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
                             order.status === 'pending' ? 'bg-yellow-100 text-yellow-700'
                             : order.status === 'preparing' ? 'bg-blue-100 text-blue-700'
+                            : order.status === 'cancelled' ? 'bg-red-100 text-red-600'
                             : 'bg-green-100 text-green-700'
                           }`}>{order.status}</span>
+                        </div>
+                        <div className="flex items-end justify-between mt-2.5">
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <Clock size={11} /> {elapsed(order.createdAt)} ago
+                          </span>
+                          <span className="text-2xl font-extrabold text-purple-600 leading-none tabular-nums">{fmt(order.totalAmount)}</span>
                         </div>
                       </div>
 
@@ -525,14 +531,14 @@ export function BillsPage() {
                           {order.items.map((item, i) => (
                             <li key={i} className="text-sm flex justify-between">
                               <span className="text-gray-700 flex items-center gap-1.5">
-                                <span className="font-medium text-gray-900">{item.quantity}×</span> {item.name}
+                                <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums shrink-0">{item.quantity}×</span> {item.name}
                                 {item.size && (
                                   <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                                     {item.size === 'large' ? 'L' : 'R'}
                                   </span>
                                 )}
                               </span>
-                              <span className="text-gray-700 tabular-nums">{fmt(item.price * item.quantity)}</span>
+                              <span className="text-gray-700 tabular-nums shrink-0">{fmt(item.price * item.quantity)}</span>
                             </li>
                           ))}
                         </ul>
@@ -554,20 +560,21 @@ export function BillsPage() {
                         })()}
                       </div>
 
-                      <div className="px-5 py-3 flex gap-3">
+                      <div className="px-5 py-3 flex gap-2.5">
                         <button
                           onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
-                          className="flex items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-2xl hover:bg-gray-50 transition-colors"
+                          title="Print receipt"
+                          className="flex items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-xl hover:bg-gray-50 transition-colors shrink-0"
                         >
                           <Printer size={16} /> Print
                         </button>
                         <button
                           onClick={() => setPaymentTarget({ type: 'order', order })}
                           disabled={payingOrder === order.id}
-                          className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors"
+                          className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 active:scale-[0.98] disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-all whitespace-nowrap"
                         >
                           {payingOrder === order.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                          {payingOrder === order.id ? 'Processing…' : 'Mark as Paid'}
+                          {payingOrder === order.id ? 'Processing…' : 'Mark Paid'}
                         </button>
                       </div>
                     </div>

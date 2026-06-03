@@ -204,7 +204,7 @@
     "assignedTo": "Assigned to {{name}}",
     "waiterUnassigned": "Waiter unassigned",
     "assignFailed": "Failed to assign waiter",
-    "orderVoided": "Order voided",
+    "orderVoided": "Order canceled",
     "cancelFailed": "Failed to cancel order",
     "pending": "Pending",
     "preparing": "Preparing",
