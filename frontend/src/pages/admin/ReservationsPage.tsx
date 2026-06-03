@@ -87,12 +87,12 @@ export function ReservationsPage() {
     () => typeFilter === 'all' ? items : items.filter((r) => r.type === typeFilter),
     [items, typeFilter],
   );
-  const byDay = useMemo(() => {
+  const groupByDay = useCallback((list: Reservation[]) => {
     const m = new Map<string, Reservation[]>();
-    for (const r of visibleItems) { const k = dayKey(r.reservedAt); (m.get(k) ?? m.set(k, []).get(k)!).push(r); }
+    for (const r of list) { const k = dayKey(r.reservedAt); (m.get(k) ?? m.set(k, []).get(k)!).push(r); }
     for (const arr of m.values()) arr.sort((a, b) => a.reservedAt.localeCompare(b.reservedAt));
     return m;
-  }, [visibleItems, dayKey]);
+  }, [dayKey]);
 
   function openNew(prefillDate?: string) { setForm(emptyForm(prefillDate ?? date)); setShowForm(true); }
   function openEdit(r: Reservation) {
@@ -138,6 +138,63 @@ export function ReservationsPage() {
   const timeStr = (iso: string) => new Date(iso).toLocaleTimeString([], { timeZone: tz, hour: '2-digit', minute: '2-digit' });
   const input = 'w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors';
   const todayKey = ymd(new Date());
+
+  const renderCalendar = (list: Reservation[], label?: string) => {
+    const map = groupByDay(list);
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {label && (
+          <div className="px-3 py-2.5 border-b border-gray-100 flex items-center gap-1.5 text-sm font-bold text-gray-700">
+            {label === 'Rooms' ? <BedDouble size={15} className="text-blue-500" /> : <MapPin size={15} className="text-orange-500" />}
+            {label}
+            <span className="ml-auto text-xs font-medium text-gray-400">{list.length}</span>
+          </div>
+        )}
+        <div className="grid grid-cols-7 border-b border-gray-100">
+          {WEEKDAYS.map((w) => <div key={w} className="px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-400">{w}</div>)}
+        </div>
+        <div className="grid grid-cols-7">
+          {cells.map((d, i) => {
+            const key = ymd(d);
+            const inMonth = d.getMonth() === monthCursor.getMonth();
+            const dayItems = map.get(key) ?? [];
+            const isToday = key === todayKey;
+            return (
+              <div key={i} className={`min-h-[96px] border-b border-r border-gray-50 p-1.5 ${inMonth ? '' : 'bg-gray-50/60'} ${i % 7 === 6 ? 'border-r-0' : ''}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <button
+                    onClick={() => { setDate(key); setView('list'); }}
+                    className={`text-xs font-semibold w-6 h-6 rounded-full flex items-center justify-center ${isToday ? 'bg-orange-500 text-white' : inMonth ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300'}`}
+                    title="Open this day"
+                  >
+                    {d.getDate()}
+                  </button>
+                  <button onClick={() => openNew(key)} className="opacity-0 hover:opacity-100 focus:opacity-100 text-gray-300 hover:text-orange-500 transition-opacity" title="Add reservation"><Plus size={13} /></button>
+                </div>
+                <div className="space-y-1">
+                  {dayItems.slice(0, 3).map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => openEdit(r)}
+                      className={`w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-md truncate flex items-center gap-1 ${STATUS_META[r.status].cls} ${r.status === 'cancelled' ? 'line-through opacity-70' : ''}`}
+                      title={`${timeStr(r.reservedAt)} · ${r.customerName} · ${locationLabel(r)}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_META[r.status].dot}`} />
+                      <span className="font-semibold tabular-nums">{timeStr(r.reservedAt)}</span>
+                      <span className="truncate">{r.customerName}</span>
+                    </button>
+                  ))}
+                  {dayItems.length > 3 && (
+                    <button onClick={() => { setDate(key); setView('list'); }} className="w-full text-left text-[11px] text-gray-400 px-1.5 hover:text-orange-500">+{dayItems.length - 3} more</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -202,54 +259,16 @@ export function ReservationsPage() {
         {/* ── Calendar view ── */}
         {view === 'calendar' && (
           <div className="p-3 sm:p-4 lg:p-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="grid grid-cols-7 border-b border-gray-100">
-                {WEEKDAYS.map((w) => <div key={w} className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400">{w}</div>)}
+            {loading ? (
+              <div className="flex justify-center py-20"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
+            ) : typeFilter === 'all' ? (
+              <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
+                {renderCalendar(items.filter((r) => r.type === 'table'), 'Tables')}
+                {renderCalendar(items.filter((r) => r.type === 'room'), 'Rooms')}
               </div>
-              {loading ? (
-                <div className="flex justify-center py-20"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
-              ) : (
-                <div className="grid grid-cols-7">
-                  {cells.map((d, i) => {
-                    const key = ymd(d);
-                    const inMonth = d.getMonth() === monthCursor.getMonth();
-                    const dayItems = byDay.get(key) ?? [];
-                    const isToday = key === todayKey;
-                    return (
-                      <div key={i} className={`min-h-[104px] border-b border-r border-gray-50 p-1.5 ${inMonth ? '' : 'bg-gray-50/60'} ${i % 7 === 6 ? 'border-r-0' : ''}`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <button
-                            onClick={() => { setDate(key); setView('list'); }}
-                            className={`text-xs font-semibold w-6 h-6 rounded-full flex items-center justify-center ${isToday ? 'bg-orange-500 text-white' : inMonth ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300'}`}
-                            title="Open this day"
-                          >
-                            {d.getDate()}
-                          </button>
-                          <button onClick={() => openNew(key)} className="opacity-0 hover:opacity-100 focus:opacity-100 text-gray-300 hover:text-orange-500 transition-opacity" title="Add reservation"><Plus size={13} /></button>
-                        </div>
-                        <div className="space-y-1">
-                          {dayItems.slice(0, 3).map((r) => (
-                            <button
-                              key={r.id}
-                              onClick={() => openEdit(r)}
-                              className={`w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-md truncate flex items-center gap-1 ${STATUS_META[r.status].cls} ${r.status === 'cancelled' ? 'line-through opacity-70' : ''}`}
-                              title={`${timeStr(r.reservedAt)} · ${r.customerName} · ${locationLabel(r)}`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_META[r.status].dot}`} />
-                              <span className="font-semibold tabular-nums">{timeStr(r.reservedAt)}</span>
-                              <span className="truncate">{r.customerName}</span>
-                            </button>
-                          ))}
-                          {dayItems.length > 3 && (
-                            <button onClick={() => { setDate(key); setView('list'); }} className="w-full text-left text-[11px] text-gray-400 px-1.5 hover:text-orange-500">+{dayItems.length - 3} more</button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            ) : (
+              renderCalendar(visibleItems)
+            )}
             <p className="text-xs text-gray-400 mt-2">Times shown in <span className="font-medium">{tz}</span>. Click a day number to see its full list, or a reservation to edit.</p>
           </div>
         )}
