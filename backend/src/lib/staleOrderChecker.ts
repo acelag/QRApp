@@ -109,14 +109,31 @@ async function pruneNotified(): Promise<void> {
   } catch { /* ignore */ }
 }
 
+/**
+ * Seed the notified set with every order that is ALREADY pending at boot.
+ * Without this, an in-memory reset (server restart / cold start) makes the
+ * checker re-alert every old pending order — e.g. "⚠️ 12 Stalled Orders" —
+ * each time staff open the app. We only want to alert orders that become
+ * stale *after* the server starts.
+ */
+async function seedNotified(): Promise<void> {
+  try {
+    const result = await pool.query<{ id: string }>(
+      `SELECT id FROM orders WHERE status = 'pending'`,
+    );
+    result.rows.forEach((r) => notifiedIds.add(r.id));
+  } catch { /* non-fatal — worst case a one-time alert */ }
+}
+
 export function startStaleOrderChecker(): void {
   const tick = () => {
     void checkStaleOrders();
     void pruneNotified();
   };
 
-  // First check after server has fully warmed up
-  setTimeout(tick, INITIAL_DELAY);
+  // Suppress alerts for orders that were already pending before this boot,
+  // then start the regular checks once the server has warmed up.
+  setTimeout(() => { void seedNotified().then(tick); }, INITIAL_DELAY);
   // Then every CHECK_INTERVAL
   setInterval(tick, CHECK_INTERVAL);
 
