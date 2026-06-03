@@ -236,6 +236,29 @@ export async function createSchema(): Promise<void> {
   // Per-restaurant feature flags (super_admin can toggle per restaurant)
   await addCol('restaurants', 'features', "JSONB NOT NULL DEFAULT '{}'::jsonb");
 
+  // ── Subscription / billing ──────────────────────────────────────────────
+  // Existing restaurants default to an active 'pro' plan so nothing is gated
+  // for current tenants; self-serve signups set 'trialing'/'free' explicitly.
+  await addCol('restaurants', 'plan',                "VARCHAR(20) NOT NULL DEFAULT 'pro'");
+  await addCol('restaurants', 'subscription_status', "VARCHAR(20) NOT NULL DEFAULT 'active'");
+  await addCol('restaurants', 'trial_ends_at',       'VARCHAR(50) NULL');
+  await addCol('restaurants', 'current_period_end',  'VARCHAR(50) NULL');
+  await addCol('restaurants', 'billing_customer_id', 'VARCHAR(120) NULL');
+  await addCol('restaurants', 'billing_provider',    'VARCHAR(40) NULL');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS subscription_events (
+      id            SERIAL        PRIMARY KEY,
+      external_id   VARCHAR(200)  NOT NULL UNIQUE,
+      restaurant_id VARCHAR(36)   NOT NULL,
+      provider      VARCHAR(40)   NOT NULL,
+      event_type    VARCHAR(40)   NOT NULL,
+      payload       JSONB         NOT NULL DEFAULT '{}'::jsonb,
+      created_at    VARCHAR(50)   NOT NULL
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_subscription_events_restaurant ON subscription_events (restaurant_id)`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS refunds (
       id               VARCHAR(36)   NOT NULL PRIMARY KEY,

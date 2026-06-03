@@ -7,30 +7,11 @@ import { authenticate, requireRole, AuthRequest, JWT_SECRET } from '../middlewar
 
 const router = Router();
 
-// All feature keys that can be toggled per restaurant
-export const ALL_FEATURES = [
-  'combos', 'menuSchedules', 'roomCharges', 'promoCodes',
-  'reports', 'roster', 'shiftReport', 'staffPerformance',
-  'tableStatus', 'readyDisplay', 'kitchenDisplay', 'bills',
-] as const;
-
-export type FeatureKey = typeof ALL_FEATURES[number];
-export type RestaurantFeatures = Record<FeatureKey, boolean>;
-
-const DEFAULT_FEATURES: RestaurantFeatures = {
-  combos: true, menuSchedules: true, roomCharges: true, promoCodes: true,
-  reports: true, roster: true, shiftReport: true, staffPerformance: true,
-  tableStatus: true, readyDisplay: true, kitchenDisplay: true, bills: true,
-};
-
-function parseFeatures(raw: unknown): RestaurantFeatures {
-  const stored = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<RestaurantFeatures>;
-  const out = { ...DEFAULT_FEATURES };
-  for (const k of ALL_FEATURES) {
-    if (typeof stored[k] === 'boolean') out[k] = stored[k] as boolean;
-  }
-  return out;
-}
+// Feature-flag definitions live in lib/features.ts (shared with the
+// subscription/plan logic). Re-export so existing references keep working.
+import { ALL_FEATURES, parseFeatures } from '../lib/features';
+export { ALL_FEATURES };
+export type { FeatureKey, RestaurantFeatures } from '../lib/features';
 
 const toRestaurant = (row: Record<string, unknown>) => ({
   id: row.id, name: row.name, slug: row.slug, active: row.active === true, createdAt: row.created_at,
@@ -59,6 +40,10 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   autoPrintKitchen:   row.auto_print_kitchen === true,
   autoPrintReceipt:   row.auto_print_receipt === true,
   features: parseFeatures(row.features),
+  plan:               (row.plan as string | null) ?? 'pro',
+  subscriptionStatus: (row.subscription_status as string | null) ?? 'active',
+  trialEndsAt:        (row.trial_ends_at as string | null) ?? null,
+  currentPeriodEnd:   (row.current_period_end as string | null) ?? null,
 });
 
 // ── Public endpoints — no auth required ──────────────────────────────────────

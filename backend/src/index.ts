@@ -31,8 +31,10 @@ import printRouter from './routes/print';
 import rosterRouter from './routes/roster';
 import menuSchedulesRouter from './routes/menuSchedules';
 import combosRouter from './routes/combos';
+import subscriptionRouter from './routes/subscription';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
+import { startSubscriptionChecker } from './lib/subscriptionChecker';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -106,6 +108,7 @@ app.use('/api/print',        printRouter);
 app.use('/api/roster',          rosterRouter);
 app.use('/api/menu-schedules',  menuSchedulesRouter);
 app.use('/api/combos',          combosRouter);
+app.use('/api/subscription',    subscriptionRouter);
 app.use('/api/upload',      authenticate, requireRole('admin'), uploadRouter);
 app.use('/api/users',       usersRouter);
 
@@ -133,6 +136,7 @@ async function start() {
     app.listen(PORT, () => {
       console.log(`Backend running on http://localhost:${PORT} [${isProd ? 'production' : 'development'}]`);
       startStaleOrderChecker();
+      startSubscriptionChecker();
     });
   } catch (err) {
     console.error('Failed to start server:', err);
