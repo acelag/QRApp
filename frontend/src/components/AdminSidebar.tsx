@@ -44,6 +44,7 @@ const NAV: NavEntry[] = [
     icon: UtensilsCrossed,
     children: [
       { label: 'Menu Items',     icon: UtensilsCrossed, to: '/admin/menu' },
+      { label: 'Categories & Tags', icon: Tag,          to: '/admin/menu-setup' },
       { label: 'Combo Deals',    icon: Package,         to: '/admin/combos',         featureKey: 'combos' },
       { label: 'Menu Schedules', icon: Calendar,        to: '/admin/menu-schedules', featureKey: 'menuSchedules' },
     ],

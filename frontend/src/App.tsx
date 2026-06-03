@@ -26,6 +26,7 @@ import { RoomMenuPage } from './pages/customer/RoomMenuPage';
 import { DashboardPage } from './pages/admin/DashboardPage';
 import { OrdersPage } from './pages/admin/OrdersPage';
 import { MenuItemsPage } from './pages/admin/MenuItemsPage';
+import { MenuSetupPage } from './pages/admin/MenuSetupPage';
 import { KitchenPage } from './pages/admin/KitchenPage';
 import { ReceiptPage } from './pages/admin/ReceiptPage';
 import { KitchenTicketPage } from './pages/admin/KitchenTicketPage';
@@ -92,6 +93,7 @@ export default function App() {
             <Route path="/admin" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><DashboardPage /></ProtectedRoute>} />
             <Route path="/admin/orders" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><OrdersPage /></ProtectedRoute>} />
             <Route path="/admin/menu" element={<ProtectedRoute roles={['admin','manager']}><MenuItemsPage /></ProtectedRoute>} />
+            <Route path="/admin/menu-setup" element={<ProtectedRoute roles={['admin','manager']}><MenuSetupPage /></ProtectedRoute>} />
             <Route path="/admin/locations" element={<ProtectedRoute roles={['admin','manager']}><LocationsPage /></ProtectedRoute>} />
             <Route path="/receipt/:orderId" element={<ProtectedRoute roles={['admin','manager','cashier']}><ReceiptPage /></ProtectedRoute>} />
             <Route path="/kitchen-ticket/:orderId" element={<ProtectedRoute><KitchenTicketPage /></ProtectedRoute>} />
