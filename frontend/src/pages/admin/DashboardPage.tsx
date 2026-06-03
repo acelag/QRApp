@@ -89,6 +89,13 @@ export function DashboardPage() {
     return () => clearInterval(id);
   }, []);
 
+  // Live clock — ticks every second
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // Fetch today summary + last-7-days report once
   useEffect(() => {
     reportService.getToday().then(setToday).catch(() => {});
@@ -148,9 +155,19 @@ export function DashboardPage() {
           <TrialBanner />
 
           {/* Header */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Welcome, {user?.name ?? 'Restaurant Admin'}</p>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+              <p className="text-sm text-gray-400 mt-0.5">Welcome, {user?.name ?? 'Restaurant Admin'}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold text-gray-900 tabular-nums leading-tight">
+                {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </p>
+              <p className="text-xs text-gray-400">
+                {now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+              </p>
+            </div>
           </div>
 
           {/* ── Stat Cards ───────────────────────────────────────────────── */}
