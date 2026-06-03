@@ -13,6 +13,18 @@ export interface Plan {
   tagline: string;
   features: string[];
   highlights: string[];
+  sortOrder?: number;
+  visible?: boolean;
+}
+
+export interface PlanPatch {
+  name?: string;
+  tagline?: string;
+  priceLkr?: number;
+  priceUsd?: number;
+  features?: string[];
+  highlights?: string[];
+  visible?: boolean;
 }
 
 export interface MySubscription {
@@ -48,7 +60,31 @@ export const subscriptionService = {
   /** Super-admin override of a restaurant's plan/status. */
   adminSet: (restaurantId: string, plan: PlanCode, status: SubscriptionStatus, trialDays?: number) =>
     axios.patch(`${BASE}/subscription/${restaurantId}/admin`, { plan, status, trialDays }).then((r) => r.data),
+
+  /** Super-admin: read all plans (including hidden) for editing. */
+  adminGetPlans: (): Promise<{ plans: Plan[] }> =>
+    axios.get<{ plans: Plan[] }>(`${BASE}/subscription/admin/plans`).then((r) => r.data),
+
+  /** Super-admin: edit a plan's pricing / contents / visibility. */
+  adminUpdatePlan: (code: PlanCode, patch: PlanPatch): Promise<Plan> =>
+    axios.patch<Plan>(`${BASE}/subscription/admin/plans/${code}`, patch).then((r) => r.data),
 };
+
+/** Feature keys + labels for the plan editor (mirrors backend ALL_FEATURES). */
+export const FEATURE_OPTIONS: { key: string; label: string }[] = [
+  { key: 'bills', label: 'Bills & payments' },
+  { key: 'reports', label: 'Sales reports' },
+  { key: 'promoCodes', label: 'Promo codes' },
+  { key: 'tableStatus', label: 'Table status' },
+  { key: 'readyDisplay', label: 'Ready display' },
+  { key: 'kitchenDisplay', label: 'Kitchen display' },
+  { key: 'combos', label: 'Combo deals' },
+  { key: 'menuSchedules', label: 'Menu schedules' },
+  { key: 'roomCharges', label: 'Room charges' },
+  { key: 'roster', label: 'Staff roster' },
+  { key: 'shiftReport', label: 'Shift reports' },
+  { key: 'staffPerformance', label: 'Staff performance' },
+];
 
 /** Days remaining until an ISO date (clamped at 0). */
 export function daysUntil(iso: string | null): number {

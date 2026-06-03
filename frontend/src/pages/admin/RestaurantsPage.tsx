@@ -272,6 +272,12 @@ export function RestaurantsPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => navigate('/admin/plans')}
+              className="flex items-center gap-1 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              <CreditCard size={14} /> Plans & Pricing
+            </button>
+            <button
               onClick={() => setShowForm(true)}
               className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors"
             >

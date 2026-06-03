@@ -1,5 +1,6 @@
 import { pool } from '../db/database';
-import { featuresForPlan, TRIAL_DAYS, type PlanCode } from './plans';
+import { TRIAL_DAYS, type PlanCode } from './plans';
+import { featuresForPlan } from './planStore';
 import type { BillingEvent, SubscriptionStatus } from './billing/types';
 
 /** A subscription is "usable" (app accessible) while trialing or active. */

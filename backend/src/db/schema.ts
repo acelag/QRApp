@@ -247,6 +247,20 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'billing_provider',    'VARCHAR(40) NULL');
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS plans (
+      code        VARCHAR(20)   NOT NULL PRIMARY KEY,
+      name        VARCHAR(60)   NOT NULL,
+      tagline     VARCHAR(200)  NOT NULL DEFAULT '',
+      price_lkr   INTEGER       NOT NULL DEFAULT 0,
+      price_usd   INTEGER       NOT NULL DEFAULT 0,
+      features    JSONB         NOT NULL DEFAULT '[]'::jsonb,
+      highlights  JSONB         NOT NULL DEFAULT '[]'::jsonb,
+      sort_order  INTEGER       NOT NULL DEFAULT 0,
+      visible     BOOLEAN       NOT NULL DEFAULT TRUE
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS subscription_events (
       id            SERIAL        PRIMARY KEY,
       external_id   VARCHAR(200)  NOT NULL UNIQUE,

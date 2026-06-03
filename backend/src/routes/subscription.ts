@@ -4,7 +4,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/database';
 import { authenticate, requireRole, JWT_SECRET, type AuthRequest } from '../middleware/auth';
-import { PLANS, PLAN_CODES, isPlanCode, TRIAL_DAYS } from '../lib/plans';
+import { isPlanCode, TRIAL_DAYS, type PlanCode } from '../lib/plans';
+import { getVisiblePlans, getAllPlans, getPlan, updatePlan } from '../lib/planStore';
 import { getBillingProvider } from '../lib/billing';
 import { handleBillingEvent, startTrial, applyPlan } from '../lib/subscription';
 import type { SubscriptionStatus } from '../lib/billing/types';
@@ -13,7 +14,29 @@ const router = Router();
 
 // ── Public: pricing data for the marketing site ──────────────────────────────
 router.get('/plans', (_req, res) => {
-  res.json({ trialDays: TRIAL_DAYS, plans: PLAN_CODES.map((c) => PLANS[c]) });
+  res.json({ trialDays: TRIAL_DAYS, plans: getVisiblePlans() });
+});
+
+// ── Super-admin: read & edit plan definitions / pricing ───────────────────────
+router.get('/admin/plans', authenticate, requireRole('super_admin'), (_req, res) => {
+  res.json({ plans: getAllPlans() });
+});
+
+router.patch('/admin/plans/:code', authenticate, requireRole('super_admin'), async (req, res) => {
+  const code = req.params.code as PlanCode;
+  if (!isPlanCode(code)) { res.status(400).json({ error: 'Invalid plan code' }); return; }
+  const { name, tagline, priceLkr, priceUsd, features, highlights, visible } = req.body as Record<string, unknown>;
+  const updated = await updatePlan(code, {
+    name: typeof name === 'string' ? name : undefined,
+    tagline: typeof tagline === 'string' ? tagline : undefined,
+    priceLkr: typeof priceLkr === 'number' ? priceLkr : undefined,
+    priceUsd: typeof priceUsd === 'number' ? priceUsd : undefined,
+    features: Array.isArray(features) ? (features as never) : undefined,
+    highlights: Array.isArray(highlights) ? (highlights as string[]) : undefined,
+    visible: typeof visible === 'boolean' ? visible : undefined,
+  });
+  if (!updated) { res.status(404).json({ error: 'Plan not found' }); return; }
+  res.json(updated);
 });
 
 // ── Public: self-serve signup → provision restaurant + admin + start trial ────
@@ -86,7 +109,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
   const planCode = (row.plan as string) ?? 'free';
   res.json({
     plan: planCode,
-    planName: isPlanCode(planCode) ? PLANS[planCode].name : planCode,
+    planName: (isPlanCode(planCode) ? getPlan(planCode)?.name : null) ?? planCode,
     status: row.subscription_status ?? 'active',
     trialEndsAt: row.trial_ends_at ?? null,
     currentPeriodEnd: row.current_period_end ?? null,

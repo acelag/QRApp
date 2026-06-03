@@ -130,7 +130,7 @@ export function AddItemsModal({ order, onClose, onDone }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-6">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[88vh] max-h-[88vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -243,7 +243,7 @@ export function AddItemsModal({ order, onClose, onDone }: Props) {
           </div>
 
           {/* ── Right: Cart additions ───────────────────────────────────────── */}
-          <div className="w-full sm:w-72 flex flex-col min-h-0 border-t sm:border-t-0 border-gray-100">
+          <div className="w-full sm:w-96 flex flex-col min-h-0 border-t sm:border-t-0 border-gray-100">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 shrink-0">
               <ShoppingCart size={15} className="text-orange-500" />
               <span className="text-sm font-bold text-gray-900">Adding</span>

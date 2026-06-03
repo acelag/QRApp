@@ -1,7 +1,9 @@
-// Subscription plans. Each plan maps to a set of feature flags (lib/features.ts).
-// Prices are monthly. Edit freely — this is the single source of truth for tiers.
+// Subscription plan TYPES + seed defaults. The editable plan data
+// (name, prices, tagline, highlights, included features, visibility) lives in
+// the `plans` DB table and is served through lib/planStore.ts. Super-admins
+// edit it at runtime. The plan CODES themselves are fixed.
 
-import { ALL_FEATURES, type FeatureKey, type RestaurantFeatures } from './features';
+import type { FeatureKey } from './features';
 
 export type PlanCode = 'free' | 'starter' | 'pro';
 
@@ -17,13 +19,25 @@ export interface Plan {
   features: FeatureKey[];
   /** Marketing bullet points for the pricing page. */
   highlights: string[];
+  /** Display order on the pricing page. */
+  sortOrder: number;
+  /** Whether the plan is shown publicly / selectable. */
+  visible: boolean;
 }
+
+/** Fixed plan codes, in display order. */
+export const PLAN_CODES: PlanCode[] = ['free', 'starter', 'pro'];
 
 /** Free trial length, in days, for new self-serve signups. */
 export const TRIAL_DAYS = 14;
 
-export const PLANS: Record<PlanCode, Plan> = {
-  free: {
+export function isPlanCode(v: unknown): v is PlanCode {
+  return typeof v === 'string' && (PLAN_CODES as string[]).includes(v);
+}
+
+/** Seed data — inserted into the `plans` table on first run. Editable thereafter. */
+export const DEFAULT_PLANS: Plan[] = [
+  {
     code: 'free',
     name: 'Free',
     priceLkr: 0,
@@ -36,8 +50,10 @@ export const PLANS: Record<PlanCode, Plan> = {
       'Basic order management',
       '1 location',
     ],
+    sortOrder: 0,
+    visible: true,
   },
-  starter: {
+  {
     code: 'starter',
     name: 'Starter',
     priceLkr: 2500,
@@ -52,14 +68,16 @@ export const PLANS: Record<PlanCode, Plan> = {
       'Table status board',
       'Kitchen & ready displays',
     ],
+    sortOrder: 1,
+    visible: true,
   },
-  pro: {
+  {
     code: 'pro',
     name: 'Pro',
     priceLkr: 6000,
     priceUsd: 49,
     tagline: 'The full suite for multi-area operations',
-    features: [...ALL_FEATURES],
+    features: ['combos', 'menuSchedules', 'roomCharges', 'promoCodes', 'reports', 'roster', 'shiftReport', 'staffPerformance', 'tableStatus', 'readyDisplay', 'kitchenDisplay', 'bills'],
     highlights: [
       'Everything in Starter',
       'Combo deals',
@@ -69,19 +87,7 @@ export const PLANS: Record<PlanCode, Plan> = {
       'Shift reports',
       'Priority support',
     ],
+    sortOrder: 2,
+    visible: true,
   },
-};
-
-export const PLAN_CODES = Object.keys(PLANS) as PlanCode[];
-
-export function isPlanCode(v: unknown): v is PlanCode {
-  return typeof v === 'string' && (PLAN_CODES as string[]).includes(v);
-}
-
-/** Build the full RestaurantFeatures record for a plan (every key present, true/false). */
-export function featuresForPlan(code: PlanCode): RestaurantFeatures {
-  const enabled = new Set(PLANS[code].features);
-  const out = {} as RestaurantFeatures;
-  for (const k of ALL_FEATURES) out[k] = enabled.has(k);
-  return out;
-}
+];

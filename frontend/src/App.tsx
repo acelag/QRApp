@@ -28,6 +28,7 @@ import { OrdersPage } from './pages/admin/OrdersPage';
 import { MenuItemsPage } from './pages/admin/MenuItemsPage';
 import { MenuSetupPage } from './pages/admin/MenuSetupPage';
 import { BillingPage } from './pages/admin/BillingPage';
+import { PlansAdminPage } from './pages/admin/PlansAdminPage';
 import { LandingPage } from './pages/marketing/LandingPage';
 import { PricingPage } from './pages/marketing/PricingPage';
 import { SignupPage } from './pages/marketing/SignupPage';
@@ -111,6 +112,7 @@ export default function App() {
             <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><UsersPage /></ProtectedRoute>} />
             <Route path="/admin/bills" element={<ProtectedRoute roles={['admin','manager','cashier']}><BillsPage /></ProtectedRoute>} />
             <Route path="/admin/restaurants" element={<ProtectedRoute roles={['super_admin']}><RestaurantsPage /></ProtectedRoute>} />
+            <Route path="/admin/plans" element={<ProtectedRoute roles={['super_admin']}><PlansAdminPage /></ProtectedRoute>} />
             <Route path="/admin/new-order" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><NewOrderPage /></ProtectedRoute>} />
             <Route path="/admin/ready-display" element={<ProtectedRoute><ReadyDisplayPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute roles={['admin','manager']}><ReportsPage /></ProtectedRoute>} />

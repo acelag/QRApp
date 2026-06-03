@@ -35,6 +35,7 @@ import subscriptionRouter from './routes/subscription';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
 import { startSubscriptionChecker } from './lib/subscriptionChecker';
+import { seedPlansIfEmpty, reloadPlans } from './lib/planStore';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -133,6 +134,8 @@ async function start() {
     await connectDb();
     await createSchema();
     await seedIfEmpty();
+    await seedPlansIfEmpty();
+    await reloadPlans();
     app.listen(PORT, () => {
       console.log(`Backend running on http://localhost:${PORT} [${isProd ? 'production' : 'development'}]`);
       startStaleOrderChecker();
