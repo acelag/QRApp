@@ -21,6 +21,7 @@ export class MockProvider implements BillingProvider {
       restaurantId: params.restaurantId,
       plan: params.planCode,
       email: params.customerEmail,
+      interval: params.interval,
       return: params.returnUrl,
     });
     return { url: `/billing/mock-checkout?${q.toString()}`, externalId: `mock_${params.restaurantId}_${params.planCode}` };

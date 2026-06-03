@@ -14,6 +14,8 @@ function rowToPlan(row: Record<string, unknown>): Plan {
     name: (row.name as string) ?? '',
     priceLkr: Number(row.price_lkr ?? 0),
     priceUsd: Number(row.price_usd ?? 0),
+    priceLkrYear: Number(row.price_lkr_year ?? 0),
+    priceUsdYear: Number(row.price_usd_year ?? 0),
     tagline: (row.tagline as string) ?? '',
     features: feats.filter((f): f is FeatureKey => (ALL_FEATURES as readonly string[]).includes(f)),
     highlights: highs,
@@ -28,11 +30,25 @@ export async function seedPlansIfEmpty(): Promise<void> {
   if ((existing.rows[0] as { n: number }).n > 0) return;
   for (const p of DEFAULT_PLANS) {
     await pool.query(
-      `INSERT INTO plans (code, name, tagline, price_lkr, price_usd, features, highlights, sort_order, visible)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (code) DO NOTHING`,
-      [p.code, p.name, p.tagline, p.priceLkr, p.priceUsd, JSON.stringify(p.features), JSON.stringify(p.highlights), p.sortOrder, p.visible],
+      `INSERT INTO plans (code, name, tagline, price_lkr, price_usd, price_lkr_year, price_usd_year, features, highlights, sort_order, visible)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (code) DO NOTHING`,
+      [p.code, p.name, p.tagline, p.priceLkr, p.priceUsd, p.priceLkrYear, p.priceUsdYear, JSON.stringify(p.features), JSON.stringify(p.highlights), p.sortOrder, p.visible],
     );
   }
+}
+
+/**
+ * One-time backfill of annual prices for plans seeded before annual billing
+ * existed. Only runs when NO plan has any annual price yet, so it never
+ * clobbers a super-admin who intentionally set annual prices (incl. 0).
+ * Default annual = 10× monthly (≈ 2 months free).
+ */
+export async function ensureAnnualPrices(): Promise<void> {
+  try {
+    const sum = await pool.query('SELECT COALESCE(SUM(price_lkr_year + price_usd_year),0)::int AS s FROM plans');
+    if ((sum.rows[0] as { s: number }).s > 0) return;
+    await pool.query('UPDATE plans SET price_usd_year = price_usd * 10, price_lkr_year = price_lkr * 10 WHERE price_usd > 0 OR price_lkr > 0');
+  } catch { /* non-fatal */ }
 }
 
 /** Reload the in-memory cache from the DB. Falls back to defaults on error. */
@@ -86,6 +102,8 @@ export async function updatePlan(code: PlanCode, patch: Partial<Plan>): Promise<
     tagline: patch.tagline ?? cur.tagline,
     priceLkr: patch.priceLkr != null ? Math.max(0, Math.round(patch.priceLkr)) : cur.priceLkr,
     priceUsd: patch.priceUsd != null ? Math.max(0, Math.round(patch.priceUsd)) : cur.priceUsd,
+    priceLkrYear: patch.priceLkrYear != null ? Math.max(0, Math.round(patch.priceLkrYear)) : cur.priceLkrYear,
+    priceUsdYear: patch.priceUsdYear != null ? Math.max(0, Math.round(patch.priceUsdYear)) : cur.priceUsdYear,
     features: Array.isArray(patch.features)
       ? patch.features.filter((f): f is FeatureKey => (ALL_FEATURES as readonly string[]).includes(f))
       : cur.features,
@@ -93,8 +111,8 @@ export async function updatePlan(code: PlanCode, patch: Partial<Plan>): Promise<
     visible: typeof patch.visible === 'boolean' ? patch.visible : cur.visible,
   };
   await pool.query(
-    `UPDATE plans SET name=$1, tagline=$2, price_lkr=$3, price_usd=$4, features=$5, highlights=$6, visible=$7 WHERE code=$8`,
-    [next.name, next.tagline, next.priceLkr, next.priceUsd, JSON.stringify(next.features), JSON.stringify(next.highlights), next.visible, code],
+    `UPDATE plans SET name=$1, tagline=$2, price_lkr=$3, price_usd=$4, price_lkr_year=$5, price_usd_year=$6, features=$7, highlights=$8, visible=$9 WHERE code=$10`,
+    [next.name, next.tagline, next.priceLkr, next.priceUsd, next.priceLkrYear, next.priceUsdYear, JSON.stringify(next.features), JSON.stringify(next.highlights), next.visible, code],
   );
   await reloadPlans();
   return getPlan(code) ?? next;

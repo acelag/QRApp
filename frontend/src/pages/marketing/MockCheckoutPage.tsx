@@ -18,11 +18,13 @@ export function MockCheckoutPage() {
   const restaurantId = params.get('restaurantId') ?? '';
   const plan = params.get('plan') ?? 'starter';
   const email = params.get('email') ?? '';
+  const interval = params.get('interval') === 'year' ? 'year' : 'month';
   const returnUrl = params.get('return') ?? '/admin/settings';
 
   async function pay() {
     setProcessing(true);
-    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const days = interval === 'year' ? 365 : 30;
+    const periodEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
     try {
       await axios.post('/api/subscription/webhook', {
         type: 'activated',
@@ -52,7 +54,7 @@ export function MockCheckoutPage() {
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm space-y-1">
             <div className="flex justify-between"><span className="text-gray-500">Plan</span><span className="font-semibold capitalize">{plan}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Billing email</span><span className="font-medium">{email || '—'}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Billing cycle</span><span className="font-medium">Monthly</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Billing cycle</span><span className="font-medium capitalize">{interval === 'year' ? 'Annual' : 'Monthly'}</span></div>
           </div>
           <button
             onClick={pay}

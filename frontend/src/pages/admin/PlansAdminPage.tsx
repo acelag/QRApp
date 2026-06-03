@@ -6,6 +6,7 @@ import { subscriptionService, FEATURE_OPTIONS, type Plan } from '../../services/
 
 type Draft = {
   name: string; tagline: string; priceLkr: string; priceUsd: string;
+  priceLkrYear: string; priceUsdYear: string;
   features: Set<string>; highlights: string; visible: boolean;
 };
 
@@ -15,6 +16,8 @@ function toDraft(p: Plan): Draft {
     tagline: p.tagline,
     priceLkr: String(p.priceLkr),
     priceUsd: String(p.priceUsd),
+    priceLkrYear: String(p.priceLkrYear),
+    priceUsdYear: String(p.priceUsdYear),
     features: new Set(p.features),
     highlights: p.highlights.join('\n'),
     visible: p.visible !== false,
@@ -58,6 +61,8 @@ export function PlansAdminPage() {
         tagline: d.tagline.trim(),
         priceLkr: parseInt(d.priceLkr, 10) || 0,
         priceUsd: parseInt(d.priceUsd, 10) || 0,
+        priceLkrYear: parseInt(d.priceLkrYear, 10) || 0,
+        priceUsdYear: parseInt(d.priceUsdYear, 10) || 0,
         features: [...d.features],
         highlights: d.highlights.split('\n').map((h) => h.trim()).filter(Boolean),
         visible: d.visible,
@@ -112,12 +117,20 @@ export function PlansAdminPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Price USD /mo</label>
+                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">USD /mo</label>
                       <input type="number" min="0" className={input} value={d.priceUsd} onChange={(e) => patch(p.code, { priceUsd: e.target.value })} />
                     </div>
                     <div>
-                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Price LKR /mo</label>
+                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">LKR /mo</label>
                       <input type="number" min="0" className={input} value={d.priceLkr} onChange={(e) => patch(p.code, { priceLkr: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">USD /yr</label>
+                      <input type="number" min="0" className={input} value={d.priceUsdYear} onChange={(e) => patch(p.code, { priceUsdYear: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">LKR /yr</label>
+                      <input type="number" min="0" className={input} value={d.priceLkrYear} onChange={(e) => patch(p.code, { priceLkrYear: e.target.value })} />
                     </div>
                   </div>
 

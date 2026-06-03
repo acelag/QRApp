@@ -21,6 +21,7 @@ export function BillingPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<PlanCode | null>(null);
+  const [interval, setInterval] = useState<'month' | 'year'>('month');
 
   useEffect(() => {
     Promise.all([subscriptionService.getMine(), subscriptionService.getPlans()])
@@ -32,7 +33,7 @@ export function BillingPage() {
   async function choose(plan: PlanCode) {
     setBusy(plan);
     try {
-      const { url } = await subscriptionService.checkout(plan, '/admin/billing');
+      const { url } = await subscriptionService.checkout(plan, '/admin/billing', interval);
       window.location.href = url; // mock checkout (or real gateway later)
     } catch {
       setBusy(null);
@@ -85,6 +86,14 @@ export function BillingPage() {
                 )}
               </div>
 
+              {/* Interval toggle */}
+              <div className="flex justify-center">
+                <div className="inline-flex bg-gray-100 rounded-full p-1 text-sm font-medium">
+                  <button onClick={() => setInterval('month')} className={`px-4 py-1.5 rounded-full transition-colors ${interval === 'month' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>Monthly</button>
+                  <button onClick={() => setInterval('year')} className={`px-4 py-1.5 rounded-full transition-colors ${interval === 'year' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>Annual</button>
+                </div>
+              </div>
+
               {/* Plans */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {plans.map((p) => {
@@ -94,9 +103,13 @@ export function BillingPage() {
                       <h3 className="font-bold text-gray-900">{p.name}</h3>
                       <p className="text-xs text-gray-500 mt-0.5 min-h-[2rem]">{p.tagline}</p>
                       <div className="mt-2 mb-3">
-                        {p.priceUsd === 0
-                          ? <span className="text-2xl font-extrabold">Free</span>
-                          : <><span className="text-2xl font-extrabold">${p.priceUsd}</span><span className="text-gray-400 text-sm">/mo · Rs.{p.priceLkr.toLocaleString()}</span></>}
+                        {p.priceUsd === 0 && p.priceLkr === 0 ? (
+                          <span className="text-2xl font-extrabold">Free</span>
+                        ) : interval === 'year' ? (
+                          <><span className="text-2xl font-extrabold">${p.priceUsdYear.toLocaleString()}</span><span className="text-gray-400 text-sm">/yr · Rs.{p.priceLkrYear.toLocaleString()}</span></>
+                        ) : (
+                          <><span className="text-2xl font-extrabold">${p.priceUsd}</span><span className="text-gray-400 text-sm">/mo · Rs.{p.priceLkr.toLocaleString()}</span></>
+                        )}
                       </div>
                       {isCurrent ? (
                         <button disabled className="w-full py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-400">Current plan</button>

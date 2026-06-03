@@ -14,6 +14,10 @@ export interface Plan {
   priceLkr: number;
   /** Monthly price in US Dollars (0 = free). */
   priceUsd: number;
+  /** Annual price in Sri Lankan Rupees (0 = no annual option). */
+  priceLkrYear: number;
+  /** Annual price in US Dollars (0 = no annual option). */
+  priceUsdYear: number;
   tagline: string;
   /** Feature keys unlocked on this plan. */
   features: FeatureKey[];
@@ -42,6 +46,8 @@ export const DEFAULT_PLANS: Plan[] = [
     name: 'Free',
     priceLkr: 0,
     priceUsd: 0,
+    priceLkrYear: 0,
+    priceUsdYear: 0,
     tagline: 'QR menu & ordering to get started',
     features: [],
     highlights: [
@@ -58,6 +64,8 @@ export const DEFAULT_PLANS: Plan[] = [
     name: 'Starter',
     priceLkr: 2500,
     priceUsd: 19,
+    priceLkrYear: 25000,
+    priceUsdYear: 190,
     tagline: 'Everything a busy restaurant needs day-to-day',
     features: ['bills', 'reports', 'promoCodes', 'tableStatus', 'readyDisplay', 'kitchenDisplay'],
     highlights: [
@@ -76,6 +84,8 @@ export const DEFAULT_PLANS: Plan[] = [
     name: 'Pro',
     priceLkr: 6000,
     priceUsd: 49,
+    priceLkrYear: 60000,
+    priceUsdYear: 490,
     tagline: 'The full suite for multi-area operations',
     features: ['combos', 'menuSchedules', 'roomCharges', 'promoCodes', 'reports', 'roster', 'shiftReport', 'staffPerformance', 'tableStatus', 'readyDisplay', 'kitchenDisplay', 'bills'],
     highlights: [

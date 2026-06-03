@@ -5,11 +5,15 @@ const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 export type PlanCode = 'free' | 'starter' | 'pro';
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
 
+export type BillingInterval = 'month' | 'year';
+
 export interface Plan {
   code: PlanCode;
   name: string;
   priceLkr: number;
   priceUsd: number;
+  priceLkrYear: number;
+  priceUsdYear: number;
   tagline: string;
   features: string[];
   highlights: string[];
@@ -22,6 +26,8 @@ export interface PlanPatch {
   tagline?: string;
   priceLkr?: number;
   priceUsd?: number;
+  priceLkrYear?: number;
+  priceUsdYear?: number;
   features?: string[];
   highlights?: string[];
   visible?: boolean;
@@ -54,8 +60,8 @@ export const subscriptionService = {
     axios.get<MySubscription | null>(`${BASE}/subscription`).then((r) => r.data),
 
   /** Start a checkout for a paid plan; returns a redirect URL. */
-  checkout: (plan: PlanCode, returnUrl: string): Promise<{ url: string; externalId?: string }> =>
-    axios.post<{ url: string; externalId?: string }>(`${BASE}/subscription/checkout`, { plan, returnUrl }).then((r) => r.data),
+  checkout: (plan: PlanCode, returnUrl: string, interval: BillingInterval = 'month'): Promise<{ url: string; externalId?: string }> =>
+    axios.post<{ url: string; externalId?: string }>(`${BASE}/subscription/checkout`, { plan, returnUrl, interval }).then((r) => r.data),
 
   /** Super-admin override of a restaurant's plan/status. */
   adminSet: (restaurantId: string, plan: PlanCode, status: SubscriptionStatus, trialDays?: number) =>

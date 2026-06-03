@@ -3,10 +3,14 @@ import type { PlanCode } from '../plans';
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
 
+export type BillingInterval = 'month' | 'year';
+
 export interface CheckoutParams {
   restaurantId: string;
   planCode: PlanCode;
   customerEmail: string;
+  /** Monthly or annual billing. */
+  interval: BillingInterval;
   /** Where to send the customer after a successful/cancelled checkout. */
   returnUrl: string;
 }

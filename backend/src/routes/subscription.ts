@@ -121,9 +121,10 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 router.post('/checkout', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   const restaurantId = req.user!.restaurantId;
   if (!restaurantId) { res.status(400).json({ error: 'No restaurant' }); return; }
-  const { plan, returnUrl } = req.body as { plan?: string; returnUrl?: string };
+  const { plan, returnUrl, interval } = req.body as { plan?: string; returnUrl?: string; interval?: string };
   if (!isPlanCode(plan)) { res.status(400).json({ error: 'Invalid plan' }); return; }
   if (plan === 'free') { res.status(400).json({ error: 'Free plan needs no checkout' }); return; }
+  const billingInterval = interval === 'year' ? 'year' : 'month';
 
   // Use the signed-in admin's username as the billing contact (usernames are
   // emails in this app); the provider can collect a proper email at checkout.
@@ -135,6 +136,7 @@ router.post('/checkout', authenticate, requireRole('admin'), async (req: AuthReq
       restaurantId,
       planCode: plan,
       customerEmail,
+      interval: billingInterval,
       returnUrl: returnUrl ?? '/admin/settings',
     });
     res.json(result);

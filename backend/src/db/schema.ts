@@ -259,6 +259,9 @@ export async function createSchema(): Promise<void> {
       visible     BOOLEAN       NOT NULL DEFAULT TRUE
     );
   `);
+  // Annual pricing (added after initial release; 0 = derive/none)
+  await addCol('plans', 'price_lkr_year', 'INTEGER NOT NULL DEFAULT 0');
+  await addCol('plans', 'price_usd_year', 'INTEGER NOT NULL DEFAULT 0');
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS subscription_events (
