@@ -2,12 +2,22 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Pencil, Check, X, Store, LogOut,
-  ChevronDown, ChevronUp, LogIn, Users, Sliders,
+  ChevronDown, ChevronUp, LogIn, Users, Sliders, CreditCard,
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import type { RestaurantFeatures } from '../../context/AuthContext';
+import { subscriptionService, daysUntil, type PlanCode, type SubscriptionStatus } from '../../services/subscriptionService';
+
+const PLAN_CODES: PlanCode[] = ['free', 'starter', 'pro'];
+const STATUSES: SubscriptionStatus[] = ['trialing', 'active', 'past_due', 'canceled'];
+const SUB_BADGE: Record<string, string> = {
+  trialing: 'bg-blue-100 text-blue-700',
+  active:   'bg-green-100 text-green-700',
+  past_due: 'bg-amber-100 text-amber-700',
+  canceled: 'bg-red-100 text-red-600',
+};
 
 const FEATURE_LABELS: { key: keyof RestaurantFeatures; label: string; description: string }[] = [
   { key: 'combos',          label: 'Combo Deals',       description: 'Bundle menu items into combo packages' },
@@ -37,6 +47,10 @@ interface Restaurant {
   active: boolean;
   createdAt: string;
   features?: RestaurantFeatures;
+  plan?: PlanCode;
+  subscriptionStatus?: SubscriptionStatus;
+  trialEndsAt?: string | null;
+  currentPeriodEnd?: string | null;
 }
 
 interface RestaurantUser {
@@ -77,6 +91,36 @@ export function RestaurantsPage() {
   // features panel
   const [featuresOpenId, setFeaturesOpenId] = useState<string | null>(null);
   const [togglingFeature, setTogglingFeature] = useState<string | null>(null);
+  // billing panel
+  const [billingOpenId, setBillingOpenId] = useState<string | null>(null);
+  const [billingDraft, setBillingDraft] = useState<{ plan: PlanCode; status: SubscriptionStatus; trialDays: string }>({ plan: 'pro', status: 'active', trialDays: '14' });
+  const [savingBilling, setSavingBilling] = useState(false);
+
+  function openBilling(r: Restaurant) {
+    if (billingOpenId === r.id) { setBillingOpenId(null); return; }
+    setBillingDraft({
+      plan: r.plan ?? 'pro',
+      status: r.subscriptionStatus ?? 'active',
+      trialDays: '14',
+    });
+    setBillingOpenId(r.id);
+  }
+
+  async function saveBilling(r: Restaurant) {
+    setSavingBilling(true);
+    try {
+      await subscriptionService.adminSet(r.id, billingDraft.plan, billingDraft.status, parseInt(billingDraft.trialDays, 10) || undefined);
+      // Reflect changes locally (active follows trialing/active).
+      const active = billingDraft.status === 'trialing' || billingDraft.status === 'active';
+      setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, plan: billingDraft.plan, subscriptionStatus: billingDraft.status, active } : x));
+      toast.success('Subscription updated');
+      setBillingOpenId(null);
+    } catch {
+      toast.error('Failed to update subscription');
+    } finally {
+      setSavingBilling(false);
+    }
+  }
 
   const [form, setForm] = useState<CreatePayload>({
     name: '', adminUsername: '', adminPassword: '', adminName: '',
@@ -296,6 +340,17 @@ export function RestaurantsPage() {
                         )}
                       </p>
                     )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                        {r.plan ?? 'pro'}
+                      </span>
+                      {r.subscriptionStatus && (
+                        <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${SUB_BADGE[r.subscriptionStatus] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {r.subscriptionStatus.replace('_', ' ')}
+                          {r.subscriptionStatus === 'trialing' && r.trialEndsAt ? ` · ${daysUntil(r.trialEndsAt)}d` : ''}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400 mt-0.5 font-mono select-all">{r.id}</p>
                   </div>
 
@@ -327,6 +382,15 @@ export function RestaurantsPage() {
                       title="Manage features"
                     >
                       <Sliders size={16} />
+                    </button>
+
+                    {/* Billing toggle */}
+                    <button
+                      onClick={() => openBilling(r)}
+                      className={`transition-colors ${billingOpenId === r.id ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`}
+                      title="Manage subscription"
+                    >
+                      <CreditCard size={16} />
                     </button>
 
                     {/* Expand users */}
@@ -393,6 +457,60 @@ export function RestaurantsPage() {
                         ))}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* ── Billing panel ── */}
+                {billingOpenId === r.id && (
+                  <div className="border-t border-gray-100 px-4 pb-4 pt-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CreditCard size={13} className="text-green-600" />
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Subscription</p>
+                      <span className="ml-auto text-xs text-gray-400">Override plan &amp; status</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Plan</label>
+                        <select
+                          value={billingDraft.plan}
+                          onChange={(e) => setBillingDraft((d) => ({ ...d, plan: e.target.value as PlanCode }))}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-green-300 bg-white capitalize"
+                        >
+                          {PLAN_CODES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Status</label>
+                        <select
+                          value={billingDraft.status}
+                          onChange={(e) => setBillingDraft((d) => ({ ...d, status: e.target.value as SubscriptionStatus }))}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-green-300 bg-white capitalize"
+                        >
+                          {STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Trial days</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={billingDraft.trialDays}
+                          onChange={(e) => setBillingDraft((d) => ({ ...d, trialDays: e.target.value }))}
+                          disabled={billingDraft.status !== 'trialing'}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-green-300 disabled:bg-gray-50 disabled:text-gray-300"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-3">
+                      <button onClick={() => setBillingOpenId(null)} className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg">Cancel</button>
+                      <button
+                        onClick={() => saveBilling(r)}
+                        disabled={savingBilling}
+                        className="px-4 py-1.5 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
+                      >
+                        {savingBilling ? 'Saving…' : 'Save'}
+                      </button>
+                    </div>
                   </div>
                 )}
 

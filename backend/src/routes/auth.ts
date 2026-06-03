@@ -22,8 +22,13 @@ router.post('/login', async (req, res) => {
   if (!valid) { res.status(401).json({ error: 'Invalid username or password' }); return; }
 
   if (user.role !== 'super_admin' && user.restaurant_id) {
-    const rCheck = await pool.query('SELECT active FROM restaurants WHERE id = $1', [user.restaurant_id]);
-    if (rCheck.rows[0]?.active === false) {
+    const rCheck = await pool.query('SELECT active, subscription_status FROM restaurants WHERE id = $1', [user.restaurant_id]);
+    const r = rCheck.rows[0] as { active?: boolean; subscription_status?: string } | undefined;
+    // Billing-related deactivation (trial expired / canceled / past_due) still
+    // allows login so the admin can reach the billing page to reactivate.
+    // A manual super_admin deactivation (active=false, status still active) stays blocked.
+    const billingReason = r?.subscription_status === 'canceled' || r?.subscription_status === 'past_due';
+    if (r?.active === false && !billingReason) {
       res.status(403).json({ error: 'This restaurant account has been deactivated.' }); return;
     }
   }
