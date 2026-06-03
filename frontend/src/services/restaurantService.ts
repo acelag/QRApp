@@ -20,6 +20,12 @@ export interface RestaurantSettings {
   facebookUrl?: string | null;
   instagramUrl?: string | null;
   welcomeImageUrl?: string | null;
+  tiktokUrl?: string | null;
+  whatsappUrl?: string | null;
+  youtubeUrl?: string | null;
+  twitterUrl?: string | null;
+  welcomeHeading?: string | null;
+  welcomeTagline?: string | null;
   receiptPrinterIp?:   string | null;
   receiptPrinterPort?: number;
   kitchenPrinterIp?:   string | null;
@@ -27,6 +33,38 @@ export interface RestaurantSettings {
   printerType?:        'epson' | 'star';
   autoPrintKitchen?:   boolean;
   autoPrintReceipt?:   boolean;
+}
+
+/** Public restaurant info used by customer-facing pages (welcome screen, menus). */
+export interface RestaurantInfo {
+  name: string;
+  logo: string | null;
+  themeColor: string | null;
+  waitTimeMin: number | null;
+  roomServiceOpen: string | null;
+  roomServiceClose: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  welcomeImageUrl: string | null;
+  tiktokUrl: string | null;
+  whatsappUrl: string | null;
+  youtubeUrl: string | null;
+  twitterUrl: string | null;
+  welcomeHeading: string | null;
+  welcomeTagline: string | null;
+}
+
+/** Fields the admin can edit in the welcome-screen / social design area. */
+export interface SocialSettings {
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  welcomeImageUrl: string | null;
+  tiktokUrl: string | null;
+  whatsappUrl: string | null;
+  youtubeUrl: string | null;
+  twitterUrl: string | null;
+  welcomeHeading: string | null;
+  welcomeTagline: string | null;
 }
 
 export interface BillingCharges {
@@ -95,9 +133,9 @@ export const restaurantService = {
   getRestaurantCurrency: (id: string): Promise<string> =>
     axios.get<{ currency: string }>(`${BASE}/restaurants/${id}/currency`).then((r) => r.data.currency),
 
-  /** Public — no auth required. Returns name, logo, themeColor, waitTimeMin, room-service hours, and social links for a restaurant. */
-  getRestaurantInfo: (id: string): Promise<{ name: string; logo: string | null; themeColor: string | null; waitTimeMin: number | null; roomServiceOpen: string | null; roomServiceClose: string | null; facebookUrl: string | null; instagramUrl: string | null; welcomeImageUrl: string | null }> =>
-    axios.get<{ name: string; logo: string | null; themeColor: string | null; waitTimeMin: number | null; roomServiceOpen: string | null; roomServiceClose: string | null; facebookUrl: string | null; instagramUrl: string | null; welcomeImageUrl: string | null }>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
+  /** Public — no auth required. Returns name, logo, theme, wait time, room-service hours, social links, and welcome-screen content for a restaurant. */
+  getRestaurantInfo: (id: string): Promise<RestaurantInfo> =>
+    axios.get<RestaurantInfo>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
 
   updateCharges: (id: string, charges: BillingCharges) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/charges`, charges).then((r) => r.data),
@@ -117,8 +155,8 @@ export const restaurantService = {
   updateRoomServiceHours: (id: string, roomServiceOpen: string | null, roomServiceClose: string | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/room-service-hours`, { roomServiceOpen, roomServiceClose }).then((r) => r.data),
 
-  updateSocial: (id: string, facebookUrl: string | null, instagramUrl: string | null, welcomeImageUrl: string | null) =>
-    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/social`, { facebookUrl, instagramUrl, welcomeImageUrl }).then((r) => r.data),
+  updateSocial: (id: string, social: SocialSettings) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/social`, social).then((r) => r.data),
 
   updatePrinter: (id: string, payload: {
     receiptPrinterIp: string | null; receiptPrinterPort: number;

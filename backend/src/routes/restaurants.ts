@@ -42,6 +42,15 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
   roomServiceOpen:  (row.room_service_open  as string | null) ?? null,
   roomServiceClose: (row.room_service_close as string | null) ?? null,
+  facebookUrl:     (row.facebook_url      as string | null) ?? null,
+  instagramUrl:    (row.instagram_url     as string | null) ?? null,
+  welcomeImageUrl: (row.welcome_image_url as string | null) ?? null,
+  tiktokUrl:       (row.tiktok_url        as string | null) ?? null,
+  whatsappUrl:     (row.whatsapp_url      as string | null) ?? null,
+  youtubeUrl:      (row.youtube_url       as string | null) ?? null,
+  twitterUrl:      (row.twitter_url       as string | null) ?? null,
+  welcomeHeading:  (row.welcome_heading   as string | null) ?? null,
+  welcomeTagline:  (row.welcome_tagline   as string | null) ?? null,
   receiptPrinterIp:   (row.receipt_printer_ip   as string | null) ?? null,
   receiptPrinterPort: row.receipt_printer_port != null ? Number(row.receipt_printer_port) : 9100,
   kitchenPrinterIp:   (row.kitchen_printer_ip   as string | null) ?? null,
@@ -62,7 +71,7 @@ router.get('/:id/currency', async (req, res) => {
 
 router.get('/:id/info', async (req, res) => {
   const result = await pool.query(
-    'SELECT name, logo, theme_color, wait_time_min, room_service_open, room_service_close, facebook_url, instagram_url, welcome_image_url FROM restaurants WHERE id = $1',
+    'SELECT name, logo, theme_color, wait_time_min, room_service_open, room_service_close, facebook_url, instagram_url, welcome_image_url, tiktok_url, whatsapp_url, youtube_url, twitter_url, welcome_heading, welcome_tagline FROM restaurants WHERE id = $1',
     [req.params.id],
   );
   if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
@@ -77,6 +86,12 @@ router.get('/:id/info', async (req, res) => {
     facebookUrl:     (row.facebook_url      as string | null) ?? null,
     instagramUrl:    (row.instagram_url     as string | null) ?? null,
     welcomeImageUrl: (row.welcome_image_url as string | null) ?? null,
+    tiktokUrl:       (row.tiktok_url        as string | null) ?? null,
+    whatsappUrl:     (row.whatsapp_url      as string | null) ?? null,
+    youtubeUrl:      (row.youtube_url       as string | null) ?? null,
+    twitterUrl:      (row.twitter_url       as string | null) ?? null,
+    welcomeHeading:  (row.welcome_heading   as string | null) ?? null,
+    welcomeTagline:  (row.welcome_tagline   as string | null) ?? null,
   });
 });
 
@@ -207,10 +222,28 @@ router.patch('/:id/room-service-hours', authenticate, requireRole('admin', 'mana
 router.patch('/:id/social', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
-  const { facebookUrl, instagramUrl, welcomeImageUrl } = req.body as { facebookUrl?: string | null; instagramUrl?: string | null; welcomeImageUrl?: string | null };
+  const {
+    facebookUrl, instagramUrl, welcomeImageUrl,
+    tiktokUrl, whatsappUrl, youtubeUrl, twitterUrl,
+    welcomeHeading, welcomeTagline,
+  } = req.body as {
+    facebookUrl?: string | null; instagramUrl?: string | null; welcomeImageUrl?: string | null;
+    tiktokUrl?: string | null; whatsappUrl?: string | null; youtubeUrl?: string | null; twitterUrl?: string | null;
+    welcomeHeading?: string | null; welcomeTagline?: string | null;
+  };
+  const clip = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
   await pool.query(
-    'UPDATE restaurants SET facebook_url = $1, instagram_url = $2, welcome_image_url = $3 WHERE id = $4',
-    [facebookUrl ?? null, instagramUrl ?? null, welcomeImageUrl ?? null, id],
+    `UPDATE restaurants SET
+       facebook_url = $1, instagram_url = $2, welcome_image_url = $3,
+       tiktok_url = $4, whatsapp_url = $5, youtube_url = $6, twitter_url = $7,
+       welcome_heading = $8, welcome_tagline = $9
+     WHERE id = $10`,
+    [
+      clip(facebookUrl, 500), clip(instagramUrl, 500), clip(welcomeImageUrl, 500),
+      clip(tiktokUrl, 500), clip(whatsappUrl, 500), clip(youtubeUrl, 500), clip(twitterUrl, 500),
+      clip(welcomeHeading, 120), clip(welcomeTagline, 200),
+      id,
+    ],
   );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));

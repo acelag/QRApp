@@ -12,6 +12,7 @@ import { printService } from '../../services/printService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { applyTheme } from '../../context/ThemeContext';
+import { WelcomeScreen } from '../../components/WelcomeScreen';
 
 type TabId = 'account' | 'restaurant' | 'operations' | 'content' | 'printers';
 
@@ -93,7 +94,14 @@ export function SettingsPage() {
   // ── Content state ──────────────────────────────────────────────────────────
   const [facebookUrl, setFacebookUrl] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
+  const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [twitterUrl, setTwitterUrl] = useState('');
   const [welcomeImageUrl, setWelcomeImageUrl] = useState('');
+  const [welcomeHeading, setWelcomeHeading] = useState('');
+  const [welcomeTagline, setWelcomeTagline] = useState('');
+  const [heroUploading, setHeroUploading] = useState(false);
   const [socialSaving, setSocialSaving] = useState(false);
   const [socialSuccess, setSocialSuccess] = useState(false);
 
@@ -128,7 +136,13 @@ export function SettingsPage() {
       }
       setFacebookUrl(r.facebookUrl ?? '');
       setInstagramUrl(r.instagramUrl ?? '');
+      setTiktokUrl(r.tiktokUrl ?? '');
+      setWhatsappUrl(r.whatsappUrl ?? '');
+      setYoutubeUrl(r.youtubeUrl ?? '');
+      setTwitterUrl(r.twitterUrl ?? '');
       setWelcomeImageUrl(r.welcomeImageUrl ?? '');
+      setWelcomeHeading(r.welcomeHeading ?? '');
+      setWelcomeTagline(r.welcomeTagline ?? '');
       setReceiptPrinterIp(r.receiptPrinterIp ?? '');
       setReceiptPrinterPort(String(r.receiptPrinterPort ?? 9100));
       setKitchenPrinterIp(r.kitchenPrinterIp ?? '');
@@ -217,17 +231,37 @@ export function SettingsPage() {
     }
   }
 
+  async function handleHeroUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.[0]) return;
+    setHeroUploading(true);
+    try {
+      const url = await uploadImage(e.target.files[0]);
+      setWelcomeImageUrl(url);
+      markDirty('content');
+    } catch {
+      //
+    } finally {
+      setHeroUploading(false);
+      e.target.value = '';
+    }
+  }
+
   async function saveSocial() {
     if (!restaurant) return;
     setSocialSaving(true);
     setSocialSuccess(false);
     try {
-      const updated = await restaurantService.updateSocial(
-        restaurant.id,
-        facebookUrl.trim() || null,
-        instagramUrl.trim() || null,
-        welcomeImageUrl.trim() || null,
-      );
+      const updated = await restaurantService.updateSocial(restaurant.id, {
+        facebookUrl:     facebookUrl.trim() || null,
+        instagramUrl:    instagramUrl.trim() || null,
+        tiktokUrl:       tiktokUrl.trim() || null,
+        whatsappUrl:     whatsappUrl.trim() || null,
+        youtubeUrl:      youtubeUrl.trim() || null,
+        twitterUrl:      twitterUrl.trim() || null,
+        welcomeImageUrl: welcomeImageUrl.trim() || null,
+        welcomeHeading:  welcomeHeading.trim() || null,
+        welcomeTagline:  welcomeTagline.trim() || null,
+      });
       setRestaurant(updated);
       setSocialSuccess(true);
       markClean('content');
@@ -783,55 +817,156 @@ export function SettingsPage() {
 
   function renderContentTab() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+
+    const socialFields: { label: string; placeholder: string; value: string; set: (v: string) => void; type?: string }[] = [
+      { label: 'Facebook URL',  placeholder: 'https://facebook.com/yourpage',   value: facebookUrl,  set: setFacebookUrl },
+      { label: 'Instagram URL', placeholder: 'https://instagram.com/yourhandle', value: instagramUrl, set: setInstagramUrl },
+      { label: 'TikTok URL',    placeholder: 'https://tiktok.com/@yourhandle',   value: tiktokUrl,    set: setTiktokUrl },
+      { label: 'WhatsApp number',  placeholder: 'e.g. +1 555 123 4567 (or a wa.me link)', value: whatsappUrl,  set: setWhatsappUrl, type: 'text' },
+      { label: 'YouTube URL',   placeholder: 'https://youtube.com/@yourchannel', value: youtubeUrl,   set: setYoutubeUrl },
+      { label: 'X (Twitter) URL', placeholder: 'https://x.com/yourhandle',       value: twitterUrl,   set: setTwitterUrl },
+    ];
+
     return (
-      <div className="space-y-4 max-w-2xl">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-            <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center flex-shrink-0">
-              <Smartphone size={15} className="text-pink-500" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-800">Social Media &amp; Welcome Screen</h2>
-              <p className="text-xs text-gray-400">Links shown on the QR welcome page</p>
-            </div>
-            {socialSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
-            {socialSuccess && <CheckCircle2 size={14} className="text-green-500" />}
-          </div>
-          <div className="p-5 space-y-4">
-            {socialSuccess && (
-              <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                <CheckCircle2 size={14} /> Social &amp; welcome settings saved!
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+        {/* ── Form column ── */}
+        <div className="space-y-4 max-w-2xl">
+          {/* Welcome screen content */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                <ImagePlus size={15} className="text-orange-500" />
               </div>
-            )}
-            <Field label="Facebook URL">
-              <input
-                className={input}
-                type="url"
-                placeholder="https://facebook.com/yourpage"
-                value={facebookUrl}
-                onChange={(e) => { setFacebookUrl(e.target.value); markDirty('content'); }}
-              />
-            </Field>
-            <Field label="Instagram URL">
-              <input
-                className={input}
-                type="url"
-                placeholder="https://instagram.com/yourhandle"
-                value={instagramUrl}
-                onChange={(e) => { setInstagramUrl(e.target.value); markDirty('content'); }}
-              />
-            </Field>
-            <Field label="Welcome Screen Hero Image URL">
-              <input
-                className={input}
-                type="url"
-                placeholder="https://… (leave blank for default)"
-                value={welcomeImageUrl}
-                onChange={(e) => { setWelcomeImageUrl(e.target.value); markDirty('content'); }}
-              />
-              <p className="text-xs text-gray-400 mt-1">Custom photo shown behind the restaurant name on the QR welcome screen.</p>
-            </Field>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-800">Welcome Screen</h2>
+                <p className="text-xs text-gray-400">The landing screen customers see after scanning a QR code</p>
+              </div>
+              {socialSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
+              {socialSuccess && <CheckCircle2 size={14} className="text-green-500" />}
+            </div>
+            <div className="p-5 space-y-4">
+              {socialSuccess && (
+                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Welcome screen settings saved!
+                </div>
+              )}
+
+              {/* Hero / background image */}
+              <Field label="Background Image">
+                <div className="flex items-start gap-3">
+                  <div className="w-28 h-20 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
+                    {welcomeImageUrl
+                      ? <img src={welcomeImageUrl} alt="hero" className="w-full h-full object-cover" />
+                      : <ImagePlus size={20} className="text-gray-300" />}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex gap-2">
+                      <label className="flex items-center gap-1.5 cursor-pointer bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors">
+                        {heroUploading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+                        {heroUploading ? 'Uploading…' : 'Upload image'}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleHeroUpload} disabled={heroUploading} />
+                      </label>
+                      {welcomeImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => { setWelcomeImageUrl(''); markDirty('content'); }}
+                          className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-red-500 px-2 py-2 rounded-lg transition-colors"
+                        >
+                          <X size={13} /> Remove
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      className={input}
+                      type="url"
+                      placeholder="…or paste an image URL (leave blank for default)"
+                      value={welcomeImageUrl}
+                      onChange={(e) => { setWelcomeImageUrl(e.target.value); markDirty('content'); }}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Shown full-screen behind your logo and name. Recommended: a wide, high-quality photo.</p>
+              </Field>
+
+              <Field label="Welcome Heading">
+                <input
+                  className={input}
+                  type="text"
+                  maxLength={120}
+                  placeholder={restaurant.name}
+                  value={welcomeHeading}
+                  onChange={(e) => { setWelcomeHeading(e.target.value); markDirty('content'); }}
+                />
+                <p className="text-xs text-gray-400 mt-1">Big title on the welcome screen. Leave blank to use the restaurant name.</p>
+              </Field>
+
+              <Field label="Welcome Tagline">
+                <input
+                  className={input}
+                  type="text"
+                  maxLength={200}
+                  placeholder="e.g. Scan, browse & order — right from your table"
+                  value={welcomeTagline}
+                  onChange={(e) => { setWelcomeTagline(e.target.value); markDirty('content'); }}
+                />
+              </Field>
+            </div>
           </div>
+
+          {/* Social media links */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center flex-shrink-0">
+                <Smartphone size={15} className="text-pink-500" />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-800">Social Media Links</h2>
+                <p className="text-xs text-gray-400">Icons shown on the welcome screen — leave blank to hide</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              {socialFields.map((f) => (
+                <Field key={f.label} label={f.label}>
+                  <input
+                    className={input}
+                    type={f.type ?? 'url'}
+                    placeholder={f.placeholder}
+                    value={f.value}
+                    onChange={(e) => { f.set(e.target.value); markDirty('content'); }}
+                  />
+                </Field>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Live preview column ── */}
+        <div className="xl:sticky xl:top-4">
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <Eye size={14} className="text-gray-400" />
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Live Preview</span>
+          </div>
+          <div className="mx-auto w-[280px] h-[580px] rounded-[2.5rem] border-[10px] border-gray-900 bg-gray-900 shadow-2xl overflow-hidden relative">
+            <WelcomeScreen
+              restaurantName={restaurant.name}
+              logo={restaurant.logo}
+              themeColor={themeColor}
+              heroUrl={welcomeImageUrl || null}
+              heading={welcomeHeading}
+              tagline={welcomeTagline || 'Scan, browse & order — right from your table'}
+              subtitle="Table 5"
+              social={{
+                facebookUrl, instagramUrl, tiktokUrl,
+                whatsappUrl, youtubeUrl, twitterUrl,
+              }}
+              followUsLabel="Follow us"
+              ctaLabel="View Menu"
+              poweredByLabel="Powered by QRApp"
+              onEnter={() => {}}
+              contained
+            />
+          </div>
+          <p className="text-center text-xs text-gray-400 mt-2">Updates as you type</p>
         </div>
       </div>
     );
