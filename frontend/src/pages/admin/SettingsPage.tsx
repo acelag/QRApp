@@ -500,7 +500,7 @@ export function SettingsPage() {
   function renderRestaurantTab() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-2xl">
 
         {/* Billing */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

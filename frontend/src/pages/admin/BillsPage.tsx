@@ -271,13 +271,13 @@ export function BillsPage() {
                         className={`flex items-center justify-between px-5 py-3 border-b ${mergeSource && mergeSource.id !== session.id ? 'bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100' : 'bg-orange-50 border-orange-100'}`}
                         onClick={() => mergeSource && mergeSource.id !== session.id && handleMerge(session)}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-bold text-lg ${mergeSource && mergeSource.id !== session.id ? 'bg-blue-500' : 'bg-orange-500'}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center font-bold text-lg shrink-0 ${mergeSource && mergeSource.id !== session.id ? 'bg-blue-500' : 'bg-orange-500'}`}>
                             {session.tableNumber}
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="font-semibold text-gray-900">Table {session.tableNumber}</p>
+                              <p className="font-semibold text-gray-900 truncate">Table {session.tableNumber}</p>
                               {(session.mergedSessions ?? []).map((m) => (
                                 <span key={m.id} className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 font-semibold px-2 py-0.5 rounded-full">
                                   +{m.tableNumber}
@@ -297,8 +297,8 @@ export function BillsPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-orange-600">{fmt(session.totalAmount ?? 0)}</p>
+                        <div className="text-right shrink-0 pl-2">
+                          <p className="text-xl font-bold text-orange-600 whitespace-nowrap">{fmt(session.totalAmount ?? 0)}</p>
                           <p className="text-xs text-gray-400">
                             {(session.orders ?? []).length} order{(session.orders ?? []).length !== 1 ? 's' : ''}
                           </p>
@@ -368,24 +368,24 @@ export function BillsPage() {
                       )}
 
                       <div className="px-5 py-4 space-y-2">
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="grid grid-cols-3 gap-2">
                           <button
                             onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
                             disabled={(session.billItems ?? []).length === 0}
-                            className="flex items-center justify-center gap-1.5 border border-gray-200 text-gray-600 font-semibold py-2.5 px-3 rounded-2xl hover:bg-gray-50 transition-colors disabled:opacity-40 text-sm"
+                            className="flex items-center justify-center gap-1.5 border border-gray-200 text-gray-600 font-semibold py-2.5 px-2 rounded-2xl hover:bg-gray-50 transition-colors disabled:opacity-40 text-sm"
                           >
                             <Printer size={15} /> Print
                           </button>
                           <button
                             onClick={() => setSplitSession(session)}
                             disabled={(session.billItems ?? []).length === 0}
-                            className="flex items-center justify-center gap-1.5 border border-orange-200 text-orange-600 bg-orange-50 font-semibold py-2.5 px-3 rounded-2xl hover:bg-orange-100 transition-colors disabled:opacity-40 text-sm"
+                            className="flex items-center justify-center gap-1.5 border border-orange-200 text-orange-600 bg-orange-50 font-semibold py-2.5 px-2 rounded-2xl hover:bg-orange-100 transition-colors disabled:opacity-40 text-sm"
                           >
                             <Users size={15} /> Split
                           </button>
                           <button
                             onClick={() => setMergeSource(mergeSource?.id === session.id ? null : session)}
-                            className={`flex items-center justify-center gap-1.5 border font-semibold py-2.5 px-3 rounded-2xl transition-colors text-sm ${
+                            className={`flex items-center justify-center gap-1.5 border font-semibold py-2.5 px-2 rounded-2xl transition-colors text-sm ${
                               mergeSource?.id === session.id
                                 ? 'bg-blue-500 border-blue-500 text-white'
                                 : 'border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100'
@@ -394,15 +394,15 @@ export function BillsPage() {
                           >
                             <GitMerge size={15} /> {mergeSource?.id === session.id ? 'Cancel' : 'Merge'}
                           </button>
-                          <button
-                            onClick={() => setPaymentTarget({ type: 'session', session })}
-                            disabled={paying === session.id || (session.billItems ?? []).length === 0}
-                            className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
-                          >
-                            {paying === session.id ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-                            {paying === session.id ? 'Processing…' : 'Mark as Paid'}
-                          </button>
                         </div>
+                        <button
+                          onClick={() => setPaymentTarget({ type: 'session', session })}
+                          disabled={paying === session.id || (session.billItems ?? []).length === 0}
+                          className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
+                        >
+                          {paying === session.id ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                          {paying === session.id ? 'Processing…' : 'Mark as Paid'}
+                        </button>
                         {(session.billItems ?? []).length === 0 && (
                           <p className="text-center text-xs text-gray-400">No orders placed yet</p>
                         )}
@@ -424,21 +424,21 @@ export function BillsPage() {
                     const refundedAmt = refundedBySession[session.id] ?? 0;
                     return (
                       <div key={session.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-bold">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-bold shrink-0">
                               {session.tableNumber}
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-700 text-sm">Table {session.tableNumber}</p>
-                              <p className="text-xs text-gray-400">
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-700 text-sm truncate">Table {session.tableNumber}</p>
+                              <p className="text-xs text-gray-400 whitespace-nowrap">
                                 {session.closedAt ? `Paid at ${new Date(session.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Paid'}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
-                              <p className="font-bold text-gray-700">{fmt(session.totalAmount ?? 0)}</p>
+                              <p className="font-bold text-gray-700 whitespace-nowrap">{fmt(session.totalAmount ?? 0)}</p>
                               <div className="flex items-center gap-1 justify-end mt-0.5 flex-wrap">
                                 {session.paymentMethod && (
                                   <span className="text-xs text-gray-500">
@@ -518,11 +518,11 @@ export function BillsPage() {
                             : 'bg-green-100 text-green-700'
                           }`}>{order.status}</span>
                         </div>
-                        <div className="flex items-end justify-between mt-2.5">
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Clock size={11} /> {elapsed(order.createdAt)} ago
+                        <div className="flex items-end justify-between gap-2 mt-2.5">
+                          <span className="text-xs text-gray-400 flex items-center gap-1 min-w-0">
+                            <Clock size={11} className="shrink-0" /> <span className="truncate">{elapsed(order.createdAt)} ago</span>
                           </span>
-                          <span className="text-2xl font-extrabold text-purple-600 leading-none tabular-nums">{fmt(order.totalAmount)}</span>
+                          <span className="text-2xl font-extrabold text-purple-600 leading-none tabular-nums whitespace-nowrap shrink-0">{fmt(order.totalAmount)}</span>
                         </div>
                       </div>
 
@@ -594,24 +594,24 @@ export function BillsPage() {
                     const refundedAmt = refundedByOrder[order.id] ?? 0;
                     return (
                       <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center shrink-0">
                               <ShoppingBag size={16} />
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-700 text-sm">
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-700 text-sm truncate">
                                 {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
                               </p>
-                              {order.customerName && <p className="text-xs text-gray-400">{order.customerName}</p>}
-                              <p className="text-xs text-gray-400">
+                              {order.customerName && <p className="text-xs text-gray-400 truncate">{order.customerName}</p>}
+                              <p className="text-xs text-gray-400 whitespace-nowrap">
                                 {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
-                              <p className="font-bold text-gray-700">{fmt(order.totalAmount)}</p>
+                              <p className="font-bold text-gray-700 whitespace-nowrap">{fmt(order.totalAmount)}</p>
                               <div className="flex items-center gap-1 justify-end mt-0.5 flex-wrap">
                                 {order.paymentMethod && (
                                   <span className="text-xs text-gray-500">
