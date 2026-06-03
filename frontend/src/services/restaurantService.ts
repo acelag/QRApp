@@ -15,6 +15,7 @@ export interface RestaurantSettings {
   themeColor?: string | null;
   orderNumberPrefix?: string;
   waitTimeMin?: number | null;
+  timezone?: string;
   roomServiceOpen?: string | null;
   roomServiceClose?: string | null;
   facebookUrl?: string | null;
@@ -151,6 +152,9 @@ export const restaurantService = {
 
   updateWaitTime: (id: string, waitTimeMin: number | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/wait-time`, { waitTimeMin }).then((r) => r.data),
+
+  updateTimezone: (id: string, timezone: string) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/timezone`, { timezone }).then((r) => r.data),
 
   updateRoomServiceHours: (id: string, roomServiceOpen: string | null, roomServiceClose: string | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/room-service-hours`, { roomServiceOpen, roomServiceClose }).then((r) => r.data),

@@ -27,6 +27,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const input = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors";
 
+// Full IANA timezone list when the runtime supports it, else a sensible subset.
+const TIMEZONES: string[] = (() => {
+  try {
+    const v = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.('timeZone');
+    if (Array.isArray(v) && v.length) return v;
+  } catch { /* ignore */ }
+  return ['UTC', 'Asia/Colombo', 'Asia/Kolkata', 'Asia/Dubai', 'Asia/Singapore', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Australia/Sydney'];
+})();
+
 const TABS: { id: TabId; label: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
   { id: 'account',     label: 'Account',     Icon: User },
   { id: 'restaurant',  label: 'Restaurant',  Icon: Store },
@@ -85,6 +94,8 @@ export function SettingsPage() {
   // ── Operations state ───────────────────────────────────────────────────────
   const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
   const [waitTimeSaving, setWaitTimeSaving] = useState(false);
+  const [timezone, setTimezone] = useState('UTC');
+  const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [rsOpen, setRsOpen]   = useState('');
   const [rsClose, setRsClose] = useState('');
   const [rsEnabled, setRsEnabled] = useState(false);
@@ -129,6 +140,7 @@ export function SettingsPage() {
       setThemeColor(r.themeColor ?? '#f97316');
       setOrderPrefix(r.orderNumberPrefix ?? 'ORD');
       setWaitTimeMin(r.waitTimeMin ?? null);
+      setTimezone(r.timezone ?? 'UTC');
       if (r.roomServiceOpen && r.roomServiceClose) {
         setRsEnabled(true);
         setRsOpen(r.roomServiceOpen);
@@ -212,6 +224,20 @@ export function SettingsPage() {
       setWaitTimeMin(updated.waitTimeMin ?? null);
     } finally {
       setWaitTimeSaving(false);
+    }
+  }
+
+  async function saveTimezone(tz: string) {
+    if (!restaurant) return;
+    setTimezone(tz);
+    setTimezoneSaving(true);
+    try {
+      const updated = await restaurantService.updateTimezone(restaurant.id, tz);
+      setRestaurant(updated);
+    } catch {
+      import('react-hot-toast').then(({ default: toast }) => toast.error('Failed to update timezone'));
+    } finally {
+      setTimezoneSaving(false);
     }
   }
 
@@ -681,6 +707,33 @@ export function SettingsPage() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
     return (
       <div className="space-y-4 max-w-2xl">
+
+        {/* Timezone */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Clock size={15} className="text-blue-500" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-semibold text-gray-800">Timezone</h2>
+              <p className="text-xs text-gray-400">Used for reservations &amp; date-based reports</p>
+            </div>
+            {timezoneSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
+          </div>
+          <div className="p-5">
+            <select
+              value={timezone}
+              onChange={(e) => saveTimezone(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors"
+            >
+              {!TIMEZONES.includes(timezone) && <option value={timezone}>{timezone}</option>}
+              {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+            </select>
+            <p className="text-xs text-gray-400 mt-2">
+              Current local time: {new Date().toLocaleString([], { timeZone: timezone, hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+            </p>
+          </div>
+        </div>
 
         {/* Estimated Wait Time */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

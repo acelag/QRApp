@@ -21,6 +21,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   themeColor: (row.theme_color as string | null) ?? '#f97316',
   orderNumberPrefix: (row.order_number_prefix as string | null) ?? 'ORD',
   waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
+  timezone: (row.timezone as string | null) ?? 'UTC',
   roomServiceOpen:  (row.room_service_open  as string | null) ?? null,
   roomServiceClose: (row.room_service_close as string | null) ?? null,
   facebookUrl:     (row.facebook_url      as string | null) ?? null,
@@ -188,6 +189,19 @@ router.patch('/:id/wait-time', authenticate, requireRole('admin', 'manager', 'ki
   const { waitTimeMin } = req.body as { waitTimeMin: number | null };
   const safe = waitTimeMin == null ? null : Math.max(1, Math.min(180, Math.round(Number(waitTimeMin))));
   await pool.query('UPDATE restaurants SET wait_time_min = $1 WHERE id = $2', [safe, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/timezone', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { timezone } = req.body as { timezone?: string };
+  // Validate against the runtime's IANA zone list.
+  let valid = false;
+  try { Intl.DateTimeFormat(undefined, { timeZone: timezone }); valid = !!timezone; } catch { valid = false; }
+  if (!valid) { res.status(400).json({ error: 'Invalid timezone' }); return; }
+  await pool.query('UPDATE restaurants SET timezone = $1 WHERE id = $2', [timezone, id]);
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });

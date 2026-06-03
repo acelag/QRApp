@@ -40,9 +40,15 @@ router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter
   const params: unknown[] = [req.user!.restaurantId];
   let where = 'WHERE r.restaurant_id = $1';
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    params.push(date);
-    // reserved_at is stored as ISO text — cast it to timestamptz for the range compare.
-    where += ` AND r.reserved_at::timestamptz >= $${params.length}::timestamptz AND r.reserved_at::timestamptz < ($${params.length}::timestamptz + interval '1 day')`;
+    // Resolve the restaurant's timezone so "the day" is its local calendar day,
+    // not the server's (UTC). `timestamp AT TIME ZONE tz` => the UTC instant of
+    // that wall-clock time in tz.
+    const tzRes = await pool.query('SELECT timezone FROM restaurants WHERE id = $1', [req.user!.restaurantId]);
+    const tz = (tzRes.rows[0] as { timezone?: string } | undefined)?.timezone || 'UTC';
+    params.push(date); const dIdx = params.length;
+    params.push(tz);   const tzIdx = params.length;
+    where += ` AND r.reserved_at::timestamptz >= ($${dIdx}::timestamp AT TIME ZONE $${tzIdx})`
+           + ` AND r.reserved_at::timestamptz <  (($${dIdx}::timestamp + interval '1 day') AT TIME ZONE $${tzIdx})`;
   }
   if (status && STATUSES.includes(status)) {
     params.push(status);
