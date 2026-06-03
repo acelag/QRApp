@@ -217,6 +217,12 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'facebook_url',  'VARCHAR(500) NULL');
   await addCol('restaurants', 'instagram_url', 'VARCHAR(500) NULL');
   await addCol('restaurants', 'welcome_image_url', 'VARCHAR(500) NULL');
+  await addCol('restaurants', 'tiktok_url',   'VARCHAR(500) NULL');
+  await addCol('restaurants', 'whatsapp_url', 'VARCHAR(500) NULL');
+  await addCol('restaurants', 'youtube_url',  'VARCHAR(500) NULL');
+  await addCol('restaurants', 'twitter_url',  'VARCHAR(500) NULL');
+  await addCol('restaurants', 'welcome_heading', 'VARCHAR(120) NULL');
+  await addCol('restaurants', 'welcome_tagline', 'VARCHAR(200) NULL');
 
   // Printer settings
   await addCol('restaurants', 'receipt_printer_ip',   'VARCHAR(100) NULL');

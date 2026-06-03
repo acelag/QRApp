@@ -7,13 +7,14 @@ import type { SelectedTopping } from '../../types/Order';
 import type { CartItem } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
-import { restaurantService } from '../../services/restaurantService';
+import { restaurantService, type RestaurantInfo } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
 import { roomService } from '../../services/roomService';
 import { comboService, type Combo } from '../../services/comboService';
 import { promoCodeService, type ValidateResult } from '../../services/promoCodeService';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
+import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
@@ -80,6 +81,8 @@ export function RoomMenuPage() {
   const [roomInfo, setRoomInfo]     = useState<{ number: number; name?: string | null; restaurantId: string } | null>(null);
   const [restaurantName, setRestaurantName] = useState<string>('');
   const [waitTimeMin, setWaitTimeMin]       = useState<number | null>(null);
+  const [welcomeInfo, setWelcomeInfo]       = useState<RestaurantInfo | null>(null);
+  const [showWelcome, setShowWelcome]       = useState(() => !sessionStorage.getItem(`welcome-seen-room-${roomId}`));
 
   const [cart, dispatch]            = useReducer(cartReducer, []);
   const [guestName, setGuestName]   = useState('');
@@ -116,6 +119,7 @@ export function RoomMenuPage() {
           menuService.getCategories(room.restaurantId),
           menuService.getItems(room.restaurantId),
         ]);
+        setWelcomeInfo(info);
         setRestaurantName(info?.name ?? '');
         setWaitTimeMin(info?.waitTimeMin ?? null);
         setRsOpen(info?.roomServiceOpen ?? null);
@@ -233,6 +237,30 @@ export function RoomMenuPage() {
           <RefreshCw size={15} /> Try Again
         </button>
       </div>
+    );
+  }
+
+  if (showWelcome && welcomeInfo) {
+    return (
+      <WelcomeScreen
+        restaurantName={welcomeInfo.name}
+        logo={welcomeInfo.logo}
+        themeColor={welcomeInfo.themeColor ?? '#3b82f6'}
+        heroUrl={welcomeInfo.welcomeImageUrl}
+        heading={welcomeInfo.welcomeHeading}
+        tagline={welcomeInfo.welcomeTagline || t('customer.scanEnjoy')}
+        subtitle={roomInfo ? `${t('customer.room', { number: roomInfo.number })}${roomInfo.name ? ` — ${roomInfo.name}` : ''}` : null}
+        waitTimeMin={welcomeInfo.waitTimeMin}
+        waitTimeLabel={welcomeInfo.waitTimeMin != null ? t('customer.waitTime', { n: welcomeInfo.waitTimeMin }) : undefined}
+        social={welcomeInfo}
+        followUsLabel={t('customer.followUs')}
+        ctaLabel={t('customer.viewMenu')}
+        poweredByLabel={t('customer.poweredBy')}
+        onEnter={() => {
+          sessionStorage.setItem(`welcome-seen-room-${roomId}`, '1');
+          setShowWelcome(false);
+        }}
+      />
     );
   }
 

@@ -7,12 +7,13 @@ import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
 import type { CartItem } from '../../types/Order';
 import { menuService } from '../../services/menuService';
-import { restaurantService } from '../../services/restaurantService';
+import { restaurantService, type RestaurantInfo } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
 import { promoCodeService, type ValidateResult } from '../../services/promoCodeService';
 import { comboService, type Combo } from '../../services/comboService';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
+import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
@@ -76,7 +77,8 @@ export function TakeawayMenuPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading]         = useState(true);
   const [loadError, setLoadError]     = useState(false);
-  const [restaurantInfo, setRestaurantInfo] = useState<{ name: string; logo: string | null; waitTimeMin: number | null } | null>(null);
+  const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo | null>(null);
+  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem(`welcome-seen-takeaway-${restaurantId}`));
 
   const [cart, dispatch]              = useReducer(cartReducer, []);
   const [customerName, setCustomerName] = useState('');
@@ -207,6 +209,30 @@ export function TakeawayMenuPage() {
           <RefreshCw size={15} /> Try Again
         </button>
       </div>
+    );
+  }
+
+  if (showWelcome && restaurantInfo) {
+    return (
+      <WelcomeScreen
+        restaurantName={restaurantInfo.name}
+        logo={restaurantInfo.logo}
+        themeColor={restaurantInfo.themeColor ?? '#a855f7'}
+        heroUrl={restaurantInfo.welcomeImageUrl}
+        heading={restaurantInfo.welcomeHeading}
+        tagline={restaurantInfo.welcomeTagline || t('customer.scanEnjoy')}
+        subtitle={t('customer.takeaway')}
+        waitTimeMin={restaurantInfo.waitTimeMin}
+        waitTimeLabel={restaurantInfo.waitTimeMin != null ? t('customer.waitTime', { n: restaurantInfo.waitTimeMin }) : undefined}
+        social={restaurantInfo}
+        followUsLabel={t('customer.followUs')}
+        ctaLabel={t('customer.viewMenu')}
+        poweredByLabel={t('customer.poweredBy')}
+        onEnter={() => {
+          sessionStorage.setItem(`welcome-seen-takeaway-${restaurantId}`, '1');
+          setShowWelcome(false);
+        }}
+      />
     );
   }
 

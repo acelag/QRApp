@@ -266,7 +266,7 @@ export function LocationsPage() {
                     <QRCodeSVG value={takeawayUrl} size={96} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-400 break-all mb-3">{takeawayUrl}</p>
+                    <a href={takeawayUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-purple-500 hover:text-purple-700 hover:underline break-all mb-3">{takeawayUrl}</a>
                     <div className="flex gap-2">
                       <button onClick={() => setTakeawayQrOpen(true)} className="flex items-center gap-1 text-xs bg-purple-50 text-purple-600 px-3 py-1.5 rounded-full hover:bg-purple-100 transition-colors font-medium">
                         <QrCode size={12} /> Preview
@@ -390,8 +390,10 @@ export function LocationsPage() {
               <h2 className="font-bold text-gray-900 text-lg">Takeaway QR</h2>
             </div>
             <p className="text-xs text-gray-400 -mt-2 text-center">Customers scan this to place takeaway orders</p>
-            <QRCodeSVG value={takeawayUrl} size={200} />
-            <p className="text-xs text-gray-300 text-center break-all">{takeawayUrl}</p>
+            <a href={takeawayUrl} target="_blank" rel="noopener noreferrer" title="Open link">
+              <QRCodeSVG value={takeawayUrl} size={200} />
+            </a>
+            <a href={takeawayUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-500 hover:text-purple-700 hover:underline text-center break-all">{takeawayUrl}</a>
             <div className="flex gap-2 w-full">
               <button onClick={() => { printTakeaway(); setTakeawayQrOpen(false); }} className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors">
                 <Printer size={15} /> Print
@@ -408,8 +410,10 @@ export function LocationsPage() {
           <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-gray-900 text-lg">Table {tableQrPreview.number}</h2>
             <p className="text-xs text-gray-400 -mt-2">{tableQrPreview.seats} seats</p>
-            <QRCodeSVG value={`${origin}/welcome/${tableQrPreview.id}`} size={200} />
-            <p className="text-xs text-gray-300 text-center break-all">{origin}/welcome/{tableQrPreview.id}</p>
+            <a href={`${origin}/welcome/${tableQrPreview.id}`} target="_blank" rel="noopener noreferrer" title="Open link">
+              <QRCodeSVG value={`${origin}/welcome/${tableQrPreview.id}`} size={200} />
+            </a>
+            <a href={`${origin}/welcome/${tableQrPreview.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-500 hover:text-orange-700 hover:underline text-center break-all">{origin}/welcome/{tableQrPreview.id}</a>
             <div className="flex gap-2 w-full">
               <button onClick={() => { printOneTable(tableQrPreview); setTableQrPreview(null); }} className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-900 transition-colors">
                 <Printer size={15} /> Print
@@ -429,8 +433,10 @@ export function LocationsPage() {
               <h2 className="font-bold text-gray-900 text-lg">Room {roomQrPreview.number}</h2>
             </div>
             {roomQrPreview.name && <p className="text-xs text-gray-400 -mt-2">{roomQrPreview.name}</p>}
-            <QRCodeSVG value={`${origin}/room/${roomQrPreview.id}`} size={200} />
-            <p className="text-xs text-gray-300 text-center break-all">{origin}/room/{roomQrPreview.id}</p>
+            <a href={`${origin}/room/${roomQrPreview.id}`} target="_blank" rel="noopener noreferrer" title="Open link">
+              <QRCodeSVG value={`${origin}/room/${roomQrPreview.id}`} size={200} />
+            </a>
+            <a href={`${origin}/room/${roomQrPreview.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:text-blue-700 hover:underline text-center break-all">{origin}/room/{roomQrPreview.id}</a>
             <div className="flex gap-2 w-full">
               <button onClick={() => { printOneRoom(roomQrPreview); setRoomQrPreview(null); }} className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
                 <Printer size={15} /> Print
