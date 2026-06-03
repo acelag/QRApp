@@ -45,6 +45,7 @@ export function ReservationsPage() {
   const [date, setDate] = useState(todayStr());
   const [monthCursor, setMonthCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | ReservationType>('all');
   const [items, setItems] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [tz, setTz] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -82,12 +83,16 @@ export function ReservationsPage() {
   const dayKey = useCallback((iso: string) =>
     new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso)),
   [tz]);
+  const visibleItems = useMemo(
+    () => typeFilter === 'all' ? items : items.filter((r) => r.type === typeFilter),
+    [items, typeFilter],
+  );
   const byDay = useMemo(() => {
     const m = new Map<string, Reservation[]>();
-    for (const r of items) { const k = dayKey(r.reservedAt); (m.get(k) ?? m.set(k, []).get(k)!).push(r); }
+    for (const r of visibleItems) { const k = dayKey(r.reservedAt); (m.get(k) ?? m.set(k, []).get(k)!).push(r); }
     for (const arr of m.values()) arr.sort((a, b) => a.reservedAt.localeCompare(b.reservedAt));
     return m;
-  }, [items, dayKey]);
+  }, [visibleItems, dayKey]);
 
   function openNew(prefillDate?: string) { setForm(emptyForm(prefillDate ?? date)); setShowForm(true); }
   function openEdit(r: Reservation) {
@@ -157,6 +162,25 @@ export function ReservationsPage() {
               <Plus size={14} /> New
             </button>
           </div>
+          {/* Type filter (tables / rooms) */}
+          <div className="px-3 sm:px-4 lg:px-6 pb-2 flex items-center gap-2">
+            <div className="inline-flex bg-gray-100 rounded-full p-0.5 text-xs font-medium">
+              {([
+                { v: 'all',   label: 'All' },
+                { v: 'table', label: 'Tables' },
+                { v: 'room',  label: 'Rooms' },
+              ] as { v: 'all' | ReservationType; label: string }[]).map(({ v, label }) => (
+                <button
+                  key={v}
+                  onClick={() => setTypeFilter(v)}
+                  className={`px-3.5 py-1.5 rounded-full transition-colors flex items-center gap-1 ${typeFilter === v ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  {v === 'table' && <MapPin size={12} />}{v === 'room' && <BedDouble size={12} />}{label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Status filter + (calendar) month nav */}
           <div className="px-3 sm:px-4 lg:px-6 pb-3 flex items-center gap-2 flex-wrap">
             {STATUS_FILTERS.map((s) => (
@@ -235,13 +259,13 @@ export function ReservationsPage() {
           <div className="px-3 sm:px-4 lg:px-6 py-4 max-w-3xl">
             {loading ? (
               <div className="flex justify-center py-16"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
-            ) : items.length === 0 ? (
+            ) : visibleItems.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-12 text-center text-gray-400">
                 <CalendarDays size={32} className="mx-auto mb-2 text-gray-300" /> No reservations for this day
               </div>
             ) : (
               <div className="space-y-2.5">
-                {items.map((r) => (
+                {visibleItems.map((r) => (
                   <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <div className="flex items-start gap-3">
                       <div className="text-center shrink-0 w-16">
