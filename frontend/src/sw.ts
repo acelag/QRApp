@@ -26,7 +26,18 @@ self.addEventListener('push', (event) => {
     data:     { url: data.url ?? '/admin/orders' },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    // If the admin already has the app open and visible, don't pop an OS
+    // notification — the Orders screen updates live. Forward the payload so
+    // the app can show an in-app cue instead.
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true }) as readonly WindowClient[];
+    const hasVisibleClient = clients.some((c) => c.visibilityState === 'visible');
+    if (hasVisibleClient) {
+      clients.forEach((c) => c.postMessage({ type: 'push', payload: { title, ...options } }));
+      return;
+    }
+    await self.registration.showNotification(title, options);
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {
