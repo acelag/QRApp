@@ -41,7 +41,8 @@ router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter
   let where = 'WHERE r.restaurant_id = $1';
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
     params.push(date);
-    where += ` AND r.reserved_at >= $${params.length}::timestamptz AND r.reserved_at < ($${params.length}::timestamptz + interval '1 day')`;
+    // reserved_at is stored as ISO text — cast it to timestamptz for the range compare.
+    where += ` AND r.reserved_at::timestamptz >= $${params.length}::timestamptz AND r.reserved_at::timestamptz < ($${params.length}::timestamptz + interval '1 day')`;
   }
   if (status && STATUSES.includes(status)) {
     params.push(status);
