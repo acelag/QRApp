@@ -240,9 +240,12 @@ export function AdminSidebar() {
           })}
         </nav>
 
-        {/* Version */}
-        <div className="px-5 py-1.5 text-center flex-none">
+        {/* Version + last deployed */}
+        <div className="px-5 py-1.5 text-center flex-none leading-tight">
           <span className="text-[10px] text-gray-300 font-mono">v{__APP_VERSION__}</span>
+          <span className="block text-[9px] text-gray-300" title={__BUILD_TIME__}>
+            Deployed {new Date(__BUILD_TIME__).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </span>
         </div>
 
         {/* User */}
