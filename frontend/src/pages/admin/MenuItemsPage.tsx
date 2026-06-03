@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -82,6 +82,7 @@ export function MenuItemsPage() {
   const [searchQ,     setSearchQ]     = useState('');
   const [catFilter,   setCatFilter]   = useState<string>('all');
   const [availFilter, setAvailFilter] = useState<'all' | 'available' | 'unavailable'>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (localStorage.getItem('menu-view') as 'grid' | 'list') || 'grid');
 
   const fileRef      = useRef<HTMLInputElement>(null);
   const importRef    = useRef<HTMLInputElement>(null);
@@ -242,6 +243,23 @@ export function MenuItemsPage() {
     } catch {
       toast.error('Failed to duplicate item');
     }
+  }
+
+  async function toggleAvailable(item: MenuItem) {
+    // Optimistic flip, revert on failure
+    setItems((p) => p.map((i) => (i.id === item.id ? { ...i, available: !item.available } : i)));
+    try {
+      const updated = await menuService.updateItem(item.id, { available: !item.available });
+      setItems((p) => p.map((i) => (i.id === item.id ? updated : i)));
+    } catch {
+      setItems((p) => p.map((i) => (i.id === item.id ? item : i)));
+      toast.error('Failed to update availability');
+    }
+  }
+
+  function changeView(mode: 'grid' | 'list') {
+    setViewMode(mode);
+    localStorage.setItem('menu-view', mode);
   }
 
   async function handleBulkToggle(cat: Category, available: boolean) {
@@ -427,6 +445,10 @@ export function MenuItemsPage() {
 
   const isFiltered = !!q || catFilter !== 'all' || availFilter !== 'all';
 
+  // Shared field styles for the edit/create modal
+  const labelCls = 'text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block';
+  const inputCls = 'w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors';
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
@@ -513,7 +535,7 @@ export function MenuItemsPage() {
 
           {/* Active filter summary */}
           {isFiltered && (
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400">{filteredItems.length} of {items.length} items</span>
               <button
                 onClick={() => { setSearchQ(''); setCatFilter('all'); setAvailFilter('all'); }}
@@ -523,6 +545,24 @@ export function MenuItemsPage() {
               </button>
             </div>
           )}
+
+          {/* View toggle: grid / list */}
+          <div className="ml-auto flex items-center bg-gray-100 rounded-xl p-0.5">
+            <button
+              onClick={() => changeView('grid')}
+              title="Grid view"
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              onClick={() => changeView('list')}
+              title="List view"
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <List size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Categories */}
@@ -783,7 +823,7 @@ export function MenuItemsPage() {
             )}
           </div>
         )}
-        {!reorderMode && filteredItems.length > 0 && (
+        {!reorderMode && filteredItems.length > 0 && viewMode === 'grid' && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
           {filteredItems.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
@@ -1018,310 +1058,467 @@ export function MenuItemsPage() {
           ))}
         </div>
         )}
+
+        {/* ── List / table view ───────────────────────────────────────────── */}
+        {!reorderMode && filteredItems.length > 0 && viewMode === 'list' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 w-14">Item</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3 hidden md:table-cell">Category</th>
+                  <th className="px-4 py-3 text-right">Price</th>
+                  <th className="px-4 py-3 hidden lg:table-cell">Stock</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredItems.map((item) => {
+                  const catName = categories.find((c) => c.id === item.category)?.name ?? item.category;
+                  return (
+                  <tr key={item.id} className="hover:bg-gray-50/70 transition-colors">
+                    {/* Image */}
+                    <td className="px-4 py-2.5">
+                      {item.image
+                        ? <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />
+                        : <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-lg">🍽️</div>}
+                    </td>
+                    {/* Name + tags */}
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium text-gray-900 flex items-center gap-1.5 flex-wrap">
+                        {item.name}
+                        {item.discountPct > 0 && (
+                          <span className="text-[10px] bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full">{item.discountPct}% OFF</span>
+                        )}
+                        {item.scheduleId && (() => {
+                          const sch = schedules.find((s) => s.id === item.scheduleId);
+                          return sch ? <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">⏰ {sch.name}</span> : null;
+                        })()}
+                      </div>
+                      {(item.tags ?? []).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.tags!.map((slug) => {
+                            const tag = tags.find((t) => t.slug === slug);
+                            return tag ? (
+                              <span key={slug} className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagPillCls(tag.category)}`}>
+                                {tag.emoji} {tag.label}
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                      <span className="md:hidden text-xs text-gray-400">{catName}</span>
+                    </td>
+                    {/* Category */}
+                    <td className="px-4 py-2.5 hidden md:table-cell text-gray-500">{catName}</td>
+                    {/* Price */}
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
+                      {item.discountPct > 0 ? (
+                        <span className="flex items-center justify-end gap-1">
+                          <span className="text-gray-400 line-through text-xs">{fmt(item.price)}</span>
+                          <span className="text-green-600 font-bold">{fmt(item.price * (1 - item.discountPct / 100))}</span>
+                        </span>
+                      ) : (
+                        <span className="text-orange-600 font-bold">{fmt(item.price)}</span>
+                      )}
+                      {item.largePrice != null && item.largePrice > 0 && (
+                        <span className="block text-[11px] text-gray-400">L {fmt(item.largePrice)}</span>
+                      )}
+                    </td>
+                    {/* Stock */}
+                    <td className="px-4 py-2.5 hidden lg:table-cell">
+                      {!item.trackStock ? (
+                        <span className="text-xs text-gray-300">—</span>
+                      ) : editingStock?.id === item.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            autoFocus type="number" min="0" value={editingStock.value}
+                            onChange={(e) => setEditingStock({ id: item.id, value: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveStock(item.id, editingStock.value); if (e.key === 'Escape') setEditingStock(null); }}
+                            className="w-16 text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-orange-300"
+                          />
+                          <button onClick={() => saveStock(item.id, editingStock.value)} className="text-green-500 hover:text-green-600"><Check size={13} /></button>
+                          <button onClick={() => setEditingStock(null)} className="text-gray-400 hover:text-gray-600"><X size={13} /></button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setEditingStock({ id: item.id, value: String(item.stock ?? '') })}
+                          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
+                            item.stock == null ? 'text-gray-400 hover:bg-gray-100' :
+                            item.stock <= 3 ? 'text-amber-600 bg-amber-50 hover:bg-amber-100' :
+                            'text-green-600 bg-green-50 hover:bg-green-100'
+                          }`}
+                        >
+                          {item.stock == null ? <><Package size={11} /> Set</> :
+                           item.stock <= 3 ? <><AlertTriangle size={11} /> {item.stock}</> :
+                           <><Package size={11} /> {item.stock}</>}
+                        </button>
+                      )}
+                    </td>
+                    {/* Status toggle */}
+                    <td className="px-4 py-2.5 text-center">
+                      <button
+                        onClick={() => toggleAvailable(item)}
+                        title={item.available ? 'Available — click to disable' : 'Unavailable — click to enable'}
+                        className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full transition-colors ${
+                          item.available ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {item.available ? <Eye size={12} /> : <EyeOff size={12} />}
+                        {item.available ? 'On' : 'Off'}
+                      </button>
+                    </td>
+                    {/* Actions */}
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 transition-colors p-1.5" title="Edit"><Pencil size={14} /></button>
+                        <button onClick={() => duplicate(item.id)} className="text-gray-400 hover:text-orange-500 transition-colors p-1.5" title="Duplicate"><Copy size={14} /></button>
+                        <button onClick={() => del(item.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5" title="Delete"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        )}
       </div>
 
       {/* Form modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 space-y-4 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">{editing ? 'Edit Item' : 'New Item'}</h2>
-              <button onClick={() => setShowForm(false)}><X size={20} className="text-gray-400" /></button>
-            </div>
-
-            {/* Image picker */}
-            <div>
-              <label className="text-sm text-gray-600 mb-2 block">Photo</label>
-              <div className="flex items-center gap-4">
-                {/* Preview box */}
-                <div className="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0 border-2 border-dashed border-gray-200">
-                  {uploading ? (
-                    <Loader2 size={28} className="text-orange-400 animate-spin" />
-                  ) : preview ? (
-                    <img src={preview} alt="preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-3xl">🍽️</span>
-                  )}
-                </div>
-
-                {/* Hidden file input */}
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="flex items-center gap-2 px-4 py-2 border-2 border-orange-200 text-orange-600 rounded-xl text-sm font-medium hover:bg-orange-50 transition-colors disabled:opacity-50"
-                  >
-                    <ImagePlus size={16} />
-                    {preview ? 'Change photo' : 'Browse photo'}
-                  </button>
-                  {preview && !uploading && (
-                    <button
-                      type="button"
-                      onClick={() => { setPreview(''); setForm((f) => ({ ...f, image: '' })); }}
-                      className="text-xs text-red-400 hover:text-red-500 text-left"
-                    >
-                      Remove photo
-                    </button>
-                  )}
-                  <p className="text-xs text-gray-400">JPG, PNG, WebP · max 5 MB</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Text fields */}
-            {[
-              { label: 'Name *', key: 'name', type: 'text' },
-              { label: 'Description', key: 'description', type: 'text' },
-              { label: 'Regular Price *', key: 'price', type: 'number' },
-            ].map(({ label, key, type }) => (
-              <div key={key}>
-                <label className="text-sm text-gray-600 mb-1 block">{label}</label>
-                <input
-                  type={type}
-                  value={String((form as Record<string, unknown>)[key] ?? '')}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, [key]: type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value }))
-                  }
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-                />
-              </div>
-            ))}
-
-            {/* Large price + discount */}
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">
-                Large Price <span className="text-gray-400 font-normal">(leave empty if no large size)</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.largePrice != null && form.largePrice > 0 ? form.largePrice : ''}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, largePrice: e.target.value ? parseFloat(e.target.value) || undefined : undefined }))
-                }
-                placeholder="e.g. 12.99"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-              />
-            </div>
-
-            {form.largePrice != null && form.largePrice > 0 && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setShowForm(false)}>
+          <div
+            className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl max-h-[94vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* ── Sticky header ── */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
-                  Large Discount % <span className="text-gray-400 font-normal">(0 = no discount)</span>
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
+                <h2 className="text-lg font-bold text-gray-900">{editing ? 'Edit Item' : 'New Item'}</h2>
+                <p className="text-xs text-gray-400">{editing ? 'Update the details below' : 'Fill in the details to add a menu item'}</p>
+              </div>
+              <button onClick={() => setShowForm(false)} className="p-2 -mr-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* ── Scrollable body ── */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+
+              {/* Section: Photo + basic details */}
+              <section className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                {/* Image picker — spans both columns */}
+                <div className="md:col-span-2">
+                  <label className={labelCls}>Photo</label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0 border-2 border-dashed border-gray-200">
+                      {uploading ? (
+                        <Loader2 size={28} className="text-orange-400 animate-spin" />
+                      ) : preview ? (
+                        <img src={preview} alt="preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-3xl">🍽️</span>
+                      )}
+                    </div>
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        disabled={uploading}
+                        className="flex items-center gap-2 px-4 py-2 border-2 border-orange-200 text-orange-600 rounded-xl text-sm font-medium hover:bg-orange-50 transition-colors disabled:opacity-50"
+                      >
+                        <ImagePlus size={16} />
+                        {preview ? 'Change photo' : 'Browse photo'}
+                      </button>
+                      {preview && !uploading && (
+                        <button
+                          type="button"
+                          onClick={() => { setPreview(''); setForm((f) => ({ ...f, image: '' })); }}
+                          className="text-xs text-red-400 hover:text-red-500 text-left"
+                        >
+                          Remove photo
+                        </button>
+                      )}
+                      <p className="text-xs text-gray-400">JPG, PNG, WebP · max 5 MB</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Name — full width */}
+                <div className="md:col-span-2">
+                  <label className={labelCls}>Name *</label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="e.g. BBQ Pork Ribs"
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Description — full width */}
+                <div className="md:col-span-2">
+                  <label className={labelCls}>Description</label>
+                  <textarea
+                    rows={2}
+                    value={form.description}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    placeholder="Short description shown to customers"
+                    className={`${inputCls} resize-none`}
+                  />
+                </div>
+
+                {/* Category */}
+                <div className="md:col-span-2">
+                  <label className={labelCls}>Category *</label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                    className={`${inputCls} bg-white`}
+                  >
+                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </section>
+
+              {/* Section: Pricing */}
+              <section>
+                <h3 className="text-sm font-bold text-gray-800 mb-3">Pricing</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                  {/* Regular price */}
+                  <div>
+                    <label className={labelCls}>Regular Price *</label>
+                    <input
+                      type="number"
+                      value={form.price || ''}
+                      onChange={(e) => setForm((f) => ({ ...f, price: parseFloat(e.target.value) || 0 }))}
+                      className={inputCls}
+                    />
+                  </div>
+
+                  {/* Large price */}
+                  <div>
+                    <label className={labelCls}>Large Price <span className="text-gray-400 normal-case font-normal">(optional)</span></label>
                     <input
                       type="number"
                       min="0"
-                      max="100"
-                      step="1"
-                      value={form.largeDiscountPct ?? 0}
-                      onChange={(e) => setForm((f) => ({ ...f, largeDiscountPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+                      step="0.01"
+                      value={form.largePrice != null && form.largePrice > 0 ? form.largePrice : ''}
+                      onChange={(e) => setForm((f) => ({ ...f, largePrice: e.target.value ? parseFloat(e.target.value) || undefined : undefined }))}
+                      placeholder="e.g. 12.99"
+                      className={inputCls}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
                   </div>
-                  {(form.largeDiscountPct ?? 0) > 0 && form.largePrice > 0 && (
-                    <div className="text-sm shrink-0">
-                      <span className="text-gray-400 line-through">{fmt(form.largePrice)}</span>
-                      <span className="ml-1.5 text-green-600 font-semibold">
-                        {fmt(form.largePrice * (1 - (form.largeDiscountPct ?? 0) / 100))}
-                      </span>
+
+                  {/* Discount */}
+                  <div>
+                    <label className={labelCls}>Discount % <span className="text-gray-400 normal-case font-normal">(0 = none)</span></label>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={form.discountPct}
+                          onChange={(e) => setForm((f) => ({ ...f, discountPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) }))}
+                          className={`${inputCls} pr-8`}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                      </div>
+                      {form.discountPct > 0 && form.price > 0 && (
+                        <div className="text-sm shrink-0">
+                          <span className="text-gray-400 line-through">{fmt(form.price)}</span>
+                          <span className="ml-1.5 text-green-600 font-semibold">{fmt(form.price * (1 - form.discountPct / 100))}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Large discount — only when large price set */}
+                  {form.largePrice != null && form.largePrice > 0 && (
+                    <div>
+                      <label className={labelCls}>Large Discount % <span className="text-gray-400 normal-case font-normal">(0 = none)</span></label>
+                      <div className="flex items-center gap-3">
+                        <div className="relative flex-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value={form.largeDiscountPct ?? 0}
+                            onChange={(e) => setForm((f) => ({ ...f, largeDiscountPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) }))}
+                            className={`${inputCls} pr-8`}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                        </div>
+                        {(form.largeDiscountPct ?? 0) > 0 && form.largePrice > 0 && (
+                          <div className="text-sm shrink-0">
+                            <span className="text-gray-400 line-through">{fmt(form.largePrice)}</span>
+                            <span className="ml-1.5 text-green-600 font-semibold">{fmt(form.largePrice * (1 - (form.largeDiscountPct ?? 0) / 100))}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              </section>
 
-            {/* Discount */}
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">
-                Discount % <span className="text-gray-400 font-normal">(0 = no discount)</span>
-              </label>
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={form.discountPct}
-                    onChange={(e) => setForm((f) => ({ ...f, discountPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
-                </div>
-                {form.discountPct > 0 && form.price > 0 && (
-                  <div className="text-sm shrink-0">
-                    <span className="text-gray-400 line-through">{fmt(form.price)}</span>
-                    <span className="ml-1.5 text-green-600 font-semibold">
-                      {fmt(form.price * (1 - form.discountPct / 100))}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Category *</label>
-              <select
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-              >
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-
-            {/* Stock tracking */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.trackStock ?? false}
-                  onChange={(e) => setForm((f) => ({ ...f, trackStock: e.target.checked, stock: e.target.checked ? (f.stock ?? null) : null }))}
-                  className="accent-orange-500"
-                />
-                <Package size={14} className="text-gray-400" />
-                Track inventory / stock
-              </label>
-              {form.trackStock && (
-                <div>
-                  <label className="text-sm text-gray-600 mb-1 block">Stock quantity</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={form.stock ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value ? parseInt(e.target.value, 10) : null }))}
-                    placeholder="e.g. 5"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Auto-marks unavailable when stock reaches 0. Leave blank to track without a limit.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Prep time */}
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Prep time (minutes)</label>
-              <div className="relative w-32">
-                <input
-                  type="number"
-                  min="1"
-                  max="120"
-                  step="1"
-                  value={form.prepTimeMins ?? ''}
-                  onChange={(e) => setForm((f) => ({ ...f, prepTimeMins: e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null }))}
-                  placeholder="e.g. 15"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">min</span>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Shown to kitchen as a countdown timer. Leave blank if not applicable.</p>
-            </div>
-
-            {/* Visibility Schedule */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm text-gray-600">Visibility Schedule</label>
-                <Link to="/admin/menu-schedules" className="text-xs text-orange-500 hover:underline">Manage schedules →</Link>
-              </div>
-              <select
-                value={form.scheduleId ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, scheduleId: e.target.value || null }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-white"
-              >
-                <option value="">Always visible (no schedule)</option>
-                {schedules.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} — {s.startTime}–{s.endTime}
-                  </option>
-                ))}
-              </select>
-              {form.scheduleId && (
-                <p className="text-xs text-amber-600 mt-1">
-                  ⏰ This item will only appear on the customer menu during the assigned time window.
-                </p>
-              )}
-            </div>
-
-            {/* Tags — grouped by category */}
-            {tags.length > 0 && (
-              <div className="space-y-3">
-                <label className="text-sm text-gray-600 block">Tags</label>
-                {(['label', 'dietary', 'allergen'] as TagCategory[]).map((cat) => {
-                  const catTags = tags.filter((t) => t.category === cat);
-                  if (catTags.length === 0) return null;
-                  const catLabel = cat === 'dietary' ? '🥦 Dietary' : cat === 'allergen' ? '⚠️ Allergens' : '🏷️ Labels';
-                  return (
-                    <div key={cat}>
-                      <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${cat === 'dietary' ? 'text-green-600' : cat === 'allergen' ? 'text-amber-600' : 'text-gray-400'}`}>
-                        {catLabel}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {catTags.map((tag) => {
-                          const active = (form.tags ?? []).includes(tag.slug);
-                          return (
-                            <button
-                              key={tag.id}
-                              type="button"
-                              onClick={() =>
-                                setForm((f) => ({
-                                  ...f,
-                                  tags: active
-                                    ? (f.tags ?? []).filter((t) => t !== tag.slug)
-                                    : [...(f.tags ?? []), tag.slug],
-                                }))
-                              }
-                              className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                                active
-                                  ? `${tagPillCls(cat, true)} border-transparent`
-                                  : `bg-white border-gray-200 hover:border-gray-300 ${cat === 'dietary' ? 'text-green-700' : cat === 'allergen' ? 'text-amber-700' : 'text-gray-600'}`
-                              }`}
-                            >
-                              {tag.emoji} {tag.label}
-                            </button>
-                          );
-                        })}
+              {/* Section: Inventory & kitchen */}
+              <section>
+                <h3 className="text-sm font-bold text-gray-800 mb-3">Inventory &amp; Kitchen</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                  {/* Stock tracking */}
+                  <div className="md:col-span-2 rounded-xl border border-gray-100 bg-gray-50 p-3.5">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.trackStock ?? false}
+                        onChange={(e) => setForm((f) => ({ ...f, trackStock: e.target.checked, stock: e.target.checked ? (f.stock ?? null) : null }))}
+                        className="accent-orange-500 w-4 h-4"
+                      />
+                      <Package size={15} className="text-gray-400" />
+                      Track inventory / stock
+                    </label>
+                    {form.trackStock && (
+                      <div className="mt-3">
+                        <label className={labelCls}>Stock quantity</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={form.stock ?? ''}
+                          onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value ? parseInt(e.target.value, 10) : null }))}
+                          placeholder="e.g. 5"
+                          className={`${inputCls} bg-white max-w-xs`}
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Auto-marks unavailable when stock reaches 0. Leave blank to track without a limit.</p>
                       </div>
+                    )}
+                  </div>
+
+                  {/* Prep time */}
+                  <div>
+                    <label className={labelCls}>Prep time (minutes)</label>
+                    <div className="relative w-full">
+                      <input
+                        type="number"
+                        min="1"
+                        max="120"
+                        step="1"
+                        value={form.prepTimeMins ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, prepTimeMins: e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null }))}
+                        placeholder="e.g. 15"
+                        className={`${inputCls} pr-10`}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">min</span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                    <p className="text-xs text-gray-400 mt-1">Shown to kitchen as a countdown timer.</p>
+                  </div>
+                </div>
+              </section>
 
-            {/* Available toggle */}
-            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.available}
-                onChange={(e) => setForm((f) => ({ ...f, available: e.target.checked }))}
-                className="accent-orange-500"
-              />
-              Available to customers
-            </label>
+              {/* Section: Visibility */}
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-gray-800">Visibility</h3>
+                  <Link to="/admin/menu-schedules" className="text-xs text-orange-500 hover:underline">Manage schedules →</Link>
+                </div>
+                <select
+                  value={form.scheduleId ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, scheduleId: e.target.value || null }))}
+                  className={`${inputCls} bg-white`}
+                >
+                  <option value="">Always visible (no schedule)</option>
+                  {schedules.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} — {s.startTime}–{s.endTime}</option>
+                  ))}
+                </select>
+                {form.scheduleId && (
+                  <p className="text-xs text-amber-600 mt-1.5">⏰ This item will only appear on the customer menu during the assigned time window.</p>
+                )}
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer mt-4">
+                  <input
+                    type="checkbox"
+                    checked={form.available}
+                    onChange={(e) => setForm((f) => ({ ...f, available: e.target.checked }))}
+                    className="accent-orange-500 w-4 h-4"
+                  />
+                  Available to customers
+                </label>
+              </section>
 
-            <button
-              onClick={save}
-              disabled={uploading}
-              className="w-full bg-orange-500 text-white py-3 rounded-2xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-              {uploading && <Loader2 size={16} className="animate-spin" />}
-              {editing ? 'Save Changes' : 'Create Item'}
-            </button>
+              {/* Section: Tags */}
+              {tags.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-bold text-gray-800 mb-3">Tags</h3>
+                  <div className="space-y-3">
+                    {(['label', 'dietary', 'allergen'] as TagCategory[]).map((cat) => {
+                      const catTags = tags.filter((t) => t.category === cat);
+                      if (catTags.length === 0) return null;
+                      const catLabel = cat === 'dietary' ? '🥦 Dietary' : cat === 'allergen' ? '⚠️ Allergens' : '🏷️ Labels';
+                      return (
+                        <div key={cat}>
+                          <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${cat === 'dietary' ? 'text-green-600' : cat === 'allergen' ? 'text-amber-600' : 'text-gray-400'}`}>
+                            {catLabel}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {catTags.map((tag) => {
+                              const active = (form.tags ?? []).includes(tag.slug);
+                              return (
+                                <button
+                                  key={tag.id}
+                                  type="button"
+                                  onClick={() =>
+                                    setForm((f) => ({
+                                      ...f,
+                                      tags: active
+                                        ? (f.tags ?? []).filter((t) => t !== tag.slug)
+                                        : [...(f.tags ?? []), tag.slug],
+                                    }))
+                                  }
+                                  className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors ${
+                                    active
+                                      ? `${tagPillCls(cat, true)} border-transparent`
+                                      : `bg-white border-gray-200 hover:border-gray-300 ${cat === 'dietary' ? 'text-green-700' : cat === 'allergen' ? 'text-amber-700' : 'text-gray-600'}`
+                                  }`}
+                                >
+                                  {tag.emoji} {tag.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+            </div>
+
+            {/* ── Sticky footer ── */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 shrink-0 bg-white">
+              <button
+                onClick={() => setShowForm(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={save}
+                disabled={uploading}
+                className="px-6 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {uploading && <Loader2 size={16} className="animate-spin" />}
+                {editing ? 'Save Changes' : 'Create Item'}
+              </button>
+            </div>
           </div>
         </div>
       )}
