@@ -271,6 +271,39 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  // Reservations (phone bookings now; online later) — for tables or rooms.
+  // A legacy, unused reservations table (date/time/table_number, no rooms) may
+  // exist from an earlier schema. Replace it once — guarded by the presence of
+  // the new `reserved_at` column so this never drops the live table again.
+  {
+    const hasNew = await pool.query(
+      "SELECT 1 FROM information_schema.columns WHERE table_name = 'reservations' AND column_name = 'reserved_at'",
+    );
+    if (!hasNew.rows.length) {
+      const exists = await pool.query("SELECT to_regclass('reservations') AS t");
+      if ((exists.rows[0] as { t: string | null }).t) await pool.query('DROP TABLE reservations');
+    }
+  }
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS reservations (
+      id             VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id  VARCHAR(36)  NOT NULL,
+      type           VARCHAR(10)  NOT NULL,            -- 'table' | 'room'
+      table_id       VARCHAR(36)  NULL,
+      room_id        VARCHAR(36)  NULL,
+      customer_name  VARCHAR(120) NOT NULL,
+      customer_phone VARCHAR(40)  NULL,
+      party_size     INTEGER      NOT NULL DEFAULT 1,
+      reserved_at    VARCHAR(50)  NOT NULL,            -- ISO datetime
+      duration_mins  INTEGER      NULL,
+      status         VARCHAR(20)  NOT NULL DEFAULT 'booked',
+      notes          VARCHAR(500) NULL,
+      created_at     VARCHAR(50)  NOT NULL,
+      created_by     VARCHAR(36)  NULL
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_reservations_rest_time ON reservations (restaurant_id, reserved_at)`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS subscription_events (
       id            SERIAL        PRIMARY KEY,
@@ -363,23 +396,6 @@ export async function createSchema(): Promise<void> {
       }
     }
   }
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS reservations (
-      id             VARCHAR(36)   NOT NULL PRIMARY KEY,
-      restaurant_id  VARCHAR(36)   NOT NULL,
-      table_id       VARCHAR(36)   NULL,
-      table_number   INTEGER       NULL,
-      customer_name  VARCHAR(255)  NOT NULL,
-      customer_phone VARCHAR(30)   NULL,
-      party_size     INTEGER       NOT NULL DEFAULT 1,
-      date           VARCHAR(10)   NOT NULL,
-      time           VARCHAR(5)    NOT NULL,
-      status         VARCHAR(20)   NOT NULL DEFAULT 'pending',
-      notes          VARCHAR(500)  NULL,
-      created_at     VARCHAR(50)   NOT NULL
-    );
-  `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS menu_schedules (

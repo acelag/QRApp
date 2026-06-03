@@ -56,6 +56,7 @@ const NAV: NavEntry[] = [
     icon: QrCode,
     children: [
       { label: 'Tables & Rooms', icon: QrCode,        to: '/admin/locations' },
+      { label: 'Reservations',   icon: CalendarDays,  to: '/admin/reservations' },
       { label: 'Table Status',   icon: LayoutGrid,    to: '/admin/table-status', featureKey: 'tableStatus' },
     ],
   },

@@ -51,6 +51,7 @@ import { WaitersPage } from './pages/admin/WaitersPage';
 import { StaffPerformancePage } from './pages/admin/StaffPerformancePage';
 import { TableStatusPage } from './pages/admin/TableStatusPage';
 import { LocationsPage } from './pages/admin/LocationsPage';
+import { ReservationsPage } from './pages/admin/ReservationsPage';
 import { ShiftCloseReportPage } from './pages/admin/ShiftCloseReportPage';
 import { RosterPage } from './pages/admin/RosterPage';
 import { MenuSchedulesPage } from './pages/admin/MenuSchedulesPage';
@@ -109,6 +110,7 @@ export default function App() {
             <Route path="/admin/menu" element={<ProtectedRoute roles={['admin','manager']}><MenuItemsPage /></ProtectedRoute>} />
             <Route path="/admin/menu-setup" element={<ProtectedRoute roles={['admin','manager']}><MenuSetupPage /></ProtectedRoute>} />
             <Route path="/admin/locations" element={<ProtectedRoute roles={['admin','manager']}><LocationsPage /></ProtectedRoute>} />
+            <Route path="/admin/reservations" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><ReservationsPage /></ProtectedRoute>} />
             <Route path="/receipt/:orderId" element={<ProtectedRoute roles={['admin','manager','cashier']}><ReceiptPage /></ProtectedRoute>} />
             <Route path="/kitchen-ticket/:orderId" element={<ProtectedRoute><KitchenTicketPage /></ProtectedRoute>} />
             <Route path="/session-receipt/:sessionId" element={<ProtectedRoute roles={['admin','manager','cashier']}><SessionReceiptPage /></ProtectedRoute>} />
