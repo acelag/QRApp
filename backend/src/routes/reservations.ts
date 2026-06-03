@@ -36,19 +36,29 @@ const SELECT = `
 
 // ── List (optional ?date=YYYY-MM-DD and ?status=) ─────────────────────────────
 router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
-  const { date, status } = req.query as { date?: string; status?: string };
+  const { date, from, to, status } = req.query as { date?: string; from?: string; to?: string; status?: string };
+  const isDay = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
   const params: unknown[] = [req.user!.restaurantId];
   let where = 'WHERE r.restaurant_id = $1';
-  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    // Resolve the restaurant's timezone so "the day" is its local calendar day,
-    // not the server's (UTC). `timestamp AT TIME ZONE tz` => the UTC instant of
-    // that wall-clock time in tz.
+
+  // Resolve the restaurant's timezone so "the day" is its local calendar day,
+  // not the server's (UTC). `timestamp AT TIME ZONE tz` => the UTC instant of
+  // that wall-clock time in tz.
+  if (isDay(date) || (isDay(from) && isDay(to))) {
     const tzRes = await pool.query('SELECT timezone FROM restaurants WHERE id = $1', [req.user!.restaurantId]);
     const tz = (tzRes.rows[0] as { timezone?: string } | undefined)?.timezone || 'UTC';
-    params.push(date); const dIdx = params.length;
-    params.push(tz);   const tzIdx = params.length;
-    where += ` AND r.reserved_at::timestamptz >= ($${dIdx}::timestamp AT TIME ZONE $${tzIdx})`
-           + ` AND r.reserved_at::timestamptz <  (($${dIdx}::timestamp + interval '1 day') AT TIME ZONE $${tzIdx})`;
+    if (isDay(date)) {
+      params.push(date); const dIdx = params.length;
+      params.push(tz);   const tzIdx = params.length;
+      where += ` AND r.reserved_at::timestamptz >= ($${dIdx}::timestamp AT TIME ZONE $${tzIdx})`
+             + ` AND r.reserved_at::timestamptz <  (($${dIdx}::timestamp + interval '1 day') AT TIME ZONE $${tzIdx})`;
+    } else {
+      params.push(from); const fIdx = params.length;
+      params.push(to);   const tIdx = params.length;
+      params.push(tz);   const tzIdx = params.length;
+      where += ` AND r.reserved_at::timestamptz >= ($${fIdx}::timestamp AT TIME ZONE $${tzIdx})`
+             + ` AND r.reserved_at::timestamptz <  (($${tIdx}::timestamp + interval '1 day') AT TIME ZONE $${tzIdx})`;
+    }
   }
   if (status && STATUSES.includes(status)) {
     params.push(status);

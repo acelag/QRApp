@@ -35,7 +35,7 @@ export interface ReservationInput {
 }
 
 export const reservationService = {
-  list: (params?: { date?: string; status?: ReservationStatus }): Promise<Reservation[]> =>
+  list: (params?: { date?: string; from?: string; to?: string; status?: ReservationStatus }): Promise<Reservation[]> =>
     axios.get<Reservation[]>(`${BASE}/reservations`, { params }).then((r) => r.data),
 
   create: (input: ReservationInput): Promise<Reservation> =>
