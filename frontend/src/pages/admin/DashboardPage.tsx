@@ -5,6 +5,7 @@ import {
   PlusCircle, ChefHat, CheckCircle2, Package,
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { TrialBanner } from '../../components/TrialBanner';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -142,6 +143,9 @@ export function DashboardPage() {
       {/* ── Main Content ─────────────────────────────────────────────────── */}
       <main className="flex-1 lg:overflow-y-auto">
         <div className="px-4 md:px-6 py-6 space-y-6">
+
+          {/* Subscription nudge (trial / billing issues) */}
+          <TrialBanner />
 
           {/* Header */}
           <div>

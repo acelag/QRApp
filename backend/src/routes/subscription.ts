@@ -1,15 +1,61 @@
 import { Router } from 'express';
+import { v4 as uuid } from 'uuid';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { pool } from '../db/database';
-import { authenticate, requireRole, type AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, JWT_SECRET, type AuthRequest } from '../middleware/auth';
 import { PLANS, PLAN_CODES, isPlanCode, TRIAL_DAYS } from '../lib/plans';
 import { getBillingProvider } from '../lib/billing';
-import { handleBillingEvent } from '../lib/subscription';
+import { handleBillingEvent, startTrial, applyPlan } from '../lib/subscription';
+import type { SubscriptionStatus } from '../lib/billing/types';
 
 const router = Router();
 
 // ── Public: pricing data for the marketing site ──────────────────────────────
 router.get('/plans', (_req, res) => {
   res.json({ trialDays: TRIAL_DAYS, plans: PLAN_CODES.map((c) => PLANS[c]) });
+});
+
+// ── Public: self-serve signup → provision restaurant + admin + start trial ────
+router.post('/signup', async (req, res) => {
+  const { restaurantName, adminName, adminUsername, adminPassword, plan } = req.body as {
+    restaurantName?: string; adminName?: string; adminUsername?: string; adminPassword?: string; plan?: string;
+  };
+  if (!restaurantName?.trim() || !adminUsername?.trim() || !adminPassword) {
+    res.status(400).json({ error: 'Restaurant name, email and password are required' }); return;
+  }
+  if (adminPassword.length < 6) { res.status(400).json({ error: 'Password must be at least 6 characters' }); return; }
+  const planCode = isPlanCode(plan) ? plan : 'starter';
+
+  // Username (email) must be unique across all tenants.
+  const exists = await pool.query('SELECT id FROM users WHERE username = $1', [adminUsername.trim()]);
+  if (exists.rows.length) { res.status(409).json({ error: 'That email is already registered' }); return; }
+
+  // Unique slug from the restaurant name.
+  const baseSlug = restaurantName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'restaurant';
+  let slug = baseSlug; let suffix = 2;
+  while (true) {
+    const taken = await pool.query('SELECT id FROM restaurants WHERE slug = $1', [slug]);
+    if (!taken.rows.length) break;
+    slug = `${baseSlug}-${suffix++}`;
+  }
+
+  const restaurantId = uuid();
+  const now = new Date().toISOString();
+  await pool.query('INSERT INTO restaurants (id,name,slug,active,created_at) VALUES ($1,$2,$3,TRUE,$4)', [restaurantId, restaurantName.trim(), slug, now]);
+  await startTrial(restaurantId, planCode);
+
+  const userId = uuid();
+  const hash = await bcrypt.hash(adminPassword, 10);
+  await pool.query(
+    `INSERT INTO users (id,restaurant_id,username,password_hash,name,role) VALUES ($1,$2,$3,$4,$5,'admin')`,
+    [userId, restaurantId, adminUsername.trim(), hash, adminName?.trim() || adminUsername.trim()],
+  );
+
+  // Auto-login: return a token like /auth/login does.
+  const payload = { id: userId, username: adminUsername.trim(), name: adminName?.trim() || adminUsername.trim(), role: 'admin', restaurantId };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+  res.status(201).json({ token, user: payload, plan: planCode, trialDays: TRIAL_DAYS });
 });
 
 // ── Public: billing webhook (provider → us) ───────────────────────────────────
@@ -73,6 +119,24 @@ router.post('/checkout', authenticate, requireRole('admin'), async (req: AuthReq
     console.error('Checkout error:', err);
     res.status(500).json({ error: 'Could not start checkout' });
   }
+});
+
+// ── Super-admin: manually set a restaurant's plan/status (override) ───────────
+router.patch('/:restaurantId/admin', authenticate, requireRole('super_admin'), async (req: AuthRequest, res) => {
+  const restaurantId = String(req.params.restaurantId);
+  const { plan, status, trialDays } = req.body as { plan?: string; status?: string; trialDays?: number };
+  if (!isPlanCode(plan)) { res.status(400).json({ error: 'Invalid plan' }); return; }
+  const valid: SubscriptionStatus[] = ['trialing', 'active', 'past_due', 'canceled'];
+  const st = (valid as string[]).includes(status ?? '') ? (status as SubscriptionStatus) : 'active';
+
+  const exists = await pool.query('SELECT id FROM restaurants WHERE id = $1', [restaurantId]);
+  if (!exists.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+
+  const trialEndsAt = st === 'trialing' && trialDays && trialDays > 0
+    ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+  await applyPlan(restaurantId, plan, st, { trialEndsAt });
+  res.json({ ok: true, plan, status: st });
 });
 
 export default router;

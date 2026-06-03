@@ -91,6 +91,7 @@ const NAV: NavEntry[] = [
     ],
   },
 
+  { type: 'item', label: 'Subscription', icon: CreditCard, to: '/admin/billing' },
   { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ];
 

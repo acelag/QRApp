@@ -36,6 +36,13 @@ interface AuthContextValue {
   features: RestaurantFeatures;
   refreshFeatures: () => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
+  signup: (payload: {
+    restaurantName: string;
+    adminName: string;
+    adminUsername: string;
+    adminPassword: string;
+    plan: string;
+  }) => Promise<void>;
   logout: () => void;
   updateProfile: (payload: {
     currentPassword: string;
@@ -96,6 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await applyToken(res.data.token, res.data.user);
   }
 
+  async function signup(payload: {
+    restaurantName: string;
+    adminName: string;
+    adminUsername: string;
+    adminPassword: string;
+    plan: string;
+  }) {
+    const res = await axios.post<{ token: string; user: AuthUser }>('/api/subscription/signup', payload);
+    await applyToken(res.data.token, res.data.user);
+  }
+
   async function updateProfile(payload: {
     currentPassword: string;
     newUsername?: string;
@@ -129,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, features, refreshFeatures, login, logout, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, token, features, refreshFeatures, login, signup, logout, updateProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );

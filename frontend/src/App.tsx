@@ -27,6 +27,11 @@ import { DashboardPage } from './pages/admin/DashboardPage';
 import { OrdersPage } from './pages/admin/OrdersPage';
 import { MenuItemsPage } from './pages/admin/MenuItemsPage';
 import { MenuSetupPage } from './pages/admin/MenuSetupPage';
+import { BillingPage } from './pages/admin/BillingPage';
+import { LandingPage } from './pages/marketing/LandingPage';
+import { PricingPage } from './pages/marketing/PricingPage';
+import { SignupPage } from './pages/marketing/SignupPage';
+import { MockCheckoutPage } from './pages/marketing/MockCheckoutPage';
 import { KitchenPage } from './pages/admin/KitchenPage';
 import { ReceiptPage } from './pages/admin/ReceiptPage';
 import { KitchenTicketPage } from './pages/admin/KitchenTicketPage';
@@ -56,7 +61,7 @@ function RootRedirect() {
       <Loader2 size={32} className="animate-spin text-orange-500" />
     </div>
   );
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <LandingPage />;
   if (user.role === 'kitchen') return <Navigate to="/kitchen" replace />;
   if (user.role === 'super_admin') return <Navigate to="/admin/restaurants" replace />;
   return <Navigate to="/admin" replace />;
@@ -78,6 +83,9 @@ export default function App() {
 
             {/* Auth */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/billing/mock-checkout" element={<MockCheckoutPage />} />
 
             {/* Customer routes — public, no auth required */}
             <Route path="/welcome/:tableId" element={<WelcomePage />} />
@@ -99,6 +107,7 @@ export default function App() {
             <Route path="/kitchen-ticket/:orderId" element={<ProtectedRoute><KitchenTicketPage /></ProtectedRoute>} />
             <Route path="/session-receipt/:sessionId" element={<ProtectedRoute roles={['admin','manager','cashier']}><SessionReceiptPage /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute roles={['admin']}><SettingsPage /></ProtectedRoute>} />
+            <Route path="/admin/billing" element={<ProtectedRoute roles={['admin','manager']}><BillingPage /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><UsersPage /></ProtectedRoute>} />
             <Route path="/admin/bills" element={<ProtectedRoute roles={['admin','manager','cashier']}><BillsPage /></ProtectedRoute>} />
             <Route path="/admin/restaurants" element={<ProtectedRoute roles={['super_admin']}><RestaurantsPage /></ProtectedRoute>} />
