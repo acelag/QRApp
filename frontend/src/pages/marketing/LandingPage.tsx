@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  QrCode, Shield, LayoutDashboard, Briefcase, Wallet, ConciergeBell, ChefHat, ArrowRight,
+  QrCode, LayoutDashboard, Briefcase, Wallet, ConciergeBell, ChefHat, ArrowRight,
 } from 'lucide-react';
 
 interface RoleTile {
@@ -14,7 +14,6 @@ interface RoleTile {
 }
 
 const ROLES: RoleTile[] = [
-  { label: 'Super Admin', blurb: 'Manage all restaurants, plans & feature flags', Icon: Shield,          u: 'superadmin', p: 'super123',   tint: 'bg-purple-100 text-purple-600', ring: 'hover:ring-purple-300' },
   { label: 'Admin',       blurb: 'Full dashboard — menu, orders, reports & stock',  Icon: LayoutDashboard, u: 'admin',      p: 'admin123',   tint: 'bg-orange-100 text-orange-600', ring: 'hover:ring-orange-300' },
   { label: 'Manager',     blurb: 'Day-to-day operations & staff management',        Icon: Briefcase,       u: 'manager',    p: 'manager123', tint: 'bg-violet-100 text-violet-600', ring: 'hover:ring-violet-300' },
   { label: 'Cashier',     blurb: 'Take orders, settle bills & close tables',        Icon: Wallet,          u: 'cashier',    p: 'cashier123', tint: 'bg-emerald-100 text-emerald-600', ring: 'hover:ring-emerald-300' },
