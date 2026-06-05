@@ -1258,7 +1258,7 @@ export function SettingsPage() {
             </div>
 
             <button
-              onClick={() => { logout(); navigate('/login', { replace: true }); }}
+              onClick={() => { logout(); navigate('/', { replace: true }); }}
               className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-500 hover:bg-red-50 py-3.5 rounded-2xl text-sm font-semibold transition-colors"
             >
               <LogOut size={16} />

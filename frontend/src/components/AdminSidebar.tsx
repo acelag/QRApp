@@ -180,7 +180,7 @@ export function AdminSidebar() {
     });
   }
 
-  function handleLogout() { logout(); window.location.href = '/login'; }
+  function handleLogout() { logout(); window.location.href = '/'; } // temp: back to demo launcher
 
   // Shared nav content used in both desktop sidebar and mobile drawer
   function NavContent() {

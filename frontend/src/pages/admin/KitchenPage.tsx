@@ -48,7 +48,7 @@ export function KitchenPage() {
     if (mi.prepTimeMins) prepTimeMap[mi.name] = mi.prepTimeMins;
   }
 
-  function handleLogout() { logout(); navigate('/login', { replace: true }); }
+  function handleLogout() { logout(); navigate('/', { replace: true }); } // temp: back to demo launcher
 
   // ── Orders polling ────────────────────────────────────────────────────────
   const fetchOrders = useCallback(() =>
