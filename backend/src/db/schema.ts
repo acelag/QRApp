@@ -454,5 +454,35 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS stock_items (
+      id            VARCHAR(36)    NOT NULL PRIMARY KEY,
+      restaurant_id VARCHAR(36)    NOT NULL,
+      name          VARCHAR(255)   NOT NULL,
+      unit          VARCHAR(50)    NOT NULL DEFAULT 'piece',
+      quantity      DECIMAL(10,3)  NOT NULL DEFAULT 0,
+      min_threshold DECIMAL(10,3)  NOT NULL DEFAULT 0,
+      cost_per_unit DECIMAL(10,2)  NOT NULL DEFAULT 0,
+      category      VARCHAR(100)   NULL,
+      created_at    VARCHAR(50)    NOT NULL,
+      updated_at    VARCHAR(50)    NOT NULL
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS stock_movements (
+      id             VARCHAR(36)   NOT NULL PRIMARY KEY,
+      stock_item_id  VARCHAR(36)   NOT NULL REFERENCES stock_items(id) ON DELETE CASCADE,
+      restaurant_id  VARCHAR(36)   NOT NULL,
+      type           VARCHAR(10)   NOT NULL CHECK (type IN ('in','out')),
+      quantity       DECIMAL(10,3) NOT NULL,
+      reason         VARCHAR(100)  NULL,
+      notes          VARCHAR(500)  NULL,
+      created_by     VARCHAR(36)   NULL,
+      created_by_name VARCHAR(255) NULL,
+      created_at     VARCHAR(50)   NOT NULL
+    );
+  `);
+
   console.log('✓ Schema ready');
 }
