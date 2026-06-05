@@ -57,6 +57,7 @@ import { RosterPage } from './pages/admin/RosterPage';
 import { MenuSchedulesPage } from './pages/admin/MenuSchedulesPage';
 import { CombosPage } from './pages/admin/CombosPage';
 import { StockPage } from './pages/admin/StockPage';
+import { StockReportPage } from './pages/admin/StockReportPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -134,6 +135,7 @@ export default function App() {
             <Route path="/admin/combos" element={<ProtectedRoute roles={['admin','manager']}><CombosPage /></ProtectedRoute>} />
             <Route path="/admin/table-status" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><TableStatusPage /></ProtectedRoute>} />
             <Route path="/admin/stock" element={<ProtectedRoute roles={['admin','manager']}><StockPage /></ProtectedRoute>} />
+            <Route path="/admin/stock-report" element={<ProtectedRoute roles={['admin','manager']}><StockReportPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by kitchen, admin and manager */}
             <Route path="/kitchen" element={<ProtectedRoute roles={['admin','manager','kitchen']}><KitchenPage /></ProtectedRoute>} />

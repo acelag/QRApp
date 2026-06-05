@@ -156,6 +156,102 @@ router.post('/:id/movements', authenticate, requireRole('admin', 'manager'), asy
   }
 });
 
+// ── Stock report (date range, all items) ───────────────────────────────────
+router.get('/report', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { from, to } = req.query as { from?: string; to?: string };
+  const isDay = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  if (!isDay(from) || !isDay(to)) {
+    return res.status(400).json({ error: 'from and to (YYYY-MM-DD) are required' });
+  }
+  // Movement timestamps are ISO strings; bound the range inclusively.
+  const fromTs = `${from}T00:00:00.000Z`;
+  const toTs   = `${to}T23:59:59.999Z`;
+
+  try {
+    const rid = req.user!.restaurantId;
+
+    // Current snapshot
+    const itemsRes = await pool.query(
+      'SELECT * FROM stock_items WHERE restaurant_id = $1 ORDER BY name ASC',
+      [rid],
+    );
+    const items = itemsRes.rows.map(toItem);
+
+    // Per-item movement totals within range
+    const aggRes = await pool.query(
+      `SELECT stock_item_id,
+              SUM(CASE WHEN type = 'in'  THEN quantity ELSE 0 END) AS total_in,
+              SUM(CASE WHEN type = 'out' THEN quantity ELSE 0 END) AS total_out,
+              COUNT(*) AS movement_count
+       FROM stock_movements
+       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
+       GROUP BY stock_item_id`,
+      [rid, fromTs, toTs],
+    );
+    const aggByItem: Record<string, { totalIn: number; totalOut: number; movementCount: number }> = {};
+    for (const r of aggRes.rows) {
+      aggByItem[r.stock_item_id as string] = {
+        totalIn:  Number(r.total_in),
+        totalOut: Number(r.total_out),
+        movementCount: Number(r.movement_count),
+      };
+    }
+
+    // Build per-item rows joined with current item data
+    const itemRows = items.map((it) => {
+      const agg = aggByItem[it.id as string] ?? { totalIn: 0, totalOut: 0, movementCount: 0 };
+      const isLow = it.minThreshold > 0 && it.quantity <= it.minThreshold;
+      return {
+        id: it.id,
+        name: it.name,
+        unit: it.unit,
+        category: it.category,
+        quantity: it.quantity,
+        minThreshold: it.minThreshold,
+        costPerUnit: it.costPerUnit,
+        stockValue: it.quantity * it.costPerUnit,
+        totalIn: agg.totalIn,
+        totalOut: agg.totalOut,
+        movementCount: agg.movementCount,
+        isLow,
+        isOut: it.quantity === 0,
+      };
+    });
+
+    // Recent movements within range (capped)
+    const movRes = await pool.query(
+      `SELECT m.*, s.name AS item_name, s.unit AS item_unit
+       FROM stock_movements m
+       JOIN stock_items s ON s.id = m.stock_item_id
+       WHERE m.restaurant_id = $1 AND m.created_at >= $2 AND m.created_at <= $3
+       ORDER BY m.created_at DESC
+       LIMIT 200`,
+      [rid, fromTs, toTs],
+    );
+    const movements = movRes.rows.map((row) => ({
+      ...toMovement(row),
+      itemName: row.item_name,
+      itemUnit: row.item_unit,
+    }));
+
+    // Summary
+    const summary = {
+      totalItems:      items.length,
+      lowStockItems:   itemRows.filter((r) => r.isLow).length,
+      outOfStockItems: itemRows.filter((r) => r.isOut).length,
+      totalStockValue: itemRows.reduce((s, r) => s + r.stockValue, 0),
+      totalIn:         itemRows.reduce((s, r) => s + r.totalIn, 0),
+      totalOut:        itemRows.reduce((s, r) => s + r.totalOut, 0),
+      totalMovements:  movements.length,
+    };
+
+    res.json({ from, to, summary, items: itemRows, movements });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to build stock report' });
+  }
+});
+
 // ── Movement history for an item ───────────────────────────────────────────
 router.get('/:id/movements', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   try {
