@@ -61,15 +61,14 @@ import { StockReportPage } from './pages/admin/StockReportPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
-  const { enabled, loading: cfgLoading } = useSubscriptionConfig();
+  const { loading: cfgLoading } = useSubscriptionConfig();
   if (loading || cfgLoading) return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
       <Loader2 size={32} className="animate-spin text-orange-500" />
     </div>
   );
-  // Anonymous: show the marketing landing only when subscriptions are enabled;
-  // otherwise behave like before (straight to login).
-  if (!user) return enabled ? <LandingPage /> : <Navigate to="/login" replace />;
+  // Anonymous: always show the demo launcher landing page.
+  if (!user) return <LandingPage />;
   if (user.role === 'kitchen') return <Navigate to="/kitchen" replace />;
   if (user.role === 'super_admin') return <Navigate to="/admin/restaurants" replace />;
   return <Navigate to="/admin" replace />;

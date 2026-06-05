@@ -284,7 +284,7 @@ export function RestaurantsPage() {
               <Plus size={14} /> New
             </button>
             <button
-              onClick={() => { logout(); navigate('/login', { replace: true }); }}
+              onClick={() => { logout(); navigate('/', { replace: true }); }}
               className="text-gray-400 hover:text-red-500 transition-colors p-1.5"
               title="Logout"
             >

@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UtensilsCrossed, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +28,7 @@ export function LoginPage() {
   const { login } = useAuth();
   const { clearTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => { clearTheme(); }, []);
   const [username, setUsername] = useState('');
@@ -37,15 +38,14 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [slowRequest, setSlowRequest] = useState(false);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!username.trim() || !password) return;
+  async function doLogin(u: string, p: string) {
+    if (!u.trim() || !p) return;
     setError('');
     setSlowRequest(false);
     setLoading(true);
     const slowTimer = setTimeout(() => setSlowRequest(true), 5000);
     try {
-      await login(username.trim(), password);
+      await login(u.trim(), p);
       navigate('/', { replace: true }); // RootRedirect handles role-based routing
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -56,6 +56,22 @@ export function LoginPage() {
       setLoading(false);
     }
   }
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    doLogin(username, password);
+  }
+
+  // Prefill (and optionally auto-submit) when arriving from a demo role tile.
+  useEffect(() => {
+    const st = location.state as { u?: string; p?: string; auto?: boolean } | null;
+    if (st?.u) {
+      setUsername(st.u);
+      setPassword(st.p ?? '');
+      if (st.auto && st.p) doLogin(st.u, st.p);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
