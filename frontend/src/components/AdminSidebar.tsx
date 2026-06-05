@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
-  Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
+  Package, Calendar, CalendarDays, Wallet, Warehouse,
   LayoutGrid, ChevronDown, ChevronRight, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -78,7 +78,6 @@ const NAV: NavEntry[] = [
       { label: 'Room Charges',  icon: CreditCard, to: '/admin/room-charges',featureKey: 'roomCharges' },
       { label: 'Promo Codes',   icon: Tag,        to: '/admin/promo-codes', featureKey: 'promoCodes' },
       { label: 'Reports',       icon: BarChart2,  to: '/admin/reports', matchPrefix: '/admin/reports', featureKey: 'reports' },
-      { label: 'Shift Report',  icon: FileText,   to: '/admin/shift-close', featureKey: 'shiftReport' },
     ],
   },
   {

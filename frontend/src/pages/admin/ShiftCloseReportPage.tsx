@@ -23,7 +23,8 @@ function fmt_datetime(iso: string) {
   });
 }
 
-export function ShiftCloseReportPage() {
+// Core component — no sidebar, no <main> wrapper
+export function ShiftCloseReport() {
   const { fmt } = useCurrency();
   const today = new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD
   const [date, setDate]       = useState(today);
@@ -54,9 +55,7 @@ export function ShiftCloseReportPage() {
   const s = report?.summary;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+    <>
       {/* Header — hidden on print */}
       <header className="bg-white shadow-sm sticky top-0 z-40 print:hidden">
         <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
@@ -294,6 +293,17 @@ export function ShiftCloseReportPage() {
           .print\\:block  { display: block  !important; }
         }
       `}</style>
+    </>
+  );
+}
+
+// Layout wrapper — keeps /admin/shift-close route working
+export function ShiftCloseReportPage() {
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+        <ShiftCloseReport />
       </main>
     </div>
   );
