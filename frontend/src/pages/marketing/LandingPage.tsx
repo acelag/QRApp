@@ -1,81 +1,84 @@
-import { Link } from 'react-router-dom';
-import { QrCode, Smartphone, Receipt, ChefHat, BarChart3, BedDouble, ArrowRight } from 'lucide-react';
-import { MarketingNav, MarketingFooter } from '../../components/marketing/MarketingNav';
-import { PricingGrid } from '../../components/marketing/PricingGrid';
+import { useNavigate } from 'react-router-dom';
+import {
+  QrCode, Shield, LayoutDashboard, Briefcase, Wallet, ConciergeBell, ChefHat, ArrowRight,
+} from 'lucide-react';
 
-const FEATURES = [
-  { Icon: QrCode,     title: 'QR ordering',        body: 'Customers scan a table, room or takeaway QR and order straight from their phone — no app needed.' },
-  { Icon: Smartphone, title: 'Branded welcome',    body: 'A designable welcome screen with your logo, hero image and social links greets every guest.' },
-  { Icon: ChefHat,    title: 'Kitchen display',    body: 'Live tickets with prep timers keep the kitchen in sync and orders moving.' },
-  { Icon: Receipt,    title: 'Bills & payments',   body: 'Split bills, apply promos, and close tables fast with built-in billing.' },
-  { Icon: BedDouble,  title: 'Rooms & takeaway',   body: 'Dine-in, room service and takeaway flows — all from one menu.' },
-  { Icon: BarChart3,  title: 'Reports & staff',    body: 'Sales reports, shift close, rosters and staff performance at a glance.' },
+interface RoleTile {
+  label: string;
+  blurb: string;
+  Icon: React.ElementType;
+  u: string;
+  p: string;
+  tint: string;   // icon tile bg + text
+  ring: string;   // hover ring color
+}
+
+const ROLES: RoleTile[] = [
+  { label: 'Super Admin', blurb: 'Manage all restaurants, plans & feature flags', Icon: Shield,          u: 'superadmin', p: 'super123',   tint: 'bg-purple-100 text-purple-600', ring: 'hover:ring-purple-300' },
+  { label: 'Admin',       blurb: 'Full dashboard — menu, orders, reports & stock',  Icon: LayoutDashboard, u: 'admin',      p: 'admin123',   tint: 'bg-orange-100 text-orange-600', ring: 'hover:ring-orange-300' },
+  { label: 'Manager',     blurb: 'Day-to-day operations & staff management',        Icon: Briefcase,       u: 'manager',    p: 'manager123', tint: 'bg-violet-100 text-violet-600', ring: 'hover:ring-violet-300' },
+  { label: 'Cashier',     blurb: 'Take orders, settle bills & close tables',        Icon: Wallet,          u: 'cashier',    p: 'cashier123', tint: 'bg-emerald-100 text-emerald-600', ring: 'hover:ring-emerald-300' },
+  { label: 'Waiter',      blurb: 'Live orders, assign tables & serve guests',       Icon: ConciergeBell,   u: 'waiter',     p: 'waiter123',  tint: 'bg-sky-100 text-sky-600', ring: 'hover:ring-sky-300' },
+  { label: 'Kitchen',     blurb: 'Kitchen display with live tickets & prep timers', Icon: ChefHat,         u: 'kitchen',    p: 'kitchen123', tint: 'bg-rose-100 text-rose-600', ring: 'hover:ring-rose-300' },
 ];
 
 export function LandingPage() {
+  const navigate = useNavigate();
+
+  function openDemo(role: RoleTile) {
+    // Pass credentials via router state (not the URL) and auto-submit on the login page.
+    navigate('/login', { state: { u: role.u, p: role.p, auto: true } });
+  }
+
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      <MarketingNav />
+    <div className="min-h-screen bg-gradient-to-b from-orange-50 via-amber-50/50 to-white flex flex-col">
+      {/* decorative blobs */}
+      <div className="pointer-events-none fixed -top-24 -left-24 w-80 h-80 rounded-full bg-orange-200/40 blur-3xl" />
+      <div className="pointer-events-none fixed top-20 -right-24 w-96 h-96 rounded-full bg-rose-200/40 blur-3xl" />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-orange-50 to-white" />
-        <div className="relative max-w-6xl mx-auto px-5 pt-20 pb-16 text-center">
-          <span className="inline-block text-xs font-bold uppercase tracking-widest text-orange-600 bg-orange-100 px-3 py-1 rounded-full mb-5">
-            QR ordering & POS for restaurants
-          </span>
-          <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight max-w-3xl mx-auto">
-            Turn every table into a <span className="text-orange-500">self-service</span> ordering point
-          </h1>
-          <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">
-            Let guests scan, browse and order from their phones while your team manages everything —
-            orders, kitchen, bills and staff — from one dashboard.
-          </p>
-          <div className="mt-8 flex items-center justify-center gap-3">
-            <Link to="/signup" className="inline-flex items-center gap-2 bg-orange-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-orange-600 transition-colors">
-              Start free trial <ArrowRight size={18} />
-            </Link>
-            <Link to="/pricing" className="px-6 py-3 rounded-full font-semibold text-gray-700 hover:bg-gray-100 transition-colors">
-              See pricing
-            </Link>
+      <main className="relative flex-1 max-w-5xl mx-auto w-full px-5 py-12 sm:py-16">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-500/30 mb-5">
+            <QrCode size={28} />
           </div>
-          <p className="mt-3 text-sm text-gray-400">14-day free trial · no credit card required</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
+            QRApp Demo
+          </h1>
+          <p className="mt-3 text-gray-500 max-w-lg mx-auto">
+            Pick a role to explore the app. We'll log you in instantly with demo
+            credentials — no typing required. 👇
+          </p>
         </div>
-      </section>
 
-      {/* Features */}
-      <section className="max-w-6xl mx-auto px-5 py-16">
-        <h2 className="text-3xl font-extrabold text-center mb-12">Everything you need to run service</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {FEATURES.map(({ Icon, title, body }) => (
-            <div key={title} className="rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-4"><Icon size={20} /></div>
-              <h3 className="font-bold text-lg mb-1">{title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{body}</p>
-            </div>
+        {/* Role tiles */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {ROLES.map((role) => (
+            <button
+              key={role.u}
+              onClick={() => openDemo(role)}
+              className={`group text-left bg-white rounded-3xl border border-gray-100 ring-2 ring-transparent ${role.ring} p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all`}
+            >
+              <div className={`w-12 h-12 rounded-2xl ${role.tint} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                <role.Icon size={22} />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-bold text-lg text-gray-900">{role.label}</h2>
+                <ArrowRight size={16} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <p className="text-sm text-gray-500 mt-1 leading-relaxed">{role.blurb}</p>
+              <p className="mt-4 text-xs font-mono text-gray-400">
+                {role.u} / {role.p}
+              </p>
+            </button>
           ))}
         </div>
-      </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="bg-gray-50 py-16">
-        <div className="max-w-6xl mx-auto px-5">
-          <h2 className="text-3xl font-extrabold text-center">Simple, transparent pricing</h2>
-          <p className="text-center text-gray-500 mt-2 mb-10">Start free, upgrade when you grow.</p>
-          <PricingGrid />
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="max-w-4xl mx-auto px-5 py-20 text-center">
-        <h2 className="text-3xl font-extrabold">Ready to modernise your service?</h2>
-        <p className="text-gray-500 mt-3">Set up your menu in minutes and start taking QR orders today.</p>
-        <Link to="/signup" className="mt-7 inline-flex items-center gap-2 bg-orange-500 text-white px-7 py-3.5 rounded-full font-semibold hover:bg-orange-600 transition-colors">
-          Start your free trial <ArrowRight size={18} />
-        </Link>
-      </section>
-
-      <MarketingFooter />
+        {/* Footer note */}
+        <p className="text-center text-xs text-gray-400 mt-10">
+          Demo environment · Tap any card to sign in automatically
+        </p>
+      </main>
     </div>
   );
 }
