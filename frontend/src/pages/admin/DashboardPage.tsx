@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import {
   Activity, Banknote, ClipboardList,
   PlusCircle, ChefHat, CheckCircle2, Package,
+  AlertTriangle, Warehouse, ArrowDownCircle, ArrowUpCircle, TrendingDown,
 } from 'lucide-react';
+import { stockService, type StockItem } from '../../services/stockService';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { TrialBanner } from '../../components/TrialBanner';
 import {
@@ -73,11 +75,12 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { fmt } = useCurrency();
 
-  const [orders,  setOrders]  = useState<Order[]>([]);
-  const [today,   setToday]   = useState<TodaySummary | null>(null);
-  const [daily,   setDaily]   = useState<DailyRow[]>([]);
-  const [cats,    setCats]    = useState<CategoryRow[]>([]);
-  const [heatmap, setHeatmap] = useState<HeatmapCell[]>([]);
+  const [orders,     setOrders]     = useState<Order[]>([]);
+  const [today,      setToday]      = useState<TodaySummary | null>(null);
+  const [daily,      setDaily]      = useState<DailyRow[]>([]);
+  const [cats,       setCats]       = useState<CategoryRow[]>([]);
+  const [heatmap,    setHeatmap]    = useState<HeatmapCell[]>([]);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
 
   useOrderSoundAlert(orders);
 
@@ -94,6 +97,11 @@ export function DashboardPage() {
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  // Fetch stock items once
+  useEffect(() => {
+    stockService.list().then(setStockItems).catch(() => {});
   }, []);
 
   // Fetch today summary + last-7-days report once
@@ -113,6 +121,11 @@ export function DashboardPage() {
   const todayOrders  = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
   const activeOrders = orders.filter((o) => o.status !== 'cancelled');
   const todayRevenue = today?.revenue ?? todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
+
+  // Stock derived values
+  const lowStockItems  = stockItems.filter((i) => i.minThreshold > 0 && i.quantity <= i.minThreshold);
+  const outOfStockItems = stockItems.filter((i) => i.quantity === 0);
+  const totalStockValue = stockItems.reduce((s, i) => s + i.quantity * i.costPerUnit, 0);
 
   // ── Chart data ──────────────────────────────────────────────────────────────
 
@@ -243,6 +256,107 @@ export function DashboardPage() {
               </Link>
             </div>
           </div>
+
+          {/* ── Stock Widgets ─────────────────────────────────────────────── */}
+          {stockItems.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-700">Inventory Snapshot</h2>
+                <Link to="/admin/stock" className="text-xs text-orange-500 font-semibold hover:underline">
+                  View all →
+                </Link>
+              </div>
+
+              {/* Stock stat cards */}
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <div className="inline-flex p-2 rounded-xl mb-2 bg-orange-50">
+                    <Warehouse size={16} className="text-orange-500" />
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">{stockItems.length}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Stock Items</p>
+                </div>
+                <div className={`bg-white rounded-2xl p-4 shadow-sm border ${lowStockItems.length > 0 ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100'}`}>
+                  <div className={`inline-flex p-2 rounded-xl mb-2 ${lowStockItems.length > 0 ? 'bg-amber-100' : 'bg-gray-50'}`}>
+                    <AlertTriangle size={16} className={lowStockItems.length > 0 ? 'text-amber-500' : 'text-gray-400'} />
+                  </div>
+                  <p className={`text-xl font-bold ${lowStockItems.length > 0 ? 'text-amber-600' : 'text-gray-900'}`}>{lowStockItems.length}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Low Stock</p>
+                </div>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <div className="inline-flex p-2 rounded-xl mb-2 bg-blue-50">
+                    <Banknote size={16} className="text-blue-500" />
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">{fmt(totalStockValue)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Stock Value</p>
+                </div>
+              </div>
+
+              {/* Low stock alert list */}
+              {lowStockItems.length > 0 && (
+                <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-100 bg-amber-50">
+                    <TrendingDown size={14} className="text-amber-500" />
+                    <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">
+                      {lowStockItems.length} item{lowStockItems.length > 1 ? 's' : ''} need restocking
+                    </p>
+                  </div>
+                  <ul className="divide-y divide-gray-50">
+                    {lowStockItems.slice(0, 5).map((item) => {
+                      const pct = item.minThreshold > 0 ? Math.min(100, (item.quantity / item.minThreshold) * 100) : 0;
+                      const isEmpty = item.quantity === 0;
+                      return (
+                        <li key={item.id} className="flex items-center gap-3 px-4 py-2.5">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isEmpty ? 'bg-red-100' : 'bg-amber-100'}`}>
+                            {isEmpty
+                              ? <ArrowUpCircle size={13} className="text-red-500" />
+                              : <AlertTriangle size={13} className="text-amber-500" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium text-gray-800 truncate">{item.name}</span>
+                              <span className={`text-xs font-bold shrink-0 ${isEmpty ? 'text-red-600' : 'text-amber-600'}`}>
+                                {isEmpty ? 'Out of stock' : `${item.quantity} ${item.unit} left`}
+                              </span>
+                            </div>
+                            {/* Progress bar */}
+                            <div className="mt-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${isEmpty ? 'bg-red-400' : 'bg-amber-400'}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {lowStockItems.length > 5 && (
+                    <div className="px-4 py-2.5 border-t border-gray-50 bg-gray-50">
+                      <Link to="/admin/stock" className="text-xs text-orange-500 font-semibold hover:underline">
+                        +{lowStockItems.length - 5} more items → View in Stock
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Out of stock quick-add nudge */}
+              {outOfStockItems.length > 0 && (
+                <Link
+                  to="/admin/stock"
+                  className="flex items-center gap-3 mt-3 px-4 py-3 bg-red-50 border border-red-200 rounded-2xl hover:bg-red-100 transition-colors"
+                >
+                  <ArrowDownCircle size={16} className="text-red-500 shrink-0" />
+                  <p className="text-xs text-red-700 font-medium flex-1">
+                    <span className="font-bold">{outOfStockItems.length} item{outOfStockItems.length > 1 ? 's' : ''} out of stock</span>
+                    {' '}— tap to log a delivery
+                  </p>
+                  <span className="text-xs text-red-500 font-semibold shrink-0">Stock In →</span>
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* ── Analytics & Insights ──────────────────────────────────────── */}
           <div>
