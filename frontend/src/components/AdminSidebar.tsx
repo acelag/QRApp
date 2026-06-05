@@ -77,8 +77,6 @@ const NAV: NavEntry[] = [
       { label: 'Bills',         icon: Receipt,    to: '/admin/bills',       featureKey: 'bills' },
       { label: 'Room Charges',  icon: CreditCard, to: '/admin/room-charges',featureKey: 'roomCharges' },
       { label: 'Promo Codes',   icon: Tag,        to: '/admin/promo-codes', featureKey: 'promoCodes' },
-      { label: 'Reports',       icon: BarChart2,  to: '/admin/reports', matchPrefix: '/admin/reports', featureKey: 'reports' },
-      { label: 'Shift Report',  icon: FileText,   to: '/admin/shift-close', featureKey: 'shiftReport' },
     ],
   },
   {
@@ -99,6 +97,16 @@ const NAV: NavEntry[] = [
     icon: Warehouse,
     children: [
       { label: 'Stock', icon: Package, to: '/admin/stock' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Reports',
+    icon: BarChart2,
+    children: [
+      { label: 'Order Reports', icon: BarChart2, to: '/admin/reports', exact: true, featureKey: 'reports' },
+      { label: 'Shift Report',  icon: FileText,  to: '/admin/shift-close', featureKey: 'shiftReport' },
+      { label: 'Stock Report',  icon: Warehouse, to: '/admin/stock-report' },
     ],
   },
   { type: 'item', label: 'Subscription', icon: CreditCard, to: '/admin/billing' },
@@ -182,6 +190,7 @@ export function AdminSidebar() {
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {NAV.map((entry) => {
             if (entry.type === 'item') {
+              if (!isVisible(entry)) return null;
               const active = isItemActive(entry, location.pathname);
               return (
                 <Link

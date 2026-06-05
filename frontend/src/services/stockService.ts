@@ -70,4 +70,44 @@ export const stockService = {
 
   getMovements: (id: string): Promise<StockMovement[]> =>
     axios.get<StockMovement[]>(`${BASE}/${id}/movements`).then(r => r.data),
+
+  getReport: (from: string, to: string): Promise<StockReport> =>
+    axios.get<StockReport>(`${BASE}/report`, { params: { from, to } }).then(r => r.data),
 };
+
+export interface StockReportItem {
+  id: string;
+  name: string;
+  unit: StockUnit;
+  category: string | null;
+  quantity: number;
+  minThreshold: number;
+  costPerUnit: number;
+  stockValue: number;
+  totalIn: number;
+  totalOut: number;
+  movementCount: number;
+  isLow: boolean;
+  isOut: boolean;
+}
+
+export interface StockReportMovement extends StockMovement {
+  itemName: string;
+  itemUnit: StockUnit;
+}
+
+export interface StockReport {
+  from: string;
+  to: string;
+  summary: {
+    totalItems: number;
+    lowStockItems: number;
+    outOfStockItems: number;
+    totalStockValue: number;
+    totalIn: number;
+    totalOut: number;
+    totalMovements: number;
+  };
+  items: StockReportItem[];
+  movements: StockReportMovement[];
+}

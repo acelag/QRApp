@@ -571,6 +571,7 @@ export function ReportsPage() {
     { key: '30days',    label: t('reports.last30Days') },
   ], [t]);
 
+
   const initial = buildRange('today');
   const [from, setFrom] = useState(initial.from);
   const [to,   setTo]   = useState(initial.to);
