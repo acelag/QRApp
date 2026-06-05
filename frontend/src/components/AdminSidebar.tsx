@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
-  Package, Calendar, CalendarDays, FileText, Wallet,
+  Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
   LayoutGrid, ChevronDown, ChevronRight, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -93,6 +93,14 @@ const NAV: NavEntry[] = [
     ],
   },
 
+  {
+    type: 'group',
+    label: 'Inventory',
+    icon: Warehouse,
+    children: [
+      { label: 'Stock', icon: Package, to: '/admin/stock' },
+    ],
+  },
   { type: 'item', label: 'Subscription', icon: CreditCard, to: '/admin/billing' },
   { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ];
