@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
-  Package, Calendar, CalendarDays, Wallet, Warehouse,
+  Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
   LayoutGrid, ChevronDown, ChevronRight, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -99,7 +99,15 @@ const NAV: NavEntry[] = [
       { label: 'Stock', icon: Package, to: '/admin/stock' },
     ],
   },
-  { type: 'item', label: 'Reports', icon: BarChart2, to: '/admin/reports', matchPrefix: '/admin/reports', featureKey: 'reports' },
+  {
+    type: 'group',
+    label: 'Reports',
+    icon: BarChart2,
+    children: [
+      { label: 'Order Reports', icon: BarChart2, to: '/admin/reports', exact: true, featureKey: 'reports' },
+      { label: 'Shift Report',  icon: FileText,  to: '/admin/shift-close', featureKey: 'shiftReport' },
+    ],
+  },
   { type: 'item', label: 'Subscription', icon: CreditCard, to: '/admin/billing' },
   { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings' },
 ];

@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard, Clock, FileText } from 'lucide-react';
-import { ShiftCloseReport } from './ShiftCloseReportPage';
+import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard, Clock } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
@@ -572,7 +571,6 @@ export function ReportsPage() {
     { key: '30days',    label: t('reports.last30Days') },
   ], [t]);
 
-  const [mainTab, setMainTab] = useState<'orders' | 'shift'>('orders');
 
   const initial = buildRange('today');
   const [from, setFrom] = useState(initial.from);
@@ -626,28 +624,6 @@ export function ReportsPage() {
         </div>
       </header>
 
-      {/* ── Main tab bar ──────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 flex gap-1">
-        {([
-          { key: 'orders', label: 'Order Reports', icon: BarChart2 },
-          { key: 'shift',  label: 'Shift Report',  icon: FileText },
-        ] as { key: 'orders' | 'shift'; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setMainTab(key)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
-              mainTab === key
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Icon size={15} />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {mainTab === 'orders' ? (
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5">
 
         {/* Date range picker */}
@@ -1754,9 +1730,6 @@ export function ReportsPage() {
           </>
         )}
       </div>
-      ) : (
-        <ShiftCloseReport />
-      )}
       </main>
     </div>
   );
