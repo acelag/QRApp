@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Plus, Package, ArrowDownCircle, ArrowUpCircle, Pencil, Trash2,
-  AlertTriangle, ChevronRight, X, History, Search,
+  AlertTriangle,X, History, Search,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
