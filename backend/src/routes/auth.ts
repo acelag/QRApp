@@ -46,7 +46,14 @@ router.post('/login', async (req, res) => {
   res.json({ token, user: payload });
 });
 
-router.get('/me', authenticate, (req: AuthRequest, res) => { res.json(req.user); });
+// Returns the CURRENT user record from the DB (fresh permissions/role),
+// not the possibly-stale JWT payload — so admin permission changes apply live.
+router.get('/me', authenticate, async (req: AuthRequest, res) => {
+  const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user!.id]);
+  const user = result.rows[0] as Record<string, unknown> | undefined;
+  if (!user) { res.status(401).json({ error: 'User no longer exists' }); return; }
+  res.json(makePayload(user));
+});
 
 router.patch('/profile', authenticate, async (req: AuthRequest, res) => {
   const { currentPassword, newUsername, newName, newPassword } = req.body as {
