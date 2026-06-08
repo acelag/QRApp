@@ -3,11 +3,19 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/database';
 import { JWT_SECRET, authenticate, AuthRequest } from '../middleware/auth';
+import { parsePermissions } from '../lib/permissions';
 
 const router = Router();
 
 function makePayload(user: Record<string, unknown>) {
-  return { id: user.id, username: user.username, name: user.name, role: user.role, restaurantId: user.restaurant_id ?? null };
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    role: user.role,
+    restaurantId: user.restaurant_id ?? null,
+    permissions: parsePermissions(user.permissions),
+  };
 }
 
 router.post('/login', async (req, res) => {

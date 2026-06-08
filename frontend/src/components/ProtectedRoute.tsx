@@ -6,11 +6,12 @@ type UserRole = 'super_admin' | 'admin' | 'manager' | 'cashier' | 'waiter' | 'ki
 
 interface Props {
   children: React.ReactNode;
-  roles?: UserRole[]; // undefined = any authenticated user
+  roles?: UserRole[];      // undefined = any authenticated user
+  permission?: string;     // staff must hold this permission (admins bypass)
 }
 
-export function ProtectedRoute({ children, roles }: Props) {
-  const { user, loading } = useAuth();
+export function ProtectedRoute({ children, roles, permission }: Props) {
+  const { user, loading, hasPermission } = useAuth();
 
   if (loading) {
     return (
@@ -22,7 +23,12 @@ export function ProtectedRoute({ children, roles }: Props) {
 
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'super_admin') return <>{children}</>;
-  if (!roles || roles.includes(user.role as UserRole)) return <>{children}</>;
+
+  const roleOk = !roles || roles.includes(user.role as UserRole);
+  // admin bypasses permission checks; staff must hold the permission.
+  const permOk = !permission || user.role === 'admin' || hasPermission(permission);
+
+  if (roleOk && permOk) return <>{children}</>;
 
   // Redirect to appropriate home for their role
   if (user.role === 'kitchen') return <Navigate to="/kitchen" replace />;

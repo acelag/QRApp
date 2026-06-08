@@ -5,13 +5,14 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { PERMISSION_GROUPS, assignablePermissions } from '../../lib/permissions';
 
 type UserRole = 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
 
-interface User { id: string; username: string; name: string; role: UserRole; }
+interface User { id: string; username: string; name: string; role: UserRole; permissions?: string[]; }
 
-const EMPTY: { username: string; name: string; password: string; role: UserRole } = {
-  username: '', name: '', password: '', role: 'waiter',
+const EMPTY: { username: string; name: string; password: string; role: UserRole; permissions: string[] } = {
+  username: '', name: '', password: '', role: 'waiter', permissions: [],
 };
 
 const ROLE_CONFIG: {
@@ -38,7 +39,9 @@ const BADGE_CLS: Record<UserRole, string> = {
 };
 
 export function UsersPage() {
-  const { user: me } = useAuth();
+  const { user: me, features } = useAuth();
+  const assignable = assignablePermissions(features);
+  const assignableKeys = new Set(assignable.map((p) => p.key));
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -66,10 +69,19 @@ export function UsersPage() {
 
   function openEdit(u: User) {
     setEditing(u);
-    setForm({ username: u.username, name: u.name, password: '', role: u.role });
+    setForm({ username: u.username, name: u.name, password: '', role: u.role, permissions: u.permissions ?? [] });
     setFormError('');
     setShowPwd(false);
     setShowForm(true);
+  }
+
+  function togglePerm(key: string) {
+    setForm((f) => ({
+      ...f,
+      permissions: f.permissions.includes(key)
+        ? f.permissions.filter((p) => p !== key)
+        : [...f.permissions, key],
+    }));
   }
 
   async function save() {
@@ -84,6 +96,9 @@ export function UsersPage() {
       setFormError('Password must be at least 6 characters'); return;
     }
 
+    // Admins implicitly have full access; only staff carry an explicit permission set.
+    const perms = form.role === 'admin' ? [] : form.permissions.filter((p) => assignableKeys.has(p));
+
     setSaving(true);
     try {
       if (editing) {
@@ -91,6 +106,7 @@ export function UsersPage() {
           username: form.username.trim(),
           name:     form.name.trim(),
           role:     form.role,
+          permissions: perms,
           ...(form.password ? { password: form.password } : {}),
         });
         setUsers((p) => p.map((u) => (u.id === editing.id ? res.data : u)));
@@ -101,6 +117,7 @@ export function UsersPage() {
           name:     form.name.trim(),
           password: form.password,
           role:     form.role,
+          permissions: perms,
         });
         setUsers((p) => [...p, res.data]);
         toast.success('User created');
@@ -251,6 +268,56 @@ export function UsersPage() {
                 ))}
               </div>
             </div>
+
+            {/* Permissions — staff only; admins always have full access */}
+            {form.role === 'admin' ? (
+              <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 text-sm text-orange-700">
+                Admins have full access to every enabled function.
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">Access &amp; Permissions</label>
+                  <div className="flex gap-2 text-xs">
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, permissions: assignable.map((p) => p.key) }))} className="text-orange-600 font-semibold hover:underline">All</button>
+                    <span className="text-gray-300">·</span>
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, permissions: [] }))} className="text-gray-500 font-semibold hover:underline">None</button>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mb-3">Choose which functions this staff member can access.</p>
+                <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {PERMISSION_GROUPS.map((grp) => {
+                    const items = grp.items.filter((it) => assignableKeys.has(it.key));
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={grp.group}>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">{grp.group}</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {items.map((it) => {
+                            const on = form.permissions.includes(it.key);
+                            return (
+                              <button
+                                key={it.key}
+                                type="button"
+                                onClick={() => togglePerm(it.key)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
+                                  on ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                }`}
+                              >
+                                <span className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border ${on ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300'}`}>
+                                  {on && <span className="text-[10px] leading-none">✓</span>}
+                                </span>
+                                <span className="truncate">{it.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={save}

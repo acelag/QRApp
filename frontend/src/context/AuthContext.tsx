@@ -7,6 +7,7 @@ export interface AuthUser {
   name: string;
   role: 'super_admin' | 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
   restaurantId: string | null;
+  permissions?: string[];
 }
 
 export interface RestaurantFeatures {
@@ -35,6 +36,8 @@ interface AuthContextValue {
   token: string | null;
   features: RestaurantFeatures;
   refreshFeatures: () => Promise<void>;
+  /** admin & super_admin always true; staff true only if explicitly granted. */
+  hasPermission: (key: string) => boolean;
   login: (username: string, password: string) => Promise<void>;
   signup: (payload: {
     restaurantName: string;
@@ -98,6 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const hasPermission = useCallback((key: string) => {
+    if (!user) return false;
+    if (user.role === 'admin' || user.role === 'super_admin') return true;
+    return (user.permissions ?? []).includes(key);
+  }, [user]);
+
   async function login(username: string, password: string) {
     const res = await axios.post<{ token: string; user: AuthUser }>('/api/auth/login', { username, password });
     await applyToken(res.data.token, res.data.user);
@@ -147,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, features, refreshFeatures, login, signup, logout, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, token, features, refreshFeatures, hasPermission, login, signup, logout, updateProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );
