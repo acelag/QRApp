@@ -186,7 +186,7 @@ export function UsersPage() {
       {/* Form modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
                 {editing ? `Edit — ${editing.name}` : 'New User'}
@@ -200,6 +200,11 @@ export function UsersPage() {
               </div>
             )}
 
+            {/* Two-column layout */}
+            <div className="grid md:grid-cols-2 gap-6 items-start">
+
+            {/* ── Left column: account fields + role ── */}
+            <div className="space-y-4">
             {/* Name */}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">Display Name</label>
@@ -250,7 +255,7 @@ export function UsersPage() {
             {/* Role */}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Role</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {ROLE_CONFIG.map(({ role, label, Icon, iconCls }) => (
                   <button
                     key={role}
@@ -268,8 +273,10 @@ export function UsersPage() {
                 ))}
               </div>
             </div>
+            </div>{/* ── end left column ── */}
 
-            {/* Permissions — staff only; admins always have full access */}
+            {/* ── Right column: Access & Permissions ── */}
+            <div className="md:border-l md:border-gray-100 md:pl-6">
             {form.role === 'admin' ? (
               <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 text-sm text-orange-700">
                 Admins have full access to every enabled function.
@@ -285,7 +292,7 @@ export function UsersPage() {
                   </div>
                 </div>
                 <p className="text-xs text-gray-400 mb-3">Choose which functions this staff member can access.</p>
-                <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[58vh] overflow-y-auto pr-1">
                   {PERMISSION_GROUPS.map((grp) => {
                     const items = grp.items.filter((it) => assignableKeys.has(it.key));
                     if (items.length === 0) return null;
@@ -318,6 +325,8 @@ export function UsersPage() {
                 </div>
               </div>
             )}
+            </div>{/* ── end right column ── */}
+            </div>{/* ── end two-column grid ── */}
 
             <button
               onClick={save}
