@@ -113,7 +113,7 @@ export function OrdersPage() {
         <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2 overflow-x-auto">
           {STATUS_TABS.map((t) => {
             const count = t.value === 'all' ? null
-              : t.value === 'takeaway' ? orders.filter((o) => o.orderType === 'takeaway').length
+              : t.value === 'takeaway' ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
               : orders.filter((o) => o.status === t.value).length;
             return (
               <button
