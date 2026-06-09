@@ -175,6 +175,7 @@ export async function createSchema(): Promise<void> {
   await addCol('orders',      'room_number',            'INTEGER NULL');
   await addCol('restaurants', 'wait_time_min',          'INTEGER NULL');
   await addCol('restaurants', 'timezone',               "VARCHAR(64) NOT NULL DEFAULT 'UTC'");
+  await addCol('users',       'permissions',            "JSONB NOT NULL DEFAULT '[]'::jsonb");
   await pool.query(`
     CREATE TABLE IF NOT EXISTS customer_push_subscriptions (
       id         VARCHAR(36)  NOT NULL PRIMARY KEY,

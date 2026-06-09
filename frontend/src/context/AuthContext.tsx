@@ -7,6 +7,7 @@ export interface AuthUser {
   name: string;
   role: 'super_admin' | 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
   restaurantId: string | null;
+  permissions?: string[];
 }
 
 export interface RestaurantFeatures {
@@ -35,6 +36,8 @@ interface AuthContextValue {
   token: string | null;
   features: RestaurantFeatures;
   refreshFeatures: () => Promise<void>;
+  /** admin & super_admin always true; staff true only if explicitly granted. */
+  hasPermission: (key: string) => boolean;
   login: (username: string, password: string) => Promise<void>;
   signup: (payload: {
     restaurantName: string;
@@ -98,6 +101,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const hasPermission = useCallback((key: string) => {
+    if (!user) return false;
+    if (user.role === 'admin' || user.role === 'super_admin') return true;
+    return (user.permissions ?? []).includes(key);
+  }, [user]);
+
+  // Re-fetch the live user record (fresh role + permissions) so admin changes
+  // apply without requiring the staff member to log out and back in.
+  const refreshSession = useCallback(async () => {
+    if (!localStorage.getItem(TOKEN_KEY)) return;
+    try {
+      const res = await axios.get<AuthUser>('/api/auth/me', { timeout: 10000 });
+      setUser((prev) => {
+        if (!prev) return res.data;
+        const next = res.data.permissions ?? [];
+        const samePerms = (prev.permissions ?? []).length === next.length
+          && (prev.permissions ?? []).every((p, i) => p === next[i]);
+        if (samePerms && prev.role === res.data.role) return prev; // no change → no re-render
+        return { ...prev, role: res.data.role, permissions: next };
+      });
+    } catch (e: unknown) {
+      // Token invalid or user removed → sign out cleanly.
+      if ((e as { response?: { status?: number } })?.response?.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        delete axios.defaults.headers.common['Authorization'];
+        setToken(null);
+        setUser(null);
+        setFeatures(ALL_FEATURES_ON);
+      }
+    }
+  }, []);
+
+  // Poll for live permission/role changes while signed in (on focus + interval).
+  useEffect(() => {
+    if (!token) return;
+    const onFocus = () => refreshSession();
+    window.addEventListener('focus', onFocus);
+    const id = setInterval(refreshSession, 60_000);
+    return () => { window.removeEventListener('focus', onFocus); clearInterval(id); };
+  }, [token, refreshSession]);
+
   async function login(username: string, password: string) {
     const res = await axios.post<{ token: string; user: AuthUser }>('/api/auth/login', { username, password });
     await applyToken(res.data.token, res.data.user);
@@ -147,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, features, refreshFeatures, login, signup, logout, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, token, features, refreshFeatures, hasPermission, login, signup, logout, updateProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );

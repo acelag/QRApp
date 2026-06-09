@@ -14,6 +14,7 @@ export interface AuthPayload {
   name: string;
   role: 'super_admin' | 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
   restaurantId: string | null;  // null for super_admin
+  permissions?: string[];       // granted page-level permissions (staff only)
 }
 
 export interface AuthRequest extends Request {

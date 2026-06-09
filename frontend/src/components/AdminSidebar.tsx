@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { RestaurantFeatures } from '../context/AuthContext';
+import type { PermissionKey } from '../lib/permissions';
 import { useSubscriptionConfig } from '../context/SubscriptionConfigContext';
 import { orderService } from '../services/orderService';
 
@@ -20,6 +21,8 @@ interface NavItem {
   badge?: boolean;
   matchPrefix?: string;
   featureKey?: keyof RestaurantFeatures;
+  perm?: PermissionKey;   // staff must hold this permission to see the item
+  adminOnly?: boolean;    // only admin / super_admin (never assignable to staff)
 }
 
 interface NavGroup {
@@ -37,17 +40,17 @@ type NavEntry = NavSingle | NavGroup;
 
 const NAV: NavEntry[] = [
   { type: 'item', label: 'Dashboard', icon: LayoutDashboard, to: '/admin', exact: true },
-  { type: 'item', label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders', badge: true },
+  { type: 'item', label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders', badge: true, perm: 'orders' },
 
   {
     type: 'group',
     label: 'Menu',
     icon: UtensilsCrossed,
     children: [
-      { label: 'Menu Items',     icon: UtensilsCrossed, to: '/admin/menu' },
-      { label: 'Categories & Tags', icon: Tag,          to: '/admin/menu-setup' },
-      { label: 'Combo Deals',    icon: Package,         to: '/admin/combos',         featureKey: 'combos' },
-      { label: 'Menu Schedules', icon: Calendar,        to: '/admin/menu-schedules', featureKey: 'menuSchedules' },
+      { label: 'Menu Items',     icon: UtensilsCrossed, to: '/admin/menu', perm: 'menu' },
+      { label: 'Categories & Tags', icon: Tag,          to: '/admin/menu-setup', perm: 'menu' },
+      { label: 'Combo Deals',    icon: Package,         to: '/admin/combos',         featureKey: 'combos',        perm: 'combos' },
+      { label: 'Menu Schedules', icon: Calendar,        to: '/admin/menu-schedules', featureKey: 'menuSchedules', perm: 'menuSchedules' },
     ],
   },
   {
@@ -55,9 +58,9 @@ const NAV: NavEntry[] = [
     label: 'Floor',
     icon: QrCode,
     children: [
-      { label: 'Tables & Rooms', icon: QrCode,        to: '/admin/locations' },
-      { label: 'Reservations',   icon: CalendarDays,  to: '/admin/reservations' },
-      { label: 'Table Status',   icon: LayoutGrid,    to: '/admin/table-status', featureKey: 'tableStatus' },
+      { label: 'Tables & Rooms', icon: QrCode,        to: '/admin/locations',    perm: 'locations' },
+      { label: 'Reservations',   icon: CalendarDays,  to: '/admin/reservations', perm: 'locations' },
+      { label: 'Table Status',   icon: LayoutGrid,    to: '/admin/table-status', featureKey: 'tableStatus', perm: 'tableStatus' },
     ],
   },
   {
@@ -65,8 +68,8 @@ const NAV: NavEntry[] = [
     label: 'Displays',
     icon: MonitorPlay,
     children: [
-      { label: 'Kitchen Display', icon: ChefHat,      to: '/kitchen',             featureKey: 'kitchenDisplay' },
-      { label: 'Ready Display',   icon: MonitorPlay,  to: '/admin/ready-display', featureKey: 'readyDisplay' },
+      { label: 'Kitchen Display', icon: ChefHat,      to: '/kitchen',             featureKey: 'kitchenDisplay', perm: 'kitchenDisplay' },
+      { label: 'Ready Display',   icon: MonitorPlay,  to: '/admin/ready-display', featureKey: 'readyDisplay',   perm: 'readyDisplay' },
     ],
   },
   {
@@ -74,9 +77,9 @@ const NAV: NavEntry[] = [
     label: 'Finance',
     icon: Wallet,
     children: [
-      { label: 'Bills',         icon: Receipt,    to: '/admin/bills',       featureKey: 'bills' },
-      { label: 'Room Charges',  icon: CreditCard, to: '/admin/room-charges',featureKey: 'roomCharges' },
-      { label: 'Promo Codes',   icon: Tag,        to: '/admin/promo-codes', featureKey: 'promoCodes' },
+      { label: 'Bills',         icon: Receipt,    to: '/admin/bills',       featureKey: 'bills',       perm: 'bills' },
+      { label: 'Room Charges',  icon: CreditCard, to: '/admin/room-charges',featureKey: 'roomCharges', perm: 'roomCharges' },
+      { label: 'Promo Codes',   icon: Tag,        to: '/admin/promo-codes', featureKey: 'promoCodes',  perm: 'promoCodes' },
     ],
   },
   {
@@ -84,10 +87,10 @@ const NAV: NavEntry[] = [
     label: 'Staff',
     icon: Users,
     children: [
-      { label: 'Staff',             icon: Users,      to: '/admin/users' },
-      { label: 'Waiters',           icon: UserCheck,  to: '/admin/waiters' },
-      { label: 'Staff Performance', icon: Trophy,     to: '/admin/staff-performance', featureKey: 'staffPerformance' },
-      { label: 'Roster',            icon: CalendarDays, to: '/admin/roster',          featureKey: 'roster' },
+      { label: 'Staff',             icon: Users,      to: '/admin/users', adminOnly: true },
+      { label: 'Waiters',           icon: UserCheck,  to: '/admin/waiters', perm: 'waiters' },
+      { label: 'Staff Performance', icon: Trophy,     to: '/admin/staff-performance', featureKey: 'staffPerformance', perm: 'staffPerformance' },
+      { label: 'Roster',            icon: CalendarDays, to: '/admin/roster',          featureKey: 'roster',           perm: 'roster' },
     ],
   },
 
@@ -96,7 +99,7 @@ const NAV: NavEntry[] = [
     label: 'Inventory',
     icon: Warehouse,
     children: [
-      { label: 'Stock', icon: Package, to: '/admin/stock' },
+      { label: 'Stock', icon: Package, to: '/admin/stock', perm: 'stock' },
     ],
   },
   {
@@ -104,13 +107,13 @@ const NAV: NavEntry[] = [
     label: 'Reports',
     icon: BarChart2,
     children: [
-      { label: 'Order Reports', icon: BarChart2, to: '/admin/reports', exact: true, featureKey: 'reports' },
-      { label: 'Shift Report',  icon: FileText,  to: '/admin/shift-close', featureKey: 'shiftReport' },
-      { label: 'Stock Report',  icon: Warehouse, to: '/admin/stock-report' },
+      { label: 'Order Reports', icon: BarChart2, to: '/admin/reports', exact: true, featureKey: 'reports',     perm: 'reports' },
+      { label: 'Shift Report',  icon: FileText,  to: '/admin/shift-close',          featureKey: 'shiftReport', perm: 'shiftReport' },
+      { label: 'Stock Report',  icon: Warehouse, to: '/admin/stock-report', perm: 'stockReport' },
     ],
   },
-  { type: 'item', label: 'Subscription', icon: CreditCard, to: '/admin/billing' },
-  { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings' },
+  { type: 'item', label: 'Subscription', icon: CreditCard, to: '/admin/billing', adminOnly: true },
+  { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings', adminOnly: true },
 ];
 
 function isItemActive(item: NavItem, pathname: string) {
@@ -124,17 +127,24 @@ function groupHasActiveChild(group: NavGroup, pathname: string) {
 }
 
 export function AdminSidebar() {
-  const { user, logout, features } = useAuth();
+  const { user, logout, features, hasPermission } = useAuth();
   const location = useLocation();
   const { enabled: subsEnabled } = useSubscriptionConfig();
   const [activeCount, setActiveCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const isStaff = !!user && user.role !== 'admin' && user.role !== 'super_admin';
+
   function isVisible(item: NavItem): boolean {
+    // Restaurant-level feature gate (super-admin controls this per restaurant).
+    if (item.featureKey && features[item.featureKey] === false) return false;
     // The Subscription/billing link only shows when the system is enabled.
-    if (item.to === '/admin/billing') return subsEnabled;
-    if (!item.featureKey) return true;
-    return features[item.featureKey] !== false;
+    if (item.to === '/admin/billing' && !subsEnabled) return false;
+    // Admin-only items: hidden from staff.
+    if (item.adminOnly) return !isStaff;
+    // Staff: must hold the page permission. Admin/super_admin see everything enabled.
+    if (isStaff && item.perm) return hasPermission(item.perm);
+    return true;
   }
 
   // Track which groups are open; auto-open groups whose child is active

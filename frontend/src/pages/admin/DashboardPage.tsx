@@ -122,6 +122,14 @@ export function DashboardPage() {
   const activeOrders = orders.filter((o) => o.status !== 'cancelled');
   const todayRevenue = today?.revenue ?? todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
 
+  // Time-based greeting (uses the viewer's local time zone)
+  const hour = now.getHours();
+  const greeting =
+    hour < 12 ? 'Good morning'
+    : hour < 17 ? 'Good afternoon'
+    : hour < 21 ? 'Good evening'
+    : 'Good night';
+
   // Stock derived values
   const lowStockItems  = stockItems.filter((i) => i.minThreshold > 0 && i.quantity <= i.minThreshold);
   const outOfStockItems = stockItems.filter((i) => i.quantity === 0);
@@ -171,7 +179,7 @@ export function DashboardPage() {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-400 mt-0.5">Welcome, {user?.name ?? 'Restaurant Admin'}</p>
+              <p className="text-sm text-gray-400 mt-0.5">{greeting}, {user?.name ?? 'Restaurant Admin'}</p>
             </div>
             <div className="text-right">
               <p className="text-lg font-bold text-gray-900 tabular-nums leading-tight">

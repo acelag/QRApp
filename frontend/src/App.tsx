@@ -107,34 +107,34 @@ export default function App() {
 
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><DashboardPage /></ProtectedRoute>} />
-            <Route path="/admin/orders" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><OrdersPage /></ProtectedRoute>} />
-            <Route path="/admin/menu" element={<ProtectedRoute roles={['admin','manager']}><MenuItemsPage /></ProtectedRoute>} />
-            <Route path="/admin/menu-setup" element={<ProtectedRoute roles={['admin','manager']}><MenuSetupPage /></ProtectedRoute>} />
-            <Route path="/admin/locations" element={<ProtectedRoute roles={['admin','manager']}><LocationsPage /></ProtectedRoute>} />
-            <Route path="/admin/reservations" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><ReservationsPage /></ProtectedRoute>} />
+            <Route path="/admin/orders" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="orders"><OrdersPage /></ProtectedRoute>} />
+            <Route path="/admin/menu" element={<ProtectedRoute roles={['admin','manager']} permission="menu"><MenuItemsPage /></ProtectedRoute>} />
+            <Route path="/admin/menu-setup" element={<ProtectedRoute roles={['admin','manager']} permission="menu"><MenuSetupPage /></ProtectedRoute>} />
+            <Route path="/admin/locations" element={<ProtectedRoute roles={['admin','manager']} permission="locations"><LocationsPage /></ProtectedRoute>} />
+            <Route path="/admin/reservations" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="locations"><ReservationsPage /></ProtectedRoute>} />
             <Route path="/receipt/:orderId" element={<ProtectedRoute roles={['admin','manager','cashier']}><ReceiptPage /></ProtectedRoute>} />
             <Route path="/kitchen-ticket/:orderId" element={<ProtectedRoute><KitchenTicketPage /></ProtectedRoute>} />
             <Route path="/session-receipt/:sessionId" element={<ProtectedRoute roles={['admin','manager','cashier']}><SessionReceiptPage /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute roles={['admin']}><SettingsPage /></ProtectedRoute>} />
             <Route path="/admin/billing" element={<ProtectedRoute roles={['admin','manager']}><BillingPage /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><UsersPage /></ProtectedRoute>} />
-            <Route path="/admin/bills" element={<ProtectedRoute roles={['admin','manager','cashier']}><BillsPage /></ProtectedRoute>} />
+            <Route path="/admin/bills" element={<ProtectedRoute roles={['admin','manager','cashier']} permission="bills"><BillsPage /></ProtectedRoute>} />
             <Route path="/admin/restaurants" element={<ProtectedRoute roles={['super_admin']}><RestaurantsPage /></ProtectedRoute>} />
             <Route path="/admin/plans" element={<ProtectedRoute roles={['super_admin']}><PlansAdminPage /></ProtectedRoute>} />
-            <Route path="/admin/new-order" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><NewOrderPage /></ProtectedRoute>} />
-            <Route path="/admin/ready-display" element={<ProtectedRoute><ReadyDisplayPage /></ProtectedRoute>} />
-            <Route path="/admin/reports" element={<ProtectedRoute roles={['admin','manager']}><ReportsPage /></ProtectedRoute>} />
-            <Route path="/admin/shift-close" element={<ProtectedRoute roles={['admin','manager','cashier']}><ShiftCloseReportPage /></ProtectedRoute>} />
-            <Route path="/admin/promo-codes" element={<ProtectedRoute roles={['admin','manager']}><PromoCodesPage /></ProtectedRoute>} />
-            <Route path="/admin/room-charges" element={<ProtectedRoute roles={['admin','manager','cashier']}><RoomChargesPage /></ProtectedRoute>} />
-            <Route path="/admin/waiters" element={<ProtectedRoute roles={['admin','manager']}><WaitersPage /></ProtectedRoute>} />
-            <Route path="/admin/staff-performance" element={<ProtectedRoute roles={['admin','manager']}><StaffPerformancePage /></ProtectedRoute>} />
-            <Route path="/admin/roster" element={<ProtectedRoute roles={['admin','manager']}><RosterPage /></ProtectedRoute>} />
-            <Route path="/admin/menu-schedules" element={<ProtectedRoute roles={['admin','manager']}><MenuSchedulesPage /></ProtectedRoute>} />
-            <Route path="/admin/combos" element={<ProtectedRoute roles={['admin','manager']}><CombosPage /></ProtectedRoute>} />
-            <Route path="/admin/table-status" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><TableStatusPage /></ProtectedRoute>} />
-            <Route path="/admin/stock" element={<ProtectedRoute roles={['admin','manager']}><StockPage /></ProtectedRoute>} />
-            <Route path="/admin/stock-report" element={<ProtectedRoute roles={['admin','manager']}><StockReportPage /></ProtectedRoute>} />
+            <Route path="/admin/new-order" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="newOrder"><NewOrderPage /></ProtectedRoute>} />
+            <Route path="/admin/ready-display" element={<ProtectedRoute permission="readyDisplay"><ReadyDisplayPage /></ProtectedRoute>} />
+            <Route path="/admin/reports" element={<ProtectedRoute roles={['admin','manager']} permission="reports"><ReportsPage /></ProtectedRoute>} />
+            <Route path="/admin/shift-close" element={<ProtectedRoute roles={['admin','manager','cashier']} permission="shiftReport"><ShiftCloseReportPage /></ProtectedRoute>} />
+            <Route path="/admin/promo-codes" element={<ProtectedRoute roles={['admin','manager']} permission="promoCodes"><PromoCodesPage /></ProtectedRoute>} />
+            <Route path="/admin/room-charges" element={<ProtectedRoute roles={['admin','manager','cashier']} permission="roomCharges"><RoomChargesPage /></ProtectedRoute>} />
+            <Route path="/admin/waiters" element={<ProtectedRoute roles={['admin','manager']} permission="waiters"><WaitersPage /></ProtectedRoute>} />
+            <Route path="/admin/staff-performance" element={<ProtectedRoute roles={['admin','manager']} permission="staffPerformance"><StaffPerformancePage /></ProtectedRoute>} />
+            <Route path="/admin/roster" element={<ProtectedRoute roles={['admin','manager']} permission="roster"><RosterPage /></ProtectedRoute>} />
+            <Route path="/admin/menu-schedules" element={<ProtectedRoute roles={['admin','manager']} permission="menuSchedules"><MenuSchedulesPage /></ProtectedRoute>} />
+            <Route path="/admin/combos" element={<ProtectedRoute roles={['admin','manager']} permission="combos"><CombosPage /></ProtectedRoute>} />
+            <Route path="/admin/table-status" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="tableStatus"><TableStatusPage /></ProtectedRoute>} />
+            <Route path="/admin/stock" element={<ProtectedRoute roles={['admin','manager']} permission="stock"><StockPage /></ProtectedRoute>} />
+            <Route path="/admin/stock-report" element={<ProtectedRoute roles={['admin','manager']} permission="stockReport"><StockReportPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by kitchen, admin and manager */}
             <Route path="/kitchen" element={<ProtectedRoute roles={['admin','manager','kitchen']}><KitchenPage /></ProtectedRoute>} />
