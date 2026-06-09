@@ -41,7 +41,7 @@ const BADGE_CLS: Record<UserRole, string> = {
 export function UsersPage() {
   const { user: me, features } = useAuth();
   const assignable = assignablePermissions(features);
-  const assignableKeys = new Set(assignable.map((p) => p.key));
+  const assignableKeys = new Set<string>(assignable.map((p) => p.key));
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
