@@ -32,6 +32,10 @@ const DARK_CSS = `
   .divide-gray-100 > * { border-color: #2a2a33 !important; }
 
   input::placeholder, textarea::placeholder { color: #6b6b74 !important; }
+
+  /* Form controls: light text on the now-dark fields */
+  input, select, textarea { color: #f4f4f5 !important; }
+  select option { background-color: #1e1e25; color: #f4f4f5; }
 `;
 
 export function applyDarkMode(on: boolean): void {
