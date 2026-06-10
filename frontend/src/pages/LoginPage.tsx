@@ -1,9 +1,10 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UtensilsCrossed, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { restaurantService, type LoginBranding } from '../services/restaurantService';
 
 const DEV_CREDENTIALS = [
   { label: 'Super Admin', color: 'purple', u: 'superadmin', p: 'super123'   },
@@ -29,8 +30,27 @@ export function LoginPage() {
   const { clearTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const { slug } = useParams<{ slug?: string }>();
 
   useEffect(() => { clearTheme(); }, []);
+
+  // ── Per-restaurant branding (when reached via /login/:slug) ──────────────────
+  const [branding, setBranding] = useState<LoginBranding | null>(null);
+  const [slideIdx, setSlideIdx] = useState(0);
+
+  useEffect(() => {
+    if (!slug) { setBranding(null); return; }
+    restaurantService.getBrandingBySlug(slug).then(setBranding).catch(() => setBranding(null));
+  }, [slug]);
+
+  // Auto-rotate the image slider every 5s (only when there are 2+ images and no video)
+  useEffect(() => {
+    const imgs = branding?.loginMedia ?? [];
+    if (branding?.loginVideoUrl || imgs.length < 2) return;
+    const id = setInterval(() => setSlideIdx((i) => (i + 1) % imgs.length), 5000);
+    return () => clearInterval(id);
+  }, [branding]);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -73,20 +93,54 @@ export function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const theme = branding?.themeColor || '#f97316';
+  const images = branding?.loginMedia ?? [];
+  const hasMedia = !!branding && (!!branding.loginVideoUrl || images.length > 0);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-gradient-to-br from-orange-50 to-amber-50">
+      {/* ── Branded background (video or image slider) ── */}
+      {hasMedia && (
+        <div className="absolute inset-0 z-0">
+          {branding!.loginVideoUrl ? (
+            <video
+              className="w-full h-full object-cover"
+              src={branding!.loginVideoUrl}
+              autoPlay loop muted playsInline
+            />
+          ) : (
+            images.map((src, i) => (
+              <div
+                key={src + i}
+                className="absolute inset-0 bg-center bg-cover transition-opacity duration-1000"
+                style={{ backgroundImage: `url(${src})`, opacity: i === slideIdx ? 1 : 0 }}
+              />
+            ))
+          )}
+          {/* Readability scrim */}
+          <div className="absolute inset-0 bg-black/45" />
+        </div>
+      )}
+
+      <div className="relative z-10 w-full max-w-sm">
+        {/* Logo / brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-2xl mb-4 shadow-lg">
-            <UtensilsCrossed size={32} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('auth.appName')}</h1>
-          <p className="text-gray-500 text-sm mt-1">{t('auth.signInTo')}</p>
+          {branding?.logo ? (
+            <img src={branding.logo} alt={branding.name}
+              className="w-20 h-20 mx-auto mb-4 rounded-2xl object-cover shadow-lg bg-white" />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg" style={{ backgroundColor: theme }}>
+              <UtensilsCrossed size={32} className="text-white" />
+            </div>
+          )}
+          <h1 className={`text-2xl font-bold ${hasMedia ? 'text-white drop-shadow' : 'text-gray-900'}`}>
+            {branding?.name ?? t('auth.appName')}
+          </h1>
+          <p className={`text-sm mt-1 ${hasMedia ? 'text-white/80' : 'text-gray-500'}`}>{t('auth.signInTo')}</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Error */}
             {error && (
@@ -137,7 +191,8 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+              style={branding ? { backgroundColor: theme } : undefined}
+              className={`w-full text-white font-semibold py-3 rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 mt-2 ${branding ? 'hover:opacity-90' : 'bg-orange-500 hover:bg-orange-600'}`}
             >
               {loading && <Loader2 size={18} className="animate-spin" />}
               {loading ? t('auth.signingIn') : t('auth.signIn')}
@@ -152,7 +207,7 @@ export function LoginPage() {
         </div>
 
         {/* Default credentials — dev only, never shown in production build */}
-        {import.meta.env.DEV && (
+        {import.meta.env.DEV && !slug && (
           <div className="mt-4 bg-white/70 rounded-2xl border border-gray-100 px-4 py-3 text-xs text-gray-500 space-y-1.5">
             <p className="font-medium text-gray-600 mb-2">
               Default credentials <span className="text-orange-400">(dev only)</span>

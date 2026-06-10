@@ -219,6 +219,8 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'facebook_url',  'VARCHAR(500) NULL');
   await addCol('restaurants', 'instagram_url', 'VARCHAR(500) NULL');
   await addCol('restaurants', 'welcome_image_url', 'VARCHAR(500) NULL');
+  await addCol('restaurants', 'login_media',     "JSONB NOT NULL DEFAULT '[]'::jsonb");
+  await addCol('restaurants', 'login_video_url', 'VARCHAR(500) NULL');
   await addCol('restaurants', 'tiktok_url',   'VARCHAR(500) NULL');
   await addCol('restaurants', 'whatsapp_url', 'VARCHAR(500) NULL');
   await addCol('restaurants', 'youtube_url',  'VARCHAR(500) NULL');

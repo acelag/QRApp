@@ -5,6 +5,7 @@ import {
   DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock, Printer,
   Store, Smartphone,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
@@ -116,6 +117,13 @@ export function SettingsPage() {
   const [socialSaving, setSocialSaving] = useState(false);
   const [socialSuccess, setSocialSuccess] = useState(false);
 
+  // ── Login-page branding state ────────────────────────────────────────────────
+  const [loginMedia, setLoginMedia] = useState<string[]>([]);
+  const [loginVideoUrl, setLoginVideoUrl] = useState('');
+  const [loginUploading, setLoginUploading] = useState(false);
+  const [loginSaving, setLoginSaving] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
   // ── Printer state ──────────────────────────────────────────────────────────
   const [receiptPrinterIp,   setReceiptPrinterIp]   = useState('');
   const [receiptPrinterPort, setReceiptPrinterPort] = useState('9100');
@@ -155,6 +163,8 @@ export function SettingsPage() {
       setWelcomeImageUrl(r.welcomeImageUrl ?? '');
       setWelcomeHeading(r.welcomeHeading ?? '');
       setWelcomeTagline(r.welcomeTagline ?? '');
+      setLoginMedia(r.loginMedia ?? []);
+      setLoginVideoUrl(r.loginVideoUrl ?? '');
       setReceiptPrinterIp(r.receiptPrinterIp ?? '');
       setReceiptPrinterPort(String(r.receiptPrinterPort ?? 9100));
       setKitchenPrinterIp(r.kitchenPrinterIp ?? '');
@@ -294,6 +304,50 @@ export function SettingsPage() {
       setTimeout(() => setSocialSuccess(false), 3000);
     } finally {
       setSocialSaving(false);
+    }
+  }
+
+  async function handleLoginImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setLoginUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files).slice(0, 10)) {
+        uploaded.push(await uploadImage(file));
+      }
+      setLoginMedia((prev) => [...prev, ...uploaded].slice(0, 10));
+      markDirty('content');
+    } catch {
+      toast.error('Image upload failed');
+    } finally {
+      setLoginUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  function removeLoginImage(url: string) {
+    setLoginMedia((prev) => prev.filter((u) => u !== url));
+    markDirty('content');
+  }
+
+  async function saveLoginBranding() {
+    if (!restaurant) return;
+    setLoginSaving(true);
+    setLoginSuccess(false);
+    try {
+      const updated = await restaurantService.updateLoginBranding(restaurant.id, {
+        loginMedia,
+        loginVideoUrl: loginVideoUrl.trim() || null,
+      });
+      setRestaurant(updated);
+      setLoginSuccess(true);
+      setTimeout(() => setLoginSuccess(false), 3000);
+      toast.success('Login page updated');
+    } catch {
+      toast.error('Failed to save login page');
+    } finally {
+      setLoginSaving(false);
     }
   }
 
@@ -989,6 +1043,87 @@ export function SettingsPage() {
                   />
                 </Field>
               ))}
+            </div>
+          </div>
+
+          {/* ── Login Page branding ── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                <Store size={15} className="text-orange-500" />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-800">Login Page</h2>
+                <p className="text-xs text-gray-400">Logo, image slider or video shown on your staff login page</p>
+              </div>
+              {loginUploading && <Loader2 size={14} className="animate-spin text-gray-400" />}
+              {loginSuccess && <CheckCircle2 size={14} className="text-green-500" />}
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Branded login link */}
+              <div className="bg-gray-50 rounded-xl px-4 py-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Your login link</p>
+                <a
+                  href={`/login/${restaurant.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-orange-600 font-medium break-all hover:underline"
+                >
+                  {`${window.location.origin}/login/${restaurant.slug}`}
+                </a>
+              </div>
+
+              {/* Image slider */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Slider Images ({loginMedia.length}/10)</label>
+                  <label className="text-xs text-orange-600 font-semibold hover:underline cursor-pointer">
+                    + Add images
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleLoginImageUpload} disabled={loginUploading} />
+                  </label>
+                </div>
+                {loginMedia.length === 0 ? (
+                  <p className="text-xs text-gray-400">No images yet — add a few photos for an auto-rotating slider.</p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {loginMedia.map((url) => (
+                      <div key={url} className="relative group aspect-video rounded-lg overflow-hidden border border-gray-100">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeLoginImage(url)}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Video URL */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Background Video URL (optional)</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
+                  placeholder="https://…/video.mp4"
+                  value={loginVideoUrl}
+                  onChange={(e) => { setLoginVideoUrl(e.target.value); markDirty('content'); }}
+                />
+                <p className="text-xs text-gray-400 mt-1">If set, the video plays instead of the image slider.</p>
+              </div>
+
+              <button
+                onClick={saveLoginBranding}
+                disabled={loginSaving}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {loginSaving && <Loader2 size={14} className="animate-spin" />}
+                Save Login Page
+              </button>
             </div>
           </div>
         </div>

@@ -21,6 +21,8 @@ export interface RestaurantSettings {
   facebookUrl?: string | null;
   instagramUrl?: string | null;
   welcomeImageUrl?: string | null;
+  loginMedia?: string[];
+  loginVideoUrl?: string | null;
   tiktokUrl?: string | null;
   whatsappUrl?: string | null;
   youtubeUrl?: string | null;
@@ -53,6 +55,17 @@ export interface RestaurantInfo {
   twitterUrl: string | null;
   welcomeHeading: string | null;
   welcomeTagline: string | null;
+}
+
+/** Public branded-login info fetched by slug for /login/:slug. */
+export interface LoginBranding {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  themeColor: string;
+  loginMedia: string[];
+  loginVideoUrl: string | null;
 }
 
 /** Fields the admin can edit in the welcome-screen / social design area. */
@@ -137,6 +150,13 @@ export const restaurantService = {
   /** Public — no auth required. Returns name, logo, theme, wait time, room-service hours, social links, and welcome-screen content for a restaurant. */
   getRestaurantInfo: (id: string): Promise<RestaurantInfo> =>
     axios.get<RestaurantInfo>(`${BASE}/restaurants/${id}/info`).then((r) => r.data),
+
+  /** Public — no auth required. Branded-login info (logo, theme, slider images, video) by slug. */
+  getBrandingBySlug: (slug: string): Promise<LoginBranding> =>
+    axios.get<LoginBranding>(`${BASE}/restaurants/by-slug/${encodeURIComponent(slug)}/branding`).then((r) => r.data),
+
+  updateLoginBranding: (id: string, data: { loginMedia: string[]; loginVideoUrl: string | null }) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/login-branding`, data).then((r) => r.data),
 
   updateCharges: (id: string, charges: BillingCharges) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/charges`, charges).then((r) => r.data),
