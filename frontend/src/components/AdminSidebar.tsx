@@ -5,12 +5,13 @@ import {
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
   Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
-  LayoutGrid, ChevronDown, ChevronRight, Menu, X,
+  LayoutGrid, ChevronDown, ChevronRight, Menu, X, Sun, Moon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { RestaurantFeatures } from '../context/AuthContext';
 import type { PermissionKey } from '../lib/permissions';
 import { useSubscriptionConfig } from '../context/SubscriptionConfigContext';
+import { useTheme } from '../context/ThemeContext';
 import { orderService } from '../services/orderService';
 
 interface NavItem {
@@ -130,6 +131,7 @@ export function AdminSidebar() {
   const { user, logout, features, hasPermission } = useAuth();
   const location = useLocation();
   const { enabled: subsEnabled } = useSubscriptionConfig();
+  const { dark, toggleDark } = useTheme();
   const [activeCount, setActiveCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -285,6 +287,13 @@ export function AdminSidebar() {
             <p className="text-xs font-semibold text-gray-900 truncate">{user?.name ?? 'Restaurant Admin'}</p>
             <p className="text-xs text-gray-400 truncate">{user?.username ?? ''}</p>
           </div>
+          <button
+            onClick={toggleDark}
+            className="text-gray-400 hover:text-gray-700 transition-colors flex-none"
+            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {dark ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
           <button
             onClick={handleLogout}
             className="text-gray-400 hover:text-red-500 transition-colors flex-none"

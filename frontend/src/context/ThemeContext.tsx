@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { restaurantService } from '../services/restaurantService';
 import { useAuth } from './AuthContext';
+import { applyDarkMode, isDarkMode, initDarkMode } from '../lib/darkMode';
 
 export const THEME_COLORS = [
   { name: 'Orange', hex: '#f97316', light: '#fff7ed', dark: '#ea6c00', border: '#fed7aa', ring: '#fdba74' },
@@ -96,12 +97,21 @@ function clearTheme() {
 interface ThemeCtx {
   loadTheme: (restaurantId: string) => void;
   clearTheme: () => void;
+  dark: boolean;
+  toggleDark: () => void;
 }
 
-const ThemeContext = createContext<ThemeCtx>({ loadTheme: () => {}, clearTheme: () => {} });
+const ThemeContext = createContext<ThemeCtx>({ loadTheme: () => {}, clearTheme: () => {}, dark: false, toggleDark: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+
+  // Light/dark mode (persisted in localStorage)
+  const [dark, setDark] = useState<boolean>(isDarkMode);
+  useEffect(() => { initDarkMode(); }, []);
+  const toggleDark = useCallback(() => {
+    setDark((prev) => { const next = !prev; applyDarkMode(next); return next; });
+  }, []);
 
   // Auto-load for authenticated admin/kitchen users once auth resolves
   useEffect(() => {
@@ -123,7 +133,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ loadTheme, clearTheme }}>
+    <ThemeContext.Provider value={{ loadTheme, clearTheme, dark, toggleDark }}>
       {children}
     </ThemeContext.Provider>
   );
