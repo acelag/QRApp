@@ -1358,10 +1358,10 @@ export function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap border-b-2 transition-colors ${
                     active
-                      ? 'border-orange-500 text-orange-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? 'border-orange-500 text-gray-900 font-bold'
+                      : 'border-transparent text-gray-500 font-medium hover:text-gray-700'
                   }`}
                 >
                   <tab.Icon size={15} />
