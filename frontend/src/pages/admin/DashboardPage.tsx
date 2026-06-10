@@ -171,27 +171,20 @@ export function DashboardPage() {
 
       {/* ── Main Content ─────────────────────────────────────────────────── */}
       <main className="flex-1 lg:overflow-y-auto">
-        <AdminHeader title="Dashboard" />
+        <AdminHeader title="Dashboard" subtitle={`${greeting}, ${user?.name ?? 'Restaurant Admin'}`}>
+          <div className="text-right hidden sm:block shrink-0 mr-1">
+            <p className="text-sm font-bold text-gray-900 tabular-nums leading-tight">
+              {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </p>
+            <p className="text-[11px] text-gray-400 leading-tight">
+              {now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+            </p>
+          </div>
+        </AdminHeader>
         <div className="px-4 md:px-6 py-6 space-y-6">
 
           {/* Subscription nudge (trial / billing issues) */}
           <TrialBanner />
-
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-400 mt-0.5">{greeting}, {user?.name ?? 'Restaurant Admin'}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-lg font-bold text-gray-900 tabular-nums leading-tight">
-                {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </p>
-              <p className="text-xs text-gray-400">
-                {now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-              </p>
-            </div>
-          </div>
 
           {/* ── Stat Cards ───────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
