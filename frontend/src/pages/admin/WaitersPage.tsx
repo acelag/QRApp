@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, UserCheck, Loader2, X } from 'lucide-react';
+import { Plus, Trash2, UserCheck, Loader2, X } from 'lucide-react';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 export function WaitersPage() {
   const [waiters, setWaiters]   = useState<Waiter[]>([]);
@@ -51,18 +51,14 @@ export function WaitersPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Waiters</h1>
-          <button
-            onClick={() => { setShowForm(true); setName(''); }}
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors"
-          >
-            <Plus size={14} /> Add
-          </button>
-        </div>
-      </header>
+      <AdminHeader title="Waiters" backTo="/admin">
+        <button
+          onClick={() => { setShowForm(true); setName(''); }}
+          className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors"
+        >
+          <Plus size={14} /> Add
+        </button>
+      </AdminHeader>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4">
         {loading ? (

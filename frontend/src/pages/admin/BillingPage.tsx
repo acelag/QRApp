@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Check, Loader2, CreditCard } from 'lucide-react';
+import { Check, Loader2, CreditCard } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 import { useAuth } from '../../context/AuthContext';
 import { useSubscriptionConfig } from '../../context/SubscriptionConfigContext';
 import {
@@ -48,12 +48,7 @@ export function BillingPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-        <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-            <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-            <h1 className="text-xl font-bold text-gray-900 flex-1">Subscription &amp; Billing</h1>
-          </div>
-        </header>
+        <AdminHeader title="Subscription & Billing" backTo="/admin" />
 
         <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-5xl">
           {!enabled ? (

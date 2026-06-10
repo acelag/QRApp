@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Clock, Pencil, Trash2, X, Check,
+  Plus, Clock, Pencil, Trash2, X, Check,
   Info, Loader2, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import {
@@ -10,6 +10,7 @@ import {
 import type { MenuSchedule, ScheduleInput } from '../../services/menuScheduleService';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -166,23 +167,14 @@ export function MenuSchedulesPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin/menu" className="text-gray-500 hover:text-gray-800 transition-colors">
-            <ArrowLeft size={20} />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-900">Menu Schedules</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Control when items appear on the customer menu</p>
-          </div>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors"
-          >
-            <Plus size={14} /> New Schedule
-          </button>
-        </div>
-      </header>
+      <AdminHeader title="Menu Schedules" subtitle="Control when items appear on the customer menu" backTo="/admin/menu">
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors"
+        >
+          <Plus size={14} /> New Schedule
+        </button>
+      </AdminHeader>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 

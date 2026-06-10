@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, ToggleLeft, ToggleRight, Tag, Loader2, Percent, DollarSign } from 'lucide-react';
+import { Plus, Trash2, ToggleLeft, ToggleRight, Tag, Loader2, Percent, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { promoCodeService, type PromoCode } from '../../services/promoCodeService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 const EMPTY_FORM = {
   code: '',
@@ -96,19 +96,14 @@ export function PromoCodesPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <Tag size={20} className="text-orange-500" />
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Promo Codes</h1>
-          <button
-            onClick={() => { setShowForm((v) => !v); setForm(EMPTY_FORM); }}
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-2xl text-sm font-semibold hover:bg-orange-600 transition-colors"
-          >
-            <Plus size={15} /> New Code
-          </button>
-        </div>
-      </header>
+      <AdminHeader title="Promo Codes" backTo="/admin" icon={Tag}>
+        <button
+          onClick={() => { setShowForm((v) => !v); setForm(EMPTY_FORM); }}
+          className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-2xl text-sm font-semibold hover:bg-orange-600 transition-colors"
+        >
+          <Plus size={15} /> New Code
+        </button>
+      </AdminHeader>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5 max-w-3xl">
         {/* ── Create form ── */}

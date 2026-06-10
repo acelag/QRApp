@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
-import { NotificationBell } from '../../components/NotificationBell';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { RefreshCw } from 'lucide-react';
 import { SoundAlertToggle } from '../../components/SoundAlertToggle';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
@@ -13,6 +10,7 @@ import { OrderCard } from '../../components/OrderCard';
 import { AddItemsModal } from '../../components/AddItemsModal';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 
 export function OrdersPage() {
@@ -97,20 +95,14 @@ export function OrdersPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600">
-            <ArrowLeft size={20} />
-          </Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">{t('orders.title')}</h1>
-          <LanguageSwitcher variant="select" className="shrink-0" />
-          <SoundAlertToggle />
-          <NotificationBell />
-          <button onClick={fetch} className="text-gray-400 hover:text-gray-600">
-            <RefreshCw size={18} />
-          </button>
-        </div>
-        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2 overflow-x-auto">
+      <AdminHeader title={t('orders.title')} backTo="/admin">
+        <SoundAlertToggle />
+        <button onClick={fetch} className="text-gray-400 hover:text-gray-600 shrink-0" title="Refresh">
+          <RefreshCw size={18} />
+        </button>
+      </AdminHeader>
+      <div className="bg-white shadow-sm sticky top-0 z-30">
+        <div className="px-3 sm:px-4 lg:px-6 py-3 flex gap-2 overflow-x-auto">
           {STATUS_TABS.map((t) => {
             const count = t.value === 'all' ? null
               : t.value === 'takeaway' ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
@@ -133,7 +125,7 @@ export function OrdersPage() {
             );
           })}
         </div>
-      </header>
+      </div>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4">
         {loading ? (

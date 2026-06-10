@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Printer, RefreshCw, AlertTriangle,
+  Printer, RefreshCw, AlertTriangle,
   TrendingUp, ShoppingBag, UtensilsCrossed, BedDouble,
   RotateCcw, CheckCircle2, Loader2,
 } from 'lucide-react';
@@ -9,6 +8,7 @@ import { reportService, type ShiftCloseReport } from '../../services/reportServi
 import { refundMethodLabel } from '../../services/refundService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 const PAYMENT_ICONS: Record<string, string> = {
   cash: '💵', card: '💳', qr: '📱', bank_transfer: '🏦', other: '📋', unpaid: '⏳',
@@ -57,30 +57,26 @@ export function ShiftCloseReport() {
   return (
     <>
       {/* Header — hidden on print */}
-      <header className="bg-white shadow-sm sticky top-0 z-40 print:hidden">
-        <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600 hover:text-gray-900">
-            <ArrowLeft size={20} />
-          </Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Shift Close Report</h1>
+      <div className="print:hidden">
+        <AdminHeader title="Shift Close Report" backTo="/admin">
           <input
             type="date"
             value={date}
             max={today}
             onChange={(e) => setDate(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-300"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-300 shrink-0"
           />
-          <button onClick={() => load(date)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => load(date)} className="text-gray-400 hover:text-gray-600 shrink-0">
             <RefreshCw size={18} />
           </button>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shrink-0"
           >
             <Printer size={15} /> Print / Save PDF
           </button>
-        </div>
-      </header>
+        </AdminHeader>
+      </div>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center pt-24 gap-3">

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Trophy, TrendingUp, ShoppingBag, UserCheck, Loader2 } from 'lucide-react';
+import { RefreshCw, Trophy, TrendingUp, ShoppingBag, UserCheck, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { useCurrency } from '../../context/CurrencyContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 interface WaiterStat {
   waiterId: string | null;
@@ -92,17 +92,15 @@ export function StaffPerformancePage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Staff Performance</h1>
-          <button onClick={load} className="text-gray-400 hover:text-gray-600 p-1.5">
-            <RefreshCw size={17} />
-          </button>
-        </div>
+      <AdminHeader title="Staff Performance" backTo="/admin">
+        <button onClick={load} className="text-gray-400 hover:text-gray-600 p-1.5">
+          <RefreshCw size={17} />
+        </button>
+      </AdminHeader>
 
-        {/* Range tabs */}
-        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2 overflow-x-auto">
+      {/* Range tabs + custom date filter */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
+        <div className="px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex gap-2 overflow-x-auto">
           {RANGE_TABS.map((t) => (
             <button
               key={t.value}
@@ -125,7 +123,7 @@ export function StaffPerformancePage() {
               className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-300 text-gray-700" />
           </div>
         )}
-      </header>
+      </div>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {loading ? (

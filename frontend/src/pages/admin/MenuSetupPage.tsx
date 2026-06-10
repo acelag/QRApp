@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Pencil, Trash2, X, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, X, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import { menuService } from '../../services/menuService';
 import { tagService, tagPillCls } from '../../services/tagService';
 import type { Tag, TagCategory } from '../../services/tagService';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 import toast from 'react-hot-toast';
 
 export function MenuSetupPage() {
@@ -146,12 +146,7 @@ export function MenuSetupPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-        <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-            <Link to="/admin/menu" className="text-gray-600"><ArrowLeft size={20} /></Link>
-            <h1 className="text-xl font-bold text-gray-900 flex-1">Categories &amp; Tags</h1>
-          </div>
-        </header>
+        <AdminHeader title="Categories & Tags" backTo="/admin/menu" />
 
         <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-5xl">
           {/* ── Categories ──────────────────────────────────────────────────── */}

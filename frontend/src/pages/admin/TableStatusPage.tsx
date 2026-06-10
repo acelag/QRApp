@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Users, Clock, CheckCircle2, AlertTriangle, Coffee, Circle, Wifi } from 'lucide-react';
+import { RefreshCw, Users, Clock, CheckCircle2, AlertTriangle, Coffee, Circle } from 'lucide-react';
 import { tableService, type TableStatusEntry, type TableOccupancyStatus } from '../../services/tableService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 const POLL_MS = 10_000;
 
@@ -213,28 +214,20 @@ export function TableStatusPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600 hover:text-gray-800 transition-colors">
-            <ArrowLeft size={20} />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-900">Table Status</h1>
-            {lastSync && (
-              <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                <Wifi size={10} className="text-green-500" />
-                Live · updated {ago(lastSync.toISOString())}
-              </p>
-            )}
-          </div>
-          <button
-            onClick={() => load()}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
-          >
-            <RefreshCw size={17} />
-          </button>
-        </div>
+      <AdminHeader
+        title="Table Status"
+        subtitle={lastSync ? `Live · updated ${ago(lastSync.toISOString())}` : undefined}
+        backTo="/admin"
+      >
+        <button
+          onClick={() => load()}
+          className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
+        >
+          <RefreshCw size={17} />
+        </button>
+      </AdminHeader>
 
+      <div className="bg-white shadow-sm">
         {/* Summary bar */}
         {!loading && tables.length > 0 && (
           <div className="px-3 sm:px-4 lg:px-6 pb-3 flex items-center gap-4 flex-wrap">
@@ -272,7 +265,7 @@ export function TableStatusPage() {
             </button>
           ))}
         </div>
-      </header>
+      </div>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4">
         {loading ? (

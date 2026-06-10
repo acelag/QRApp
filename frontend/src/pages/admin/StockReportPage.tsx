@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Package, Warehouse, AlertTriangle, Banknote,
+  Package, Warehouse, AlertTriangle, Banknote,
   ArrowDownCircle, ArrowUpCircle, Loader2, Calendar, Download, Search,
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 import { stockService, type StockReport } from '../../services/stockService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
@@ -112,13 +113,7 @@ export function StockReportPage() {
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
 
         {/* Header */}
-        <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-            <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-            <Warehouse size={20} className="text-orange-500" />
-            <h1 className="text-xl font-bold text-gray-900 flex-1">Stock Report</h1>
-          </div>
-        </header>
+        <AdminHeader title="Stock Report" backTo="/admin" icon={Warehouse} />
 
         <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5">
 

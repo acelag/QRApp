@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, CheckCircle2, Clock, Loader2, Receipt, RefreshCw,
+  CheckCircle2, Clock, Loader2, Receipt, RefreshCw,
   Printer, ShoppingBag, Table2, Users, GitMerge, Unlink, RotateCcw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -16,6 +15,7 @@ import type { Order } from '../../types';
 import { SplitBillModal } from '../../components/SplitBillModal';
 import { PaymentMethodModal, paymentMethodIcon, paymentMethodLabel, type PaymentMethod } from '../../components/PaymentMethodModal';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 import { RefundModal } from '../../components/RefundModal';
 import { getApiError } from '../../lib/apiError';
 
@@ -190,18 +190,17 @@ export function BillsPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Bills</h1>
-          <button
-            onClick={() => { load(); if (canRefund) loadRefunds(); }}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <RefreshCw size={18} />
-          </button>
-        </div>
-        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2 flex-wrap">
+      <AdminHeader title="Bills" backTo="/admin">
+        <button
+          onClick={() => { load(); if (canRefund) loadRefunds(); }}
+          className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+        >
+          <RefreshCw size={18} />
+        </button>
+      </AdminHeader>
+
+      <div className="bg-white shadow-sm sticky top-0 z-30">
+        <div className="px-3 sm:px-4 lg:px-6 py-3 flex gap-2 flex-wrap">
           <button
             onClick={() => setTab('table')}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
@@ -232,7 +231,7 @@ export function BillsPage() {
             </button>
           )}
         </div>
-      </header>
+      </div>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-6">
         {loading ? (

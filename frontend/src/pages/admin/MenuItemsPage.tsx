@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -30,6 +30,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 const EMPTY: Omit<MenuItem, 'id'> = {
   name: '',
@@ -333,41 +334,37 @@ export function MenuItemsPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Menu Items</h1>
-          {user?.restaurantId && (
-            <a
-              href={`/takeaway/${user.restaurantId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Preview menu as customer"
-              className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
-            >
-              <ExternalLink size={17} />
-            </a>
-          )}
-          <button
-            onClick={() => setReorderMode((m) => !m)}
-            title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
-            className={`p-2 rounded-xl transition-colors ${reorderMode ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
+      <AdminHeader title="Menu Items" backTo="/admin">
+        {user?.restaurantId && (
+          <a
+            href={`/takeaway/${user.restaurantId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Preview menu as customer"
+            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
           >
-            <GripVertical size={17} />
-          </button>
-          <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
-            <Download size={17} />
-          </button>
-          <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors disabled:opacity-50">
-            {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
-          </button>
-          <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-          <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
-            <Plus size={14} /> Add Item
-          </button>
-        </div>
-      </header>
+            <ExternalLink size={17} />
+          </a>
+        )}
+        <button
+          onClick={() => setReorderMode((m) => !m)}
+          title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
+          className={`p-2 rounded-xl transition-colors ${reorderMode ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
+        >
+          <GripVertical size={17} />
+        </button>
+        <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
+          <Download size={17} />
+        </button>
+        <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
+          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors disabled:opacity-50">
+          {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+        </button>
+        <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+        <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
+          <Plus size={14} /> Add Item
+        </button>
+      </AdminHeader>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 

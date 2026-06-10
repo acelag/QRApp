@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
+  Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   Package, Minus, ImagePlus, Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -12,6 +11,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useAuth } from '../../context/AuthContext';
 import type { MenuItem } from '../../types';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 const EMPTY_FORM = (): ComboPayload => ({
   name: '', description: '', price: 0, image: '', active: true, sortOrder: 0, items: [],
@@ -162,23 +162,14 @@ export function CombosPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/admin" className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></Link>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Combo Deals</h1>
-              <p className="text-xs text-gray-400">{combos.length} combo{combos.length !== 1 ? 's' : ''}</p>
-            </div>
-          </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors"
-          >
-            <Plus size={16} /> Add Combo
-          </button>
-        </div>
-      </header>
+      <AdminHeader title="Combo Deals" subtitle={`${combos.length} combo${combos.length !== 1 ? 's' : ''}`} backTo="/admin">
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors"
+        >
+          <Plus size={16} /> Add Combo
+        </button>
+      </AdminHeader>
 
       <div className="px-3 sm:px-4 lg:px-6 py-6">
         {combos.length === 0 ? (
