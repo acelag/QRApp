@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 import { useAuth } from '../../context/AuthContext';
 import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../services/restaurantService';
 import { printService } from '../../services/printService';
@@ -1294,13 +1295,8 @@ export function SettingsPage() {
       <AdminSidebar />
 
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0 flex flex-col">
+        <AdminHeader title="Settings" subtitle="Manage your restaurant configuration" />
         <div className="w-full px-4 sm:px-6 py-6 space-y-4 flex-1">
-
-          {/* Page header */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage your restaurant configuration</p>
-          </div>
 
           {/* ── Hero profile card ──────────────────────────────────────────── */}
           <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">

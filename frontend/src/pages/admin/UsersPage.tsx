@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 import { PERMISSION_GROUPS, assignablePermissions } from '../../lib/permissions';
 
 type UserRole = 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
@@ -147,18 +147,14 @@ export function UsersPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin/settings" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Manage Users</h1>
-          <button
-            onClick={openNew}
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors"
-          >
-            <Plus size={14} /> Add User
-          </button>
-        </div>
-      </header>
+      <AdminHeader title="Manage Users" backTo="/admin/settings">
+        <button
+          onClick={openNew}
+          className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
+        >
+          <Plus size={14} /> Add User
+        </button>
+      </AdminHeader>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {loading ? (

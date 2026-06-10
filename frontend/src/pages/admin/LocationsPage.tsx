@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Trash2, QrCode, Printer,
+  Plus, Trash2, QrCode, Printer,
   BedDouble, Table2, ShoppingBag,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -11,6 +10,7 @@ import { roomService } from '../../services/roomService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 type Tab = 'tables' | 'rooms';
 
@@ -199,54 +199,48 @@ export function LocationsPage() {
       </div>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-600 transition-colors">
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Locations & QR Codes</h1>
-          <button
-            onClick={activeTab === 'tables' ? printAllTables : printAllRooms}
-            disabled={activeTab === 'tables' ? tables.length === 0 : rooms.length === 0}
-            className="flex items-center gap-1.5 text-sm bg-gray-800 text-white px-3 py-1.5 rounded-full font-medium hover:bg-gray-900 transition-colors disabled:opacity-40"
-          >
-            <Printer size={14} /> Print All
-          </button>
-        </div>
+      <AdminHeader title="Locations & QR Codes" backTo="/admin">
+        <button
+          onClick={activeTab === 'tables' ? printAllTables : printAllRooms}
+          disabled={activeTab === 'tables' ? tables.length === 0 : rooms.length === 0}
+          className="flex items-center gap-1.5 text-sm bg-gray-800 text-white px-3 py-1.5 rounded-full font-medium hover:bg-gray-900 transition-colors disabled:opacity-40"
+        >
+          <Printer size={14} /> Print All
+        </button>
+      </AdminHeader>
 
-        {/* Tab switcher */}
-        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2">
-          <button
-            onClick={() => switchTab('tables')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              activeTab === 'tables'
-                ? 'bg-orange-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-            }`}
-          >
-            <Table2 size={15} />
-            Tables
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-              activeTab === 'tables' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
-            }`}>{tables.length}</span>
-          </button>
+      {/* Tab switcher */}
+      <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pb-3 flex gap-2">
+        <button
+          onClick={() => switchTab('tables')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+            activeTab === 'tables'
+              ? 'bg-orange-500 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          <Table2 size={15} />
+          Tables
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+            activeTab === 'tables' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
+          }`}>{tables.length}</span>
+        </button>
 
-          <button
-            onClick={() => switchTab('rooms')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              activeTab === 'rooms'
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-            }`}
-          >
-            <BedDouble size={15} />
-            Rooms
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-              activeTab === 'rooms' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
-            }`}>{rooms.length}</span>
-          </button>
-        </div>
-      </header>
+        <button
+          onClick={() => switchTab('rooms')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+            activeTab === 'rooms'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          <BedDouble size={15} />
+          Rooms
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+            activeTab === 'rooms' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
+          }`}>{rooms.length}</span>
+        </button>
+      </div>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 

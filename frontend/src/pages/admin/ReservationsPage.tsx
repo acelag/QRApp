@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Loader2, X, Phone, Users, Pencil, Trash2,
+  Plus, Loader2, X, Phone, Users, Pencil, Trash2,
   CalendarDays, MapPin, BedDouble, List, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 import { tableService } from '../../services/tableService';
 import { roomService } from '../../services/roomService';
 import { restaurantService } from '../../services/restaurantService';
@@ -200,25 +200,24 @@ export function ReservationsPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-        <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3 flex-wrap">
-            <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-            <h1 className="text-xl font-bold text-gray-900 flex-1">Reservations</h1>
-            {/* View toggle */}
-            <div className="flex items-center bg-gray-100 rounded-xl p-0.5">
-              <button onClick={() => setView('calendar')} title="Calendar" className={`p-1.5 rounded-lg transition-colors ${view === 'calendar' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><CalendarDays size={16} /></button>
-              <button onClick={() => setView('list')} title="List" className={`p-1.5 rounded-lg transition-colors ${view === 'list' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><List size={16} /></button>
-            </div>
-            {view === 'list' && (
-              <div className="relative">
-                <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="pl-9 pr-3 py-1.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-300" />
-              </div>
-            )}
-            <button onClick={() => openNew()} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
-              <Plus size={14} /> New
-            </button>
+        <AdminHeader title="Reservations" backTo="/admin">
+          {/* View toggle */}
+          <div className="flex items-center bg-gray-100 rounded-xl p-0.5">
+            <button onClick={() => setView('calendar')} title="Calendar" className={`p-1.5 rounded-lg transition-colors ${view === 'calendar' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><CalendarDays size={16} /></button>
+            <button onClick={() => setView('list')} title="List" className={`p-1.5 rounded-lg transition-colors ${view === 'list' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><List size={16} /></button>
           </div>
+          {view === 'list' && (
+            <div className="relative">
+              <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="pl-9 pr-3 py-1.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-300" />
+            </div>
+          )}
+          <button onClick={() => openNew()} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
+            <Plus size={14} /> New
+          </button>
+        </AdminHeader>
+
+        <div className="bg-white shadow-sm">
           {/* Type filter (tables / rooms) */}
           <div className="px-3 sm:px-4 lg:px-6 pb-2 flex items-center gap-2">
             <div className="inline-flex bg-gray-100 rounded-full p-0.5 text-xs font-medium">
@@ -254,7 +253,7 @@ export function ReservationsPage() {
               </div>
             )}
           </div>
-        </header>
+        </div>
 
         {/* ── Calendar view ── */}
         {view === 'calendar' && (

@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, Plus, X, Trash2,
+  ChevronLeft, ChevronRight, Plus, X, Trash2,
   Users, Calendar, CheckCircle2, Loader2,
 } from 'lucide-react';
 import {
@@ -11,6 +10,7 @@ import type { Shift, ShiftInput, ShiftStatus } from '../../services/rosterServic
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -181,46 +181,39 @@ export function RosterPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-500 hover:text-gray-800 transition-colors">
-            <ArrowLeft size={20} />
-          </Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Staff Roster</h1>
-
-          {/* Week navigation */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
-            <button
-              onClick={() => setWeekStart((d) => addDays(d, -7))}
-              className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-white rounded-lg transition-colors"
-              title="Previous week"
-            >
-              <ChevronLeft size={15} />
-            </button>
-            <button
-              onClick={() => setWeekStart(getMonday(new Date()))}
-              className="text-xs font-semibold text-gray-600 hover:text-orange-500 px-2 transition-colors min-w-[130px] text-center"
-              title="Jump to this week"
-            >
-              {weekLabel}
-            </button>
-            <button
-              onClick={() => setWeekStart((d) => addDays(d, 7))}
-              className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-white rounded-lg transition-colors"
-              title="Next week"
-            >
-              <ChevronRight size={15} />
-            </button>
-          </div>
-
+      <AdminHeader title="Staff Roster" backTo="/admin">
+        {/* Week navigation */}
+        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
           <button
-            onClick={() => openAdd(todayStr)}
-            className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
+            onClick={() => setWeekStart((d) => addDays(d, -7))}
+            className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-white rounded-lg transition-colors"
+            title="Previous week"
           >
-            <Plus size={14} /> Add Shift
+            <ChevronLeft size={15} />
+          </button>
+          <button
+            onClick={() => setWeekStart(getMonday(new Date()))}
+            className="text-xs font-semibold text-gray-600 hover:text-orange-500 px-2 transition-colors min-w-[130px] text-center"
+            title="Jump to this week"
+          >
+            {weekLabel}
+          </button>
+          <button
+            onClick={() => setWeekStart((d) => addDays(d, 7))}
+            className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-white rounded-lg transition-colors"
+            title="Next week"
+          >
+            <ChevronRight size={15} />
           </button>
         </div>
-      </header>
+
+        <button
+          onClick={() => openAdd(todayStr)}
+          className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
+        >
+          <Plus size={14} /> Add Shift
+        </button>
+      </AdminHeader>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 

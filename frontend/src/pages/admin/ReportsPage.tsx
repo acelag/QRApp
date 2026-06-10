@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard, Clock } from 'lucide-react';
+import { BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard, Clock } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { AdminHeader } from '../../components/AdminHeader';
 import toast from 'react-hot-toast';
 import {
   ResponsiveContainer,
@@ -615,14 +614,7 @@ export function ReportsPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <BarChart2 size={20} className="text-orange-500" />
-          <h1 className="text-xl font-bold text-gray-900 flex-1">{t('reports.title')}</h1>
-          <LanguageSwitcher variant="select" className="shrink-0" />
-        </div>
-      </header>
+      <AdminHeader title={t('reports.title')} backTo="/admin" icon={BarChart2} />
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5">
 

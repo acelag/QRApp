@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { stockService, type StockItem } from '../../services/stockService';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 import { TrialBanner } from '../../components/TrialBanner';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -170,6 +171,7 @@ export function DashboardPage() {
 
       {/* ── Main Content ─────────────────────────────────────────────────── */}
       <main className="flex-1 lg:overflow-y-auto">
+        <AdminHeader title="Dashboard" />
         <div className="px-4 md:px-6 py-6 space-y-6">
 
           {/* Subscription nudge (trial / billing issues) */}
