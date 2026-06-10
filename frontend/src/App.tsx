@@ -91,6 +91,7 @@ export default function App() {
 
             {/* Auth */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/login/:slug" element={<LoginPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/billing/mock-checkout" element={<MockCheckoutPage />} />

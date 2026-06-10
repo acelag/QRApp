@@ -27,6 +27,8 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   facebookUrl:     (row.facebook_url      as string | null) ?? null,
   instagramUrl:    (row.instagram_url     as string | null) ?? null,
   welcomeImageUrl: (row.welcome_image_url as string | null) ?? null,
+  loginMedia:      Array.isArray(row.login_media) ? (row.login_media as string[]) : [],
+  loginVideoUrl:   (row.login_video_url   as string | null) ?? null,
   tiktokUrl:       (row.tiktok_url        as string | null) ?? null,
   whatsappUrl:     (row.whatsapp_url      as string | null) ?? null,
   youtubeUrl:      (row.youtube_url       as string | null) ?? null,
@@ -78,6 +80,25 @@ router.get('/:id/info', async (req, res) => {
     twitterUrl:      (row.twitter_url       as string | null) ?? null,
     welcomeHeading:  (row.welcome_heading   as string | null) ?? null,
     welcomeTagline:  (row.welcome_tagline   as string | null) ?? null,
+  });
+});
+
+// Public branded-login info by slug (no auth — used by /login/:slug)
+router.get('/by-slug/:slug/branding', async (req, res) => {
+  const result = await pool.query(
+    'SELECT id, name, slug, logo, theme_color, login_media, login_video_url FROM restaurants WHERE slug = $1',
+    [req.params.slug],
+  );
+  if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  const row = result.rows[0] as Record<string, unknown>;
+  res.json({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    logo: (row.logo as string | null) ?? null,
+    themeColor: (row.theme_color as string | null) ?? '#f97316',
+    loginMedia: Array.isArray(row.login_media) ? (row.login_media as string[]) : [],
+    loginVideoUrl: (row.login_video_url as string | null) ?? null,
   });
 });
 
@@ -167,6 +188,22 @@ router.patch('/:id/logo', authenticate, async (req: AuthRequest, res) => {
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
   const { logo } = req.body as { logo: string | null };
   await pool.query('UPDATE restaurants SET logo = $1 WHERE id = $2', [logo ?? null, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/login-branding', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { loginMedia, loginVideoUrl } = req.body as { loginMedia?: unknown; loginVideoUrl?: string | null };
+  const media = Array.isArray(loginMedia)
+    ? loginMedia.filter((m): m is string => typeof m === 'string').slice(0, 10)
+    : [];
+  await pool.query(
+    'UPDATE restaurants SET login_media = $1, login_video_url = $2 WHERE id = $3',
+    [JSON.stringify(media), (loginVideoUrl as string | null)?.trim() || null, id],
+  );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
