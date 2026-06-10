@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Sun, Moon } from 'lucide-react';
-import { LanguageSwitcher } from './LanguageSwitcher';
 import { NotificationBell } from './NotificationBell';
 import { useTheme } from '../context/ThemeContext';
 
@@ -42,7 +41,6 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
         {children}
 
         {/* Standard cluster */}
-        <LanguageSwitcher variant="select" className="shrink-0" />
         <button
           onClick={toggleDark}
           className="text-gray-400 hover:text-gray-700 transition-colors shrink-0"
