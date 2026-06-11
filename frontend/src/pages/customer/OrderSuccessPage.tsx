@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, RotateCcw, Clock, ChefHat, Bell } from 'lucide-react';
+import { CheckCircle, RotateCcw, Clock, ChefHat, Bell, PlusCircle } from 'lucide-react';
 import type { Order } from '../../types';
 import type { CartItem } from '../../types/Order';
 import { orderService } from '../../services/orderService';
@@ -109,6 +109,18 @@ export function OrderSuccessPage() {
       navigate(`/room/${order.roomId}`, { state: { reorderItems: items } });
     } else {
       toast.error(t('orderSuccess.cannotReorder'));
+    }
+  }
+
+  function handleAddItems() {
+    if (!order) return;
+    const state = { appendToOrderId: order.id, appendToOrderNumber: order.orderNumber };
+    if (order.orderType === 'dine-in' && order.tableId) {
+      navigate(`/menu/${order.tableId}`, { state });
+    } else if (order.orderType === 'takeaway' && order.restaurantId) {
+      navigate(`/takeaway/${order.restaurantId}`, { state });
+    } else if (order.orderType === 'room-service' && order.roomId) {
+      navigate(`/room/${order.roomId}`, { state });
     }
   }
 
@@ -285,9 +297,17 @@ export function OrderSuccessPage() {
         </div>
 
         {/* Actions */}
+        {(order.status === 'pending' || order.status === 'preparing') && (
+          <button
+            onClick={handleAddItems}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm bg-orange-500 text-white hover:bg-orange-600 active:scale-[0.98] transition-all"
+          >
+            <PlusCircle size={16} /> Add More Items
+          </button>
+        )}
         <button
           onClick={handleReorder}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm bg-orange-500 text-white hover:bg-orange-600 active:scale-[0.98] transition-all"
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 active:scale-[0.98] transition-all"
         >
           <RotateCcw size={16} /> {t('orderSuccess.orderAgain')}
         </button>

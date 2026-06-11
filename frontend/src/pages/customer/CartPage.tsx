@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Trash2, NotebookPen } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -14,6 +14,9 @@ const cartKey = (menuItemId: string, size?: 'regular' | 'large', toppingIds?: st
 export function CartPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const appendToOrderId = (location.state as { appendToOrderId?: string; appendToOrderNumber?: string } | null)?.appendToOrderId;
+  const appendToOrderNumber = (location.state as { appendToOrderId?: string; appendToOrderNumber?: string } | null)?.appendToOrderNumber;
   const { items, tableId, tableNumber, sessionId, restaurantId, total, updateQty, removeItem, updateNotes, clearCart } = useCart();
   const { fmt } = useCurrency();
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
@@ -21,12 +24,19 @@ export function CartPage() {
   const [customerPhone, setCustomerPhone] = useState('');
 
   async function handlePlaceOrder() {
-    if (!tableId || !tableNumber || items.length === 0) return;
+    if (items.length === 0) return;
     setPlacing(true);
     try {
-      const order = await orderService.placeOrder(tableId, tableNumber, items, sessionId ?? undefined, restaurantId ?? undefined, undefined, customerPhone.trim() || undefined);
-      clearCart();
-      navigate(`/order-success/${order.id}`);
+      if (appendToOrderId) {
+        await orderService.addItems(appendToOrderId, items);
+        clearCart();
+        navigate(`/order-success/${appendToOrderId}`, { replace: true });
+      } else {
+        if (!tableId || !tableNumber) return;
+        const order = await orderService.placeOrder(tableId, tableNumber, items, sessionId ?? undefined, restaurantId ?? undefined, undefined, customerPhone.trim() || undefined);
+        clearCart();
+        navigate(`/order-success/${order.id}`);
+      }
     } catch {
       toast.error(t('customer.failedOrder'));
     } finally {
@@ -53,8 +63,14 @@ export function CartPage() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{t('customer.yourCart')}</h1>
-            <p className="text-sm text-gray-500">{t('customer.tableNumber', { number: tableNumber })}</p>
+            <h1 className="text-xl font-bold text-gray-900">
+              {appendToOrderId ? 'Add to Order' : t('customer.yourCart')}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {appendToOrderId
+                ? `Adding to #${appendToOrderNumber ?? appendToOrderId.slice(0, 8).toUpperCase()}`
+                : t('customer.tableNumber', { number: tableNumber })}
+            </p>
           </div>
         </div>
       </header>
@@ -150,13 +166,15 @@ export function CartPage() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4">
         <div className="max-w-lg mx-auto space-y-2">
-          <input
-            type="tel"
-            value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
-            placeholder={t('customer.phonePlaceholder')}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-          />
+          {!appendToOrderId && (
+            <input
+              type="tel"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder={t('customer.phonePlaceholder')}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+            />
+          )}
           <div className="flex justify-between text-sm text-gray-500">
             <span>{t('customer.subtotal')}</span>
             <span>{fmt(total)}</span>
@@ -166,7 +184,9 @@ export function CartPage() {
             disabled={placing}
             className="w-full bg-orange-500 text-white py-4 rounded-2xl font-semibold text-base hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {placing ? t('customer.placingOrder') : t('customer.placeOrder', { amount: fmt(total) })}
+            {placing
+              ? (appendToOrderId ? 'Adding items…' : t('customer.placingOrder'))
+              : (appendToOrderId ? `Add to Order · ${fmt(total)}` : t('customer.placeOrder', { amount: fmt(total) }))}
           </button>
         </div>
       </div>
