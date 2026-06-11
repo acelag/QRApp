@@ -17,7 +17,7 @@ import { tagPillCls } from '../../services/tagService';
 import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
 import type { MenuSchedule } from '../../services/menuScheduleService';
 import { comboService, type Combo } from '../../services/comboService';
-import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package } from 'lucide-react';
+import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown } from 'lucide-react';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 export function MenuPage() {
   const { t } = useTranslation();
@@ -39,6 +39,7 @@ export function MenuPage() {
   );
   const [schedules, setSchedules] = useState<MenuSchedule[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
+  const [combosOpen, setCombosOpen] = useState(false);
 
   function loadMenu() {
     if (!tableIdParam) return;
@@ -218,50 +219,63 @@ export function MenuPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 pt-4">
-        {/* Combos & Deals strip */}
+        {/* Combos & Deals strip — collapsible */}
         {combos.length > 0 && (
           <section className="mb-5">
-            <h2 className="text-sm font-bold text-orange-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              <Package size={14} /> {t('customer.combosAndDeals')}
-            </h2>
-            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-              {combos.map((combo) => (
-                <div
-                  key={combo.id}
-                  className="shrink-0 w-52 bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden"
-                >
-                  {combo.image ? (
-                    <img src={combo.image} alt={combo.name} className="w-full h-28 object-cover" />
-                  ) : (
-                    <div className="w-full h-28 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
-                      <Package size={32} className="text-orange-300" />
-                    </div>
-                  )}
-                  <div className="p-3">
-                    <p className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{combo.name}</p>
-                    {combo.description && (
-                      <p className="text-xs text-gray-400 line-clamp-1 mb-1">{combo.description}</p>
+            <button
+              onClick={() => setCombosOpen((o) => !o)}
+              className="w-full flex items-center justify-between py-2 px-0 group"
+            >
+              <span className="text-sm font-bold text-orange-600 uppercase tracking-wide flex items-center gap-1.5">
+                <Package size={14} /> {t('customer.combosAndDeals')}
+                <span className="ml-1.5 text-xs font-semibold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full normal-case tracking-normal">
+                  {combos.length}
+                </span>
+              </span>
+              <ChevronDown
+                size={16}
+                className={`text-orange-400 transition-transform duration-200 ${combosOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+            <div className={`overflow-hidden transition-all duration-300 ${combosOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="flex gap-3 overflow-x-auto pb-1 pt-1 -mx-1 px-1">
+                {combos.map((combo) => (
+                  <div
+                    key={combo.id}
+                    className="shrink-0 w-52 bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden"
+                  >
+                    {combo.image ? (
+                      <img src={combo.image} alt={combo.name} className="w-full h-28 object-cover" />
+                    ) : (
+                      <div className="w-full h-28 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
+                        <Package size={32} className="text-orange-300" />
+                      </div>
                     )}
-                    {combo.items.length > 0 && (
-                      <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                        {combo.items.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.menuItemName}`).join(' · ')}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-orange-600 font-bold text-base">{fmt(combo.price)}</span>
-                      <button
-                        onClick={() => {
-                          addCombo(combo.id, combo.name, combo.price, combo.items.map((i) => i.menuItemName));
-                          // brief visual feedback handled by CartButton badge increment
-                        }}
-                        className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-orange-600 active:scale-95 transition-all"
-                      >
-                        {t('customer.addToCart')}
-                      </button>
+                    <div className="p-3">
+                      <p className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{combo.name}</p>
+                      {combo.description && (
+                        <p className="text-xs text-gray-400 line-clamp-1 mb-1">{combo.description}</p>
+                      )}
+                      {combo.items.length > 0 && (
+                        <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+                          {combo.items.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.menuItemName}`).join(' · ')}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-orange-600 font-bold text-base">{fmt(combo.price)}</span>
+                        <button
+                          onClick={() => {
+                            addCombo(combo.id, combo.name, combo.price, combo.items.map((i) => i.menuItemName));
+                          }}
+                          className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-orange-600 active:scale-95 transition-all"
+                        >
+                          {t('customer.addToCart')}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         )}
