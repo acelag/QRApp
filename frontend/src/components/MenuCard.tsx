@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Plus, Flame } from 'lucide-react';
 import type { MenuItem } from '../types';
-import type { SelectedTopping } from '../types/Order';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useTags } from '../context/TagsContext';
-import { ToppingSelectionModal } from './ToppingSelectionModal';
 import { tagPillCls } from '../services/tagService';
+import { ProductDetailModal } from './ProductDetailModal';
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -20,28 +19,25 @@ export function MenuCard({ item, view = 'grid' }: Props) {
   const { addItem, items } = useCart();
   const { fmt } = useCurrency();
   const { tags: allTags } = useTags();
-  const hasLarge = item.largePrice != null && item.largePrice > 0;
+  const hasLarge    = item.largePrice != null && item.largePrice > 0;
   const hasToppings = (item.toppings ?? []).some((t) => t.available);
-  const isLowStock = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= LOW_STOCK_THRESHOLD;
-  const [showModal, setShowModal] = useState(false);
+  const isLowStock  = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= LOW_STOCK_THRESHOLD;
+  const [showDetail, setShowDetail] = useState(false);
 
-  const regPrice  = effectivePrice(item, 'regular');
-  const lrgPrice  = hasLarge ? effectivePrice(item, 'large') : 0;
-  const regBase   = item.price;
-  const regDisc   = item.discountPct > 0;
-  const lrgDisc   = (item.largeDiscountPct ?? 0) > 0;
+  const regPrice = effectivePrice(item, 'regular');
+  const lrgPrice = hasLarge ? effectivePrice(item, 'large') : 0;
+  const regBase  = item.price;
+  const regDisc  = item.discountPct > 0;
+  const lrgDisc  = (item.largeDiscountPct ?? 0) > 0;
 
-  const inCartReg = items.filter((i) => i.menuItemId === item.id && (!hasLarge || i.size === 'regular')).reduce((s, i) => s + i.quantity, 0);
-  const inCartLrg = items.filter((i) => i.menuItemId === item.id && i.size === 'large').reduce((s, i) => s + i.quantity, 0);
+  const inCart = items.filter((i) => i.menuItemId === item.id).reduce((s, i) => s + i.quantity, 0);
 
-  function handleAdd(sz: 'regular' | 'large' | undefined) {
-    if (hasToppings || hasLarge) { setShowModal(true); }
-    else { addItem(item, sz); }
-  }
-
-  function handleToppingConfirm(toppings: SelectedTopping[], size?: 'regular' | 'large', notes?: string) {
-    addItem(item, size, notes, toppings);
-    setShowModal(false);
+  // Quick-add for items with no options; opens detail modal otherwise
+  function handleQuickAdd(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!item.available) return;
+    if (hasToppings || hasLarge) { setShowDetail(true); }
+    else { addItem(item, undefined); }
   }
 
   /* ── LIST VIEW ─────────────────────────────────────────────────────── */
@@ -49,7 +45,8 @@ export function MenuCard({ item, view = 'grid' }: Props) {
     return (
       <>
         <div
-          className={`bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 px-3 py-2.5 ${
+          onClick={() => setShowDetail(true)}
+          className={`bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:border-orange-200 hover:shadow-md transition-all ${
             !item.available ? 'opacity-60' : ''
           }`}
         >
@@ -89,7 +86,7 @@ export function MenuCard({ item, view = 'grid' }: Props) {
             )}
             {(item.tags ?? []).length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
-                {(item.tags!).map((slug) => {
+                {item.tags!.map((slug) => {
                   const tag = allTags.find((t) => t.slug === slug);
                   return tag ? (
                     <span key={slug} className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tagPillCls(tag.category)}`}>
@@ -108,23 +105,21 @@ export function MenuCard({ item, view = 'grid' }: Props) {
 
           {/* Add button */}
           <button
-            onClick={() => handleAdd(undefined)}
+            onClick={handleQuickAdd}
             disabled={!item.available}
             className={`shrink-0 flex items-center justify-center gap-1 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
               !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : (inCartReg + inCartLrg) > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+              : inCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
               : 'bg-orange-500 text-white hover:bg-orange-600'
             }`}
           >
-            {(inCartReg + inCartLrg) > 0
-              ? <span className="font-bold text-sm w-5 text-center">{inCartReg + inCartLrg}</span>
+            {inCart > 0
+              ? <span className="font-bold text-sm w-5 text-center">{inCart}</span>
               : <Plus size={16} />}
           </button>
         </div>
 
-        {showModal && (
-          <ToppingSelectionModal item={item} onConfirm={handleToppingConfirm} onClose={() => setShowModal(false)} />
-        )}
+        {showDetail && <ProductDetailModal item={item} onClose={() => setShowDetail(false)} />}
       </>
     );
   }
@@ -132,7 +127,10 @@ export function MenuCard({ item, view = 'grid' }: Props) {
   /* ── GRID VIEW (default) ────────────────────────────────────────────── */
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+      <div
+        onClick={() => setShowDetail(true)}
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col cursor-pointer hover:border-orange-200 hover:shadow-md transition-all"
+      >
         <div className="relative">
           {item.image ? (
             <img src={item.image} alt={item.name} className="w-full h-40 object-cover" />
@@ -164,7 +162,7 @@ export function MenuCard({ item, view = 'grid' }: Props) {
           <h3 className="font-semibold text-gray-900 leading-tight">{item.name}</h3>
           {(item.tags ?? []).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
-              {(item.tags!).map((slug) => {
+              {item.tags!.map((slug) => {
                 const tag = allTags.find((t) => t.slug === slug);
                 return tag ? (
                   <span key={slug} className={`inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium ${tagPillCls(tag.category)}`}>
@@ -186,15 +184,15 @@ export function MenuCard({ item, view = 'grid' }: Props) {
               {hasLarge && <span className="text-xs text-gray-400 ml-1">/ L {fmt(lrgPrice)}</span>}
             </div>
             <button
-              onClick={() => handleAdd(undefined)}
+              onClick={handleQuickAdd}
               disabled={!item.available}
               className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : (inCartReg + inCartLrg) > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                : inCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
                 : 'bg-orange-500 text-white hover:bg-orange-600'}`}
             >
               <Plus size={14} />
-              {(inCartReg + inCartLrg) > 0 ? `${inCartReg + inCartLrg} in cart` : 'Add'}
+              {inCart > 0 ? `${inCart} in cart` : 'Add'}
             </button>
           </div>
           {!item.available && (
@@ -203,13 +201,7 @@ export function MenuCard({ item, view = 'grid' }: Props) {
         </div>
       </div>
 
-      {showModal && (
-        <ToppingSelectionModal
-          item={item}
-          onConfirm={handleToppingConfirm}
-          onClose={() => setShowModal(false)}
-        />
-      )}
+      {showDetail && <ProductDetailModal item={item} onClose={() => setShowDetail(false)} />}
     </>
   );
 }
