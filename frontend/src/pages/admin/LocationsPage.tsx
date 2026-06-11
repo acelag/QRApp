@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Plus, Trash2, QrCode, Printer,
-  BedDouble, Table2, ShoppingBag,
+  BedDouble, Table2, ShoppingBag, Download, Copy, Check,
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import type { Table, Room } from '../../types';
 import { tableService } from '../../services/tableService';
 import { roomService } from '../../services/roomService';
@@ -75,9 +75,15 @@ export function LocationsPage() {
   const [roomQrPreview, setRoomQrPreview] = useState<Room | null>(null);
 
   // ── Refs for hidden QR renders ────────────────────────────────────────────
-  const tableQrRefs   = useRef<Map<string, HTMLDivElement>>(new Map());
-  const roomQrRefs    = useRef<Map<string, HTMLDivElement>>(new Map());
-  const takeawayQrRef = useRef<HTMLDivElement>(null);
+  const tableQrRefs         = useRef<Map<string, HTMLDivElement>>(new Map());
+  const roomQrRefs          = useRef<Map<string, HTMLDivElement>>(new Map());
+  const takeawayQrRef       = useRef<HTMLDivElement>(null);
+  // Canvas refs for PNG download
+  const tableCanvasRefs     = useRef<Map<string, HTMLDivElement>>(new Map());
+  const roomCanvasRefs      = useRef<Map<string, HTMLDivElement>>(new Map());
+  const takeawayCanvasRef   = useRef<HTMLDivElement>(null);
+  // Copy-to-clipboard feedback
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   const origin      = window.location.origin;
   const takeawayUrl = user?.restaurantId ? `${origin}/takeaway/${user.restaurantId}` : '';
@@ -94,6 +100,26 @@ export function LocationsPage() {
   const getTableSvg    = (id: string) => tableQrRefs.current.get(id)?.querySelector('svg')?.outerHTML ?? '';
   const getRoomSvg     = (id: string) => roomQrRefs.current.get(id)?.querySelector('svg')?.outerHTML ?? '';
   const getTakeawaySvg = ()           => takeawayQrRef.current?.querySelector('svg')?.outerHTML ?? '';
+
+  // ── PNG download helpers ──────────────────────────────────────────────────
+  function downloadPng(containerRef: HTMLDivElement | null | undefined, filename: string) {
+    const canvas = containerRef?.querySelector('canvas') as HTMLCanvasElement | null;
+    if (!canvas) { toast.error('QR not ready, try again'); return; }
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = filename;
+    link.click();
+  }
+  function downloadTableQr(table: Table)  { downloadPng(tableCanvasRefs.current.get(table.id), `table-${table.number}-qr.png`); }
+  function downloadRoomQr(room: Room)     { downloadPng(roomCanvasRefs.current.get(room.id),   `room-${room.number}-qr.png`); }
+  function downloadTakeawayQr()           { downloadPng(takeawayCanvasRef.current,              'takeaway-qr.png'); }
+
+  // ── Copy URL helper ───────────────────────────────────────────────────────
+  function copyUrl(url: string) {
+    navigator.clipboard.writeText(url)
+      .then(() => { setCopiedUrl(url); setTimeout(() => setCopiedUrl(null), 2000); toast.success('URL copied!'); })
+      .catch(() => toast.error('Copy failed'));
+  }
 
   // ── Table actions ─────────────────────────────────────────────────────────
   async function addTable() {
@@ -183,17 +209,32 @@ export function LocationsPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
 
-      {/* Hidden QR renders — used only to grab SVG for printing */}
+      {/* Hidden QR renders — SVG for print, Canvas for PNG download */}
       <div className="hidden" aria-hidden>
         {tables.map((t) => (
-          <div key={t.id} ref={(el) => { if (el) tableQrRefs.current.set(t.id, el); else tableQrRefs.current.delete(t.id); }}>
-            <QRCodeSVG value={`${origin}/welcome/${t.id}`} size={220} />
+          <div key={t.id}>
+            <div ref={(el) => { if (el) tableQrRefs.current.set(t.id, el); else tableQrRefs.current.delete(t.id); }}>
+              <QRCodeSVG value={`${origin}/welcome/${t.id}`} size={220} />
+            </div>
+            <div ref={(el) => { if (el) tableCanvasRefs.current.set(t.id, el); else tableCanvasRefs.current.delete(t.id); }}>
+              <QRCodeCanvas value={`${origin}/welcome/${t.id}`} size={512} />
+            </div>
           </div>
         ))}
-        {takeawayUrl && <div ref={takeawayQrRef}><QRCodeSVG value={takeawayUrl} size={220} /></div>}
+        {takeawayUrl && (
+          <>
+            <div ref={takeawayQrRef}><QRCodeSVG value={takeawayUrl} size={220} /></div>
+            <div ref={takeawayCanvasRef}><QRCodeCanvas value={takeawayUrl} size={512} /></div>
+          </>
+        )}
         {rooms.map((r) => (
-          <div key={r.id} ref={(el) => { if (el) roomQrRefs.current.set(r.id, el); else roomQrRefs.current.delete(r.id); }}>
-            <QRCodeSVG value={`${origin}/room/${r.id}`} size={220} />
+          <div key={r.id}>
+            <div ref={(el) => { if (el) roomQrRefs.current.set(r.id, el); else roomQrRefs.current.delete(r.id); }}>
+              <QRCodeSVG value={`${origin}/room/${r.id}`} size={220} />
+            </div>
+            <div ref={(el) => { if (el) roomCanvasRefs.current.set(r.id, el); else roomCanvasRefs.current.delete(r.id); }}>
+              <QRCodeCanvas value={`${origin}/room/${r.id}`} size={512} />
+            </div>
           </div>
         ))}
       </div>
@@ -261,12 +302,19 @@ export function LocationsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <a href={takeawayUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-purple-500 hover:text-purple-700 hover:underline break-all mb-3">{takeawayUrl}</a>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <button onClick={() => setTakeawayQrOpen(true)} className="flex items-center gap-1 text-xs bg-purple-50 text-purple-600 px-3 py-1.5 rounded-full hover:bg-purple-100 transition-colors font-medium">
                         <QrCode size={12} /> Preview
                       </button>
                       <button onClick={printTakeaway} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors font-medium">
                         <Printer size={12} /> Print
+                      </button>
+                      <button onClick={downloadTakeawayQr} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium">
+                        <Download size={12} /> PNG
+                      </button>
+                      <button onClick={() => copyUrl(takeawayUrl)} className="flex items-center gap-1 text-xs bg-gray-50 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors font-medium">
+                        {copiedUrl === takeawayUrl ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                        {copiedUrl === takeawayUrl ? 'Copied' : 'Copy URL'}
                       </button>
                     </div>
                   </div>
@@ -308,6 +356,9 @@ export function LocationsPage() {
                       </button>
                       <button onClick={() => printOneTable(table)} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
                         <Printer size={12} /> Print
+                      </button>
+                      <button onClick={() => downloadTableQr(table)} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors">
+                        <Download size={12} /> PNG
                       </button>
                       <button onClick={() => delTable(table.id, table.number)} className="flex items-center text-xs bg-red-50 text-red-500 px-2.5 py-1 rounded-full hover:bg-red-100 transition-colors">
                         <Trash2 size={12} />
@@ -363,6 +414,9 @@ export function LocationsPage() {
                       <button onClick={() => printOneRoom(room)} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
                         <Printer size={12} /> Print
                       </button>
+                      <button onClick={() => downloadRoomQr(room)} className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full hover:bg-indigo-100 transition-colors">
+                        <Download size={12} /> PNG
+                      </button>
                       <button onClick={() => delRoom(room.id, room.number)} className="flex items-center text-xs bg-red-50 text-red-500 px-2.5 py-1 rounded-full hover:bg-red-100 transition-colors">
                         <Trash2 size={12} />
                       </button>
@@ -384,62 +438,96 @@ export function LocationsPage() {
               <h2 className="font-bold text-gray-900 text-lg">Takeaway QR</h2>
             </div>
             <p className="text-xs text-gray-400 -mt-2 text-center">Customers scan this to place takeaway orders</p>
-            <a href={takeawayUrl} target="_blank" rel="noopener noreferrer" title="Open link">
+            <a href={takeawayUrl} target="_blank" rel="noopener noreferrer" title="Open link" className="p-3 bg-gray-50 rounded-2xl">
               <QRCodeSVG value={takeawayUrl} size={200} />
             </a>
-            <a href={takeawayUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-500 hover:text-purple-700 hover:underline text-center break-all">{takeawayUrl}</a>
-            <div className="flex gap-2 w-full">
-              <button onClick={() => { printTakeaway(); setTakeawayQrOpen(false); }} className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors">
+            <button onClick={() => copyUrl(takeawayUrl)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors">
+              {copiedUrl === takeawayUrl ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+              {copiedUrl === takeawayUrl ? 'Copied!' : <span className="truncate max-w-[220px]">{takeawayUrl}</span>}
+            </button>
+            <div className="grid grid-cols-3 gap-2 w-full">
+              <button onClick={() => { printTakeaway(); setTakeawayQrOpen(false); }} className="flex flex-col items-center gap-1 bg-purple-600 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-purple-700 transition-colors">
                 <Printer size={15} /> Print
               </button>
-              <button onClick={() => setTakeawayQrOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">Close</button>
+              <button onClick={downloadTakeawayQr} className="flex flex-col items-center gap-1 bg-blue-600 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-blue-700 transition-colors">
+                <Download size={15} /> Download
+              </button>
+              <button onClick={() => setTakeawayQrOpen(false)} className="flex flex-col items-center gap-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-medium hover:bg-gray-200 transition-colors">
+                <Check size={15} className="opacity-0" /> Close
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* ── Table QR modal ─────────────────────────────────────────────── */}
-      {tableQrPreview && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setTableQrPreview(null)}>
-          <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-bold text-gray-900 text-lg">Table {tableQrPreview.number}</h2>
-            <p className="text-xs text-gray-400 -mt-2">{tableQrPreview.seats} seats</p>
-            <a href={`${origin}/welcome/${tableQrPreview.id}`} target="_blank" rel="noopener noreferrer" title="Open link">
-              <QRCodeSVG value={`${origin}/welcome/${tableQrPreview.id}`} size={200} />
-            </a>
-            <a href={`${origin}/welcome/${tableQrPreview.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-500 hover:text-orange-700 hover:underline text-center break-all">{origin}/welcome/{tableQrPreview.id}</a>
-            <div className="flex gap-2 w-full">
-              <button onClick={() => { printOneTable(tableQrPreview); setTableQrPreview(null); }} className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-900 transition-colors">
-                <Printer size={15} /> Print
+      {tableQrPreview && (() => {
+        const tableUrl = `${origin}/welcome/${tableQrPreview.id}`;
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setTableQrPreview(null)}>
+            <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
+              <div className="text-center">
+                <h2 className="font-bold text-gray-900 text-lg">Table {tableQrPreview.number}</h2>
+                <p className="text-xs text-gray-400">{tableQrPreview.seats} seats</p>
+              </div>
+              <a href={tableUrl} target="_blank" rel="noopener noreferrer" title="Open link" className="p-3 bg-gray-50 rounded-2xl">
+                <QRCodeSVG value={tableUrl} size={200} />
+              </a>
+              <button onClick={() => copyUrl(tableUrl)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors">
+                {copiedUrl === tableUrl ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                {copiedUrl === tableUrl ? 'Copied!' : <span className="truncate max-w-[220px]">{tableUrl}</span>}
               </button>
-              <button onClick={() => setTableQrPreview(null)} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">Close</button>
+              <div className="grid grid-cols-3 gap-2 w-full">
+                <button onClick={() => { printOneTable(tableQrPreview); setTableQrPreview(null); }} className="flex flex-col items-center gap-1 bg-gray-800 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-gray-900 transition-colors">
+                  <Printer size={15} /> Print
+                </button>
+                <button onClick={() => downloadTableQr(tableQrPreview)} className="flex flex-col items-center gap-1 bg-blue-600 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-blue-700 transition-colors">
+                  <Download size={15} /> Download
+                </button>
+                <button onClick={() => setTableQrPreview(null)} className="flex flex-col items-center gap-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-medium hover:bg-gray-200 transition-colors">
+                  <Check size={15} className="opacity-0" /> Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Room QR modal ──────────────────────────────────────────────── */}
-      {roomQrPreview && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setRoomQrPreview(null)}>
-          <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-2">
-              <BedDouble size={20} className="text-blue-500" />
-              <h2 className="font-bold text-gray-900 text-lg">Room {roomQrPreview.number}</h2>
-            </div>
-            {roomQrPreview.name && <p className="text-xs text-gray-400 -mt-2">{roomQrPreview.name}</p>}
-            <a href={`${origin}/room/${roomQrPreview.id}`} target="_blank" rel="noopener noreferrer" title="Open link">
-              <QRCodeSVG value={`${origin}/room/${roomQrPreview.id}`} size={200} />
-            </a>
-            <a href={`${origin}/room/${roomQrPreview.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:text-blue-700 hover:underline text-center break-all">{origin}/room/{roomQrPreview.id}</a>
-            <div className="flex gap-2 w-full">
-              <button onClick={() => { printOneRoom(roomQrPreview); setRoomQrPreview(null); }} className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
-                <Printer size={15} /> Print
+      {roomQrPreview && (() => {
+        const roomUrl = `${origin}/room/${roomQrPreview.id}`;
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setRoomQrPreview(null)}>
+            <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <BedDouble size={20} className="text-blue-500" />
+                  <h2 className="font-bold text-gray-900 text-lg">Room {roomQrPreview.number}</h2>
+                </div>
+                {roomQrPreview.name && <p className="text-xs text-gray-400">{roomQrPreview.name}</p>}
+              </div>
+              <a href={roomUrl} target="_blank" rel="noopener noreferrer" title="Open link" className="p-3 bg-gray-50 rounded-2xl">
+                <QRCodeSVG value={roomUrl} size={200} />
+              </a>
+              <button onClick={() => copyUrl(roomUrl)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors">
+                {copiedUrl === roomUrl ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                {copiedUrl === roomUrl ? 'Copied!' : <span className="truncate max-w-[220px]">{roomUrl}</span>}
               </button>
-              <button onClick={() => setRoomQrPreview(null)} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">Close</button>
+              <div className="grid grid-cols-3 gap-2 w-full">
+                <button onClick={() => { printOneRoom(roomQrPreview); setRoomQrPreview(null); }} className="flex flex-col items-center gap-1 bg-blue-600 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-blue-700 transition-colors">
+                  <Printer size={15} /> Print
+                </button>
+                <button onClick={() => downloadRoomQr(roomQrPreview)} className="flex flex-col items-center gap-1 bg-indigo-600 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-indigo-700 transition-colors">
+                  <Download size={15} /> Download
+                </button>
+                <button onClick={() => setRoomQrPreview(null)} className="flex flex-col items-center gap-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-medium hover:bg-gray-200 transition-colors">
+                  <Check size={15} className="opacity-0" /> Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       </main>
     </div>
   );
