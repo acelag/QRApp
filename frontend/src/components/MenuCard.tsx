@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Flame, UtensilsCrossed } from 'lucide-react';
+import { Plus, Flame, UtensilsCrossed, Heart } from 'lucide-react';
 import type { MenuItem } from '../types';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
@@ -14,9 +14,11 @@ interface Props {
   item: MenuItem;
   view?: 'grid' | 'list';
   categoryName?: string;
+  isFavourite?: boolean;
+  onToggleFavourite?: (id: string) => void;
 }
 
-export function MenuCard({ item, view = 'grid', categoryName }: Props) {
+export function MenuCard({ item, view = 'grid', categoryName, isFavourite = false, onToggleFavourite }: Props) {
   const { addItem, items } = useCart();
   const { fmt } = useCurrency();
   const { tags: allTags } = useTags();
@@ -83,19 +85,29 @@ export function MenuCard({ item, view = 'grid', categoryName }: Props) {
             </div>
           </div>
 
-          <button
-            onClick={handleQuickAdd}
-            disabled={!item.available}
-            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold transition-colors ${
-              !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : inCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-              : 'bg-orange-500 text-white hover:bg-orange-600'
-            }`}
-          >
-            {inCart > 0
-              ? <span className="text-xs font-bold">{inCart}</span>
-              : <Plus size={16} />}
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onToggleFavourite && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFavourite(item.id); }}
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-red-50"
+              >
+                <Heart size={15} className={isFavourite ? 'fill-red-500 text-red-500' : 'text-gray-300'} />
+              </button>
+            )}
+            <button
+              onClick={handleQuickAdd}
+              disabled={!item.available}
+              className={`w-9 h-9 rounded-full flex items-center justify-center font-bold transition-colors ${
+                !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : inCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                : 'bg-orange-500 text-white hover:bg-orange-600'
+              }`}
+            >
+              {inCart > 0
+                ? <span className="text-xs font-bold">{inCart}</span>
+                : <Plus size={16} />}
+            </button>
+          </div>
         </div>
 
         {showDetail && <ProductDetailModal item={item} onClose={() => setShowDetail(false)} />}
@@ -145,12 +157,22 @@ export function MenuCard({ item, view = 'grid', categoryName }: Props) {
             </span>
           )}
 
-          {/* Extras badge — top right */}
-          {(hasToppings || hasLarge) && (
-            <span className="absolute top-3 right-3 bg-orange-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-              {hasToppings ? '+ Extras' : 'R / L'}
-            </span>
-          )}
+          {/* Favourite + Extras — top right */}
+          <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+            {onToggleFavourite && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFavourite(item.id); }}
+                className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow transition-colors hover:bg-white"
+              >
+                <Heart size={13} className={isFavourite ? 'fill-red-500 text-red-500' : 'text-gray-400'} />
+              </button>
+            )}
+            {(hasToppings || hasLarge) && (
+              <span className="bg-orange-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                {hasToppings ? '+ Extras' : 'R / L'}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Card body */}

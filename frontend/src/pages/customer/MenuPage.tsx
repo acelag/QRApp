@@ -17,7 +17,8 @@ import { tagPillCls } from '../../services/tagService';
 import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
 import type { MenuSchedule } from '../../services/menuScheduleService';
 import { comboService, type Combo } from '../../services/comboService';
-import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown } from 'lucide-react';
+import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown, Heart } from 'lucide-react';
+import { useFavourites } from '../../hooks/useFavourites';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 export function MenuPage() {
   const { t } = useTranslation();
@@ -40,6 +41,9 @@ export function MenuPage() {
   const [schedules, setSchedules] = useState<MenuSchedule[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
   const [combosOpen, setCombosOpen] = useState(false);
+  const [restaurantId, setRestaurantId] = useState<string>('');
+  const [showFavourites, setShowFavourites] = useState(false);
+  const { isFavourite, toggle: toggleFavourite, favourites } = useFavourites(restaurantId);
 
   function loadMenu() {
     if (!tableIdParam) return;
@@ -52,6 +56,7 @@ export function MenuPage() {
       menuPrefetchCache.clear(tableIdParam);
       setTable(cached.tableId, cached.tableNumber);
       setRestaurant(cached.restaurantId);
+      setRestaurantId(cached.restaurantId);
       loadCurrency(cached.restaurantId);
       loadTheme(cached.restaurantId);
       loadTags(cached.restaurantId);
@@ -71,6 +76,7 @@ export function MenuPage() {
     tableService.getTable(tableIdParam).then((table) => {
       setTable(table.id, table.number);
       setRestaurant(table.restaurantId);
+      setRestaurantId(table.restaurantId);
       loadCurrency(table.restaurantId);
       loadTheme(table.restaurantId);
       loadTags(table.restaurantId);
@@ -113,11 +119,12 @@ export function MenuPage() {
   const q = searchQuery.trim().toLowerCase();
   const catFiltered = activeCategory === 'all' ? visibleItems : visibleItems.filter((i) => i.category === activeCategory);
   const tagFiltered = activeTag ? catFiltered.filter((i) => (i.tags ?? []).includes(activeTag)) : catFiltered;
-  const filtered = q
+  const baseFiltered = q
     ? visibleItems
         .filter((i) => i.name.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q))
         .filter((i) => (activeTag ? (i.tags ?? []).includes(activeTag) : true))
     : tagFiltered;
+  const filtered = showFavourites ? baseFiltered.filter((i) => isFavourite(i.id)) : baseFiltered;
   // Only show tag chips for tags that exist on at least one visible menu item
   const presentSlugs = new Set(visibleItems.flatMap((i) => i.tags ?? []));
   const visibleTags = allTags.filter((t) => presentSlugs.has(t.slug));
@@ -198,9 +205,9 @@ export function MenuPage() {
         <div className="max-w-5xl mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
-        {/* Search bar */}
-        <div className="max-w-5xl mx-auto px-4 pb-3">
-          <div className="relative">
+        {/* Search bar + Favourites toggle */}
+        <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 items-center">
+          <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               type="text"
@@ -215,6 +222,17 @@ export function MenuPage() {
               </button>
             )}
           </div>
+          <button
+            onClick={() => setShowFavourites((s) => !s)}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all ${
+              showFavourites
+                ? 'bg-red-500 text-white shadow-sm shadow-red-200'
+                : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
+            }`}
+          >
+            <Heart size={13} className={showFavourites ? 'fill-white' : ''} />
+            {favourites.size > 0 && <span>{favourites.size}</span>}
+          </button>
         </div>
       </header>
 
@@ -281,21 +299,33 @@ export function MenuPage() {
         )}
 
         {filtered.length === 0 ? (
-          <p className="text-center text-gray-400 mt-12">
-            {q ? t('customer.noItemsMatch', { query: searchQuery }) : t('customer.noItemsCategory')}
-          </p>
+          <div className="text-center mt-12">
+            {showFavourites && favourites.size === 0 ? (
+              <>
+                <Heart size={36} className="mx-auto text-gray-200 mb-3" />
+                <p className="text-gray-400 text-sm">No favourites yet</p>
+                <p className="text-gray-300 text-xs mt-1">Tap the ♡ on any item to save it here</p>
+              </>
+            ) : (
+              <p className="text-gray-400">{q ? t('customer.noItemsMatch', { query: searchQuery }) : t('customer.noItemsCategory')}</p>
+            )}
+          </div>
         ) : view === 'list' ? (
           <div className="flex flex-col gap-2">
             {filtered.map((item) => (
               <MenuCard key={item.id} item={item} view="list"
-                categoryName={categories.find((c) => c.id === item.category)?.name} />
+                categoryName={categories.find((c) => c.id === item.category)?.name}
+                isFavourite={isFavourite(item.id)}
+                onToggleFavourite={restaurantId ? toggleFavourite : undefined} />
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {filtered.map((item) => (
               <MenuCard key={item.id} item={item} view="grid"
-                categoryName={categories.find((c) => c.id === item.category)?.name} />
+                categoryName={categories.find((c) => c.id === item.category)?.name}
+                isFavourite={isFavourite(item.id)}
+                onToggleFavourite={restaurantId ? toggleFavourite : undefined} />
             ))}
           </div>
         )}
