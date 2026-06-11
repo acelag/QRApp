@@ -45,6 +45,25 @@ router.get('/', authenticate, requireRole('admin', 'manager'), async (req: AuthR
   }
 });
 
+// ── Low-stock alert endpoint ────────────────────────────────────────────────
+// Returns items where quantity ≤ min_threshold (and threshold is set > 0)
+router.get('/low', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM stock_items
+       WHERE restaurant_id = $1
+         AND min_threshold > 0
+         AND quantity <= min_threshold
+       ORDER BY (quantity::float / min_threshold::float) ASC, name ASC`,
+      [req.user!.restaurantId],
+    );
+    res.json(rows.map(toItem));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load low-stock items' });
+  }
+});
+
 // ── Create stock item ───────────────────────────────────────────────────────
 router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { name, unit = 'piece', quantity = 0, minThreshold = 0, costPerUnit = 0, category } = req.body as {

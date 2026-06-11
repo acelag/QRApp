@@ -13,6 +13,7 @@ import type { PermissionKey } from '../lib/permissions';
 import { useSubscriptionConfig } from '../context/SubscriptionConfigContext';
 import { useTheme } from '../context/ThemeContext';
 import { orderService } from '../services/orderService';
+import { stockService } from '../services/stockService';
 
 interface NavItem {
   label: string;
@@ -133,7 +134,8 @@ export function AdminSidebar() {
   const navigate = useNavigate();
   const { enabled: subsEnabled } = useSubscriptionConfig();
   const { dark, toggleDark } = useTheme();
-  const [activeCount, setActiveCount] = useState(0);
+  const [activeCount,    setActiveCount]    = useState(0);
+  const [lowStockCount,  setLowStockCount]  = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('qra-sidebar-collapsed') === '1'
@@ -181,6 +183,17 @@ export function AdminSidebar() {
     const id = setInterval(fetch, 10_000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (isStaff) return; // only admin/manager track stock alerts
+    const fetchLow = () =>
+      stockService.getLow()
+        .then((items) => setLowStockCount(items.length))
+        .catch(() => {});
+    fetchLow();
+    const id = setInterval(fetchLow, 60_000);
+    return () => clearInterval(id);
+  }, [isStaff]);
 
   function toggleGroup(label: string) {
     setOpenGroups((prev) => {
@@ -263,6 +276,11 @@ export function AdminSidebar() {
                         >
                           <child.icon size={14} className={active ? 'text-blue-600' : 'text-gray-400'} />
                           <span className="flex-1">{child.label}</span>
+                          {child.to === '/admin/stock' && lowStockCount > 0 && (
+                            <span className="text-xs font-bold bg-amber-400 text-white rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none">
+                              {lowStockCount}
+                            </span>
+                          )}
                         </Link>
                       );
                     })}

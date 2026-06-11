@@ -15,6 +15,7 @@ import { InstallPrompt } from './components/InstallPrompt';
 import { OfflineBanner } from './components/OfflineBanner';
 import { offlineQueue } from './services/offlineQueue';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { stockService } from './services/stockService';
 
 // Register the PWA service worker early so the install prompt can fire
 if ('serviceWorker' in navigator) {
@@ -103,6 +104,48 @@ function OfflineSyncManager() {
   return null;
 }
 
+// Polls for low stock every 5 minutes and toasts when new items drop below threshold
+function LowStockChecker() {
+  const { user } = useAuth();
+  const isManager = user?.role === 'admin' || user?.role === 'manager';
+  const seenIds = useRef<Set<string>>(new Set());
+  const isFirst = useRef(true);
+
+  useEffect(() => {
+    if (!isManager) return;
+
+    const check = async () => {
+      try {
+        const low = await stockService.getLow();
+        if (isFirst.current) {
+          low.forEach((i) => seenIds.current.add(i.id));
+          isFirst.current = false;
+          return;
+        }
+        const fresh = low.filter((i) => !seenIds.current.has(i.id));
+        if (!fresh.length) return;
+        fresh.forEach((i) => seenIds.current.add(i.id));
+        const names = fresh.map((i) => i.name);
+        const msg =
+          names.length === 1
+            ? `Low stock: ${names[0]}`
+            : names.length <= 3
+            ? `Low stock: ${names.join(', ')}`
+            : `${names.length} items running low`;
+        toast(msg, { icon: '⚠️', duration: 7000 });
+      } catch {
+        // fail silently — don't interrupt the user for polling errors
+      }
+    };
+
+    check();
+    const id = setInterval(check, 5 * 60_000);
+    return () => clearInterval(id);
+  }, [isManager]);
+
+  return null;
+}
+
 function RootRedirect() {
   const { user, loading } = useAuth();
   const { loading: cfgLoading } = useSubscriptionConfig();
@@ -130,6 +173,7 @@ export default function App() {
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
           <OfflineBanner />
           <OfflineSyncManager />
+          <LowStockChecker />
           <InstallPrompt />
           <Routes>
             {/* Root redirect */}

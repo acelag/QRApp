@@ -56,6 +56,9 @@ export const stockService = {
   list: (): Promise<StockItem[]> =>
     axios.get<StockItem[]>(BASE).then(r => r.data),
 
+  getLow: (): Promise<StockItem[]> =>
+    axios.get<StockItem[]>(`${BASE}/low`).then(r => r.data),
+
   create: (data: StockItemInput): Promise<StockItem> =>
     axios.post<StockItem>(BASE, data).then(r => r.data),
 

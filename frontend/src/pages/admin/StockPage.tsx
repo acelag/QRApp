@@ -403,6 +403,58 @@ export function StockPage() {
             </div>
           </div>
 
+          {/* Low-stock alert banner */}
+          {lowStockCount > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-800">
+                    {lowStockCount} item{lowStockCount > 1 ? 's' : ''} running low — restock soon
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {items
+                      .filter(i => i.minThreshold > 0 && i.quantity <= i.minThreshold)
+                      .sort((a, b) => (a.quantity / Math.max(1, a.minThreshold)) - (b.quantity / Math.max(1, b.minThreshold)))
+                      .slice(0, 8)
+                      .map(i => {
+                        const isOut = i.quantity === 0;
+                        return (
+                          <button
+                            key={i.id}
+                            onClick={() => setMovementItem({ item: i, type: 'in' })}
+                            title={`Click to restock ${i.name}`}
+                            className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors ${
+                              isOut
+                                ? 'bg-red-100 border-red-200 text-red-700 hover:bg-red-200'
+                                : 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200'
+                            }`}
+                          >
+                            {isOut ? '✕' : '⚠'} {i.name}
+                            <span className="opacity-60">({i.quantity} {i.unit})</span>
+                          </button>
+                        );
+                      })}
+                    {lowStockCount > 8 && (
+                      <button
+                        onClick={() => setFilter('low')}
+                        className="text-xs text-amber-600 hover:text-amber-800 font-medium underline self-center"
+                      >
+                        +{lowStockCount - 8} more
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setFilter('low')}
+                  className="shrink-0 text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-amber-600 transition-colors"
+                >
+                  View All
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Search + filter */}
           <div className="flex gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
