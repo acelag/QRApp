@@ -5,4 +5,7 @@ export interface Table {
   seats: number;
   active: boolean;
   qrCode?: string;
+  floorX?: number | null;
+  floorY?: number | null;
+  floorShape?: 'rect' | 'round';
 }

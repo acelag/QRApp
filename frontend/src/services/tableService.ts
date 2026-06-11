@@ -28,4 +28,7 @@ export const tableService = {
   updateTable: (id: string, data: Partial<Table>) =>
     axios.put<Table>(`${BASE}/tables/${id}`, data).then((r) => r.data),
   deleteTable: (id: string) => axios.delete(`${BASE}/tables/${id}`),
+
+  saveLayout: (positions: { id: string; floorX: number | null; floorY: number | null; floorShape: string }[]) =>
+    axios.patch<Table[]>(`${BASE}/tables/positions`, { positions }).then((r) => r.data),
 };

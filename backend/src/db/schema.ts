@@ -487,5 +487,9 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  await addCol('tables', 'floor_x',     'FLOAT NULL');
+  await addCol('tables', 'floor_y',     'FLOAT NULL');
+  await addCol('tables', 'floor_shape', "VARCHAR(10) NOT NULL DEFAULT 'rect'");
+
   console.log('✓ Schema ready');
 }

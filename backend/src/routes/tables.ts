@@ -6,6 +6,9 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 const router = Router();
 const toTable = (row: Record<string, unknown>) => ({
   id: row.id, restaurantId: row.restaurant_id, number: row.number, seats: row.seats, active: row.active === true,
+  floorX: row.floor_x != null ? Number(row.floor_x) : null,
+  floorY: row.floor_y != null ? Number(row.floor_y) : null,
+  floorShape: (row.floor_shape as string | null) ?? 'rect',
 });
 
 router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
@@ -84,6 +87,35 @@ router.post('/', authenticate, requireRole('admin', 'manager'), async (req: Auth
   await pool.query('INSERT INTO tables (id,restaurant_id,number,seats,active) VALUES ($1,$2,$3,$4,TRUE)', [id, req.user!.restaurantId, number, seats]);
   const result = await pool.query('SELECT * FROM tables WHERE id = $1', [id]);
   res.status(201).json(toTable(result.rows[0] as Record<string, unknown>));
+});
+
+// PATCH /positions  — bulk-save floor plan layout for all tables
+router.patch('/positions', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { positions } = req.body as {
+    positions: { id: string; floorX: number | null; floorY: number | null; floorShape: string }[];
+  };
+  if (!Array.isArray(positions) || !positions.length) {
+    res.status(400).json({ error: 'positions array is required' }); return;
+  }
+  const rid = req.user!.restaurantId;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const p of positions) {
+      await client.query(
+        'UPDATE tables SET floor_x=$1, floor_y=$2, floor_shape=$3 WHERE id=$4 AND restaurant_id=$5',
+        [p.floorX, p.floorY, p.floorShape ?? 'rect', p.id, rid],
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+  const result = await pool.query('SELECT * FROM tables WHERE restaurant_id = $1 ORDER BY number', [rid]);
+  res.json((result.rows as Record<string, unknown>[]).map(toTable));
 });
 
 router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {

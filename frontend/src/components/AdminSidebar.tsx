@@ -5,7 +5,7 @@ import {
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
   Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
-  LayoutGrid, ChevronDown, ChevronRight, Menu, X, Sun, Moon,
+  LayoutGrid, ChevronDown, ChevronRight, Menu, X, Sun, Moon, MapPin,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { RestaurantFeatures } from '../context/AuthContext';
@@ -60,6 +60,7 @@ const NAV: NavEntry[] = [
     icon: QrCode,
     children: [
       { label: 'Tables & Rooms', icon: QrCode,        to: '/admin/locations',    perm: 'locations' },
+      { label: 'Floor Plan',     icon: MapPin,        to: '/admin/floor-plan',   perm: 'locations' },
       { label: 'Reservations',   icon: CalendarDays,  to: '/admin/reservations', perm: 'locations' },
       { label: 'Table Status',   icon: LayoutGrid,    to: '/admin/table-status', featureKey: 'tableStatus', perm: 'tableStatus' },
     ],
