@@ -5,6 +5,7 @@ import { ArrowLeft, Trash2, NotebookPen } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { QuantitySelector } from '../../components/QuantitySelector';
 import { orderService } from '../../services/orderService';
+import { offlineQueue } from '../../services/offlineQueue';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 
@@ -23,8 +24,37 @@ export function CartPage() {
   const [placing, setPlacing] = useState(false);
   const [customerPhone, setCustomerPhone] = useState('');
 
+  function queueOfflineOrder() {
+    const base = `${import.meta.env.VITE_API_URL ?? ''}/api`;
+    const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+    if (appendToOrderId) {
+      offlineQueue.push({
+        method: 'PATCH',
+        url: `${base}/orders/${appendToOrderId}/items`,
+        body: { items },
+        label: `Add ${itemCount} item${itemCount !== 1 ? 's' : ''} to #${appendToOrderNumber ?? appendToOrderId.slice(0, 8).toUpperCase()}`,
+      });
+    } else {
+      offlineQueue.push({
+        method: 'POST',
+        url: `${base}/orders`,
+        body: { tableId, tableNumber, items, sessionId: sessionId ?? undefined, restaurantId: restaurantId ?? undefined, orderType: 'dine-in', customerPhone: customerPhone.trim() || undefined },
+        label: `Table ${tableNumber} · ${itemCount} item${itemCount !== 1 ? 's' : ''}`,
+      });
+    }
+    clearCart();
+    toast.success("You're offline — order saved and will sync automatically.", { duration: 5000 });
+    navigate(-1);
+  }
+
   async function handlePlaceOrder() {
     if (items.length === 0) return;
+
+    if (!navigator.onLine) {
+      queueOfflineOrder();
+      return;
+    }
+
     setPlacing(true);
     try {
       if (appendToOrderId) {
@@ -37,8 +67,14 @@ export function CartPage() {
         clearCart();
         navigate(`/order-success/${order.id}`);
       }
-    } catch {
-      toast.error(t('customer.failedOrder'));
+    } catch (err) {
+      // Also queue on network failure (e.g. WiFi drops between check and call)
+      const isNetworkError = err && typeof err === 'object' && !('response' in (err as object));
+      if (isNetworkError) {
+        queueOfflineOrder();
+      } else {
+        toast.error(t('customer.failedOrder'));
+      }
     } finally {
       setPlacing(false);
     }

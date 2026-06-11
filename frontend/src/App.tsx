@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
+import axios from 'axios';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SubscriptionConfigProvider, useSubscriptionConfig } from './context/SubscriptionConfigContext';
 import { CartProvider } from './context/CartContext';
@@ -9,6 +12,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import { TagsProvider } from './context/TagsContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InstallPrompt } from './components/InstallPrompt';
+import { OfflineBanner } from './components/OfflineBanner';
+import { offlineQueue } from './services/offlineQueue';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 
 // Register the PWA service worker early so the install prompt can fire
 if ('serviceWorker' in navigator) {
@@ -59,6 +65,43 @@ import { CombosPage } from './pages/admin/CombosPage';
 import { StockPage } from './pages/admin/StockPage';
 import { StockReportPage } from './pages/admin/StockReportPage';
 
+function OfflineSyncManager() {
+  const isOnline = useOnlineStatus();
+  const wasOffline = useRef(!isOnline);
+
+  useEffect(() => {
+    if (isOnline && wasOffline.current) {
+      wasOffline.current = false;
+      const queued = offlineQueue.getAll();
+      if (!queued.length) return;
+
+      const toastId = toast.loading(`Syncing ${queued.length} queued order${queued.length > 1 ? 's' : ''}…`);
+      let synced = 0;
+      let failed = 0;
+
+      (async () => {
+        for (const req of queued) {
+          try {
+            if (req.method === 'POST') await axios.post(req.url, req.body);
+            else await axios.patch(req.url, req.body);
+            offlineQueue.remove(req.id);
+            synced++;
+          } catch {
+            failed++;
+          }
+        }
+        toast.dismiss(toastId);
+        if (synced) toast.success(`${synced} order${synced > 1 ? 's' : ''} synced!`);
+        if (failed) toast.error(`${failed} order${failed > 1 ? 's' : ''} failed to sync — please retry.`);
+      })();
+    } else if (!isOnline) {
+      wasOffline.current = true;
+    }
+  }, [isOnline]);
+
+  return null;
+}
+
 function RootRedirect() {
   const { user, loading } = useAuth();
   const { loading: cfgLoading } = useSubscriptionConfig();
@@ -84,6 +127,8 @@ export default function App() {
         <TagsProvider>
         <CartProvider>
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+          <OfflineBanner />
+          <OfflineSyncManager />
           <InstallPrompt />
           <Routes>
             {/* Root redirect */}
