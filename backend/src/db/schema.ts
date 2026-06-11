@@ -556,5 +556,10 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'receipt_show_order_no',   'BOOLEAN NOT NULL DEFAULT TRUE');
   await addCol('restaurants', 'receipt_show_unit_price', 'BOOLEAN NOT NULL DEFAULT TRUE');
 
+  // ── Nutritional info ───────────────────────────────────────────────────────
+  await addCol('menu_items', 'calories',    'SMALLINT NULL');
+  await addCol('menu_items', 'protein_g',   'SMALLINT NULL');
+  await addCol('menu_items', 'spice_level', 'SMALLINT NULL');
+
   console.log('✓ Schema ready');
 }

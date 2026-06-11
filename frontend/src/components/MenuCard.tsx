@@ -170,6 +170,27 @@ export function MenuCard({ item, view = 'grid', categoryName }: Props) {
           {/* Name */}
           <h3 className="font-bold text-gray-900 text-base leading-tight">{item.name}</h3>
 
+          {/* Nutrition pills */}
+          {(item.calories || item.proteinG != null || item.spiceLevel != null) && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {item.calories ? (
+                <span className="flex items-center gap-0.5 text-[11px] bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full border border-orange-100">
+                  🔥 {item.calories} kcal
+                </span>
+              ) : null}
+              {item.proteinG != null ? (
+                <span className="flex items-center gap-0.5 text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
+                  💪 {item.proteinG}g
+                </span>
+              ) : null}
+              {item.spiceLevel != null ? (
+                <span className="flex items-center gap-0.5 text-[11px] bg-red-50 text-red-700 px-2 py-0.5 rounded-full border border-red-100">
+                  🌶 {item.spiceLevel}/5
+                </span>
+              ) : null}
+            </div>
+          )}
+
           {/* Price + Add button */}
           <div className="mt-auto pt-3 flex items-center justify-between">
             <div>

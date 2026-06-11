@@ -48,6 +48,9 @@ const EMPTY: Omit<MenuItem, 'id'> = {
   tags: [],
   prepTimeMins: null,
   scheduleId: null,
+  calories: null,
+  proteinG: null,
+  spiceLevel: null,
 };
 
 export function MenuItemsPage() {
@@ -125,7 +128,7 @@ export function MenuItemsPage() {
 
   function openEdit(item: MenuItem) {
     setEditing(item);
-    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null, tags: item.tags ?? [], prepTimeMins: item.prepTimeMins ?? null, scheduleId: item.scheduleId ?? null });
+    setForm({ name: item.name, description: item.description, price: item.price, discountPct: item.discountPct, largePrice: item.largePrice, largeDiscountPct: item.largeDiscountPct ?? 0, category: item.category, image: item.image ?? '', available: item.available, trackStock: item.trackStock ?? false, stock: item.stock ?? null, tags: item.tags ?? [], prepTimeMins: item.prepTimeMins ?? null, scheduleId: item.scheduleId ?? null, calories: item.calories ?? null, proteinG: item.proteinG ?? null, spiceLevel: item.spiceLevel ?? null });
     setPreview(item.image ?? '');
     setShowForm(true);
   }
@@ -1115,6 +1118,49 @@ export function MenuItemsPage() {
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">min</span>
                     </div>
                     <p className="text-xs text-gray-400 mt-1">Shown to kitchen as a countdown timer.</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Nutritional Info */}
+              <section>
+                <h3 className="text-sm font-bold text-gray-800 mb-3">Nutritional Info <span className="text-xs font-normal text-gray-400">(optional — shown on menu)</span></h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className={labelCls}>Calories (kcal)</label>
+                    <div className="relative">
+                      <input
+                        type="number" min="0" max="9999" step="1"
+                        value={form.calories ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, calories: e.target.value ? Math.max(0, parseInt(e.target.value, 10)) : null }))}
+                        placeholder="e.g. 320"
+                        className={`${inputCls} pr-12`}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">kcal</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Protein (g)</label>
+                    <div className="relative">
+                      <input
+                        type="number" min="0" max="999" step="1"
+                        value={form.proteinG ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, proteinG: e.target.value ? Math.max(0, parseInt(e.target.value, 10)) : null }))}
+                        placeholder="e.g. 6"
+                        className={`${inputCls} pr-6`}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">g</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Spice level (0–5)</label>
+                    <input
+                      type="number" min="0" max="5" step="1"
+                      value={form.spiceLevel ?? ''}
+                      onChange={(e) => setForm((f) => ({ ...f, spiceLevel: e.target.value !== '' ? Math.min(5, Math.max(0, parseInt(e.target.value, 10))) : null }))}
+                      placeholder="0–5"
+                      className={inputCls}
+                    />
                   </div>
                 </div>
               </section>

@@ -35,6 +35,9 @@ export interface MenuItem {
   toppings?: Topping[];
   prepTimeMins?: number | null;
   scheduleId?: string | null;
+  calories?: number | null;
+  proteinG?: number | null;
+  spiceLevel?: number | null;
 }
 
 /** Returns the effective price after discount for the given size. */

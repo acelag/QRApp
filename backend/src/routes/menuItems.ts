@@ -77,6 +77,9 @@ const toItem = (row: Record<string, unknown>) => ({
   toppings:         (row.toppings as { id: string; name: string; price: number; available: boolean }[] | null) ?? [],
   prepTimeMins:     row.prep_time_mins != null ? Number(row.prep_time_mins) : null,
   scheduleId:       (row.schedule_id as string | null) ?? null,
+  calories:         row.calories != null ? Number(row.calories) : null,
+  proteinG:         row.protein_g != null ? Number(row.protein_g) : null,
+  spiceLevel:       row.spice_level != null ? Number(row.spice_level) : null,
 });
 
 
@@ -226,8 +229,8 @@ router.patch('/bulk-availability', authenticate, requireRole('admin', 'manager')
 });
 
 router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
-  const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock, tags, prepTimeMins, scheduleId } =
-    req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null; scheduleId?: string | null };
+  const { name, description = '', price, discountPct = 0, largePrice, largeDiscountPct = 0, category, image, available = true, trackStock = false, stock, tags, prepTimeMins, scheduleId, calories, proteinG, spiceLevel } =
+    req.body as { name: string; description?: string; price: number; discountPct?: number; largePrice?: number; largeDiscountPct?: number; category: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null; scheduleId?: string | null; calories?: number | null; proteinG?: number | null; spiceLevel?: number | null };
   if (!name || !category) { res.status(400).json({ error: 'name and category are required' }); return; }
   const safeDiscount = Math.min(100, Math.max(0, Number(discountPct) || 0));
   const safeLargePrice = largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null;
@@ -235,6 +238,9 @@ router.post('/', authenticate, requireRole('admin', 'manager'), async (req: Auth
   const safeStock = trackStock && stock != null ? Math.max(0, Math.round(Number(stock))) : null;
   const safeTags = JSON.stringify(Array.isArray(tags) ? tags : []);
   const safePrepTime = prepTimeMins != null && Number(prepTimeMins) > 0 ? Math.round(Number(prepTimeMins)) : null;
+  const safeCalories   = calories   != null && Number(calories)   > 0 ? Math.round(Number(calories))   : null;
+  const safeProteinG   = proteinG   != null && Number(proteinG)   >= 0 ? Math.round(Number(proteinG))  : null;
+  const safeSpiceLevel = spiceLevel != null ? Math.min(5, Math.max(0, Math.round(Number(spiceLevel)))) : null;
   // Place new item at the end of its category
   const seqRes = await pool.query(
     'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM menu_items WHERE restaurant_id = $1 AND category_id = $2',
@@ -243,8 +249,8 @@ router.post('/', authenticate, requireRole('admin', 'manager'), async (req: Auth
   const nextOrder = Number((seqRes.rows[0] as Record<string, unknown>).next_order ?? 0);
   const id = uuid();
   await pool.query(
-    `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available, track_stock, stock, sort_order, tags, prep_time_mins, schedule_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-    [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock, nextOrder, safeTags, safePrepTime, scheduleId ?? null],
+    `INSERT INTO menu_items (id, restaurant_id, name, description, price, discount_pct, large_price, large_discount_pct, category_id, image, available, track_stock, stock, sort_order, tags, prep_time_mins, schedule_id, calories, protein_g, spice_level) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+    [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock, nextOrder, safeTags, safePrepTime, scheduleId ?? null, safeCalories, safeProteinG, safeSpiceLevel],
   );
   const created = await pool.query(`${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`, [id]);
   res.status(201).json(toItem(created.rows[0] as Record<string, unknown>));
@@ -254,8 +260,8 @@ router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: Au
   const existing = await pool.query('SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if (!existing.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   const row = existing.rows[0] as Record<string, unknown>;
-  const { name, description, price, discountPct, largePrice, largeDiscountPct, category, image, available, trackStock, stock, tags, prepTimeMins, scheduleId } =
-    req.body as { name?: string; description?: string; price?: number; discountPct?: number; largePrice?: number | null; largeDiscountPct?: number; category?: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null; scheduleId?: string | null };
+  const { name, description, price, discountPct, largePrice, largeDiscountPct, category, image, available, trackStock, stock, tags, prepTimeMins, scheduleId, calories, proteinG, spiceLevel } =
+    req.body as { name?: string; description?: string; price?: number; discountPct?: number; largePrice?: number | null; largeDiscountPct?: number; category?: string; image?: string; available?: boolean; trackStock?: boolean; stock?: number | null; tags?: string[]; prepTimeMins?: number | null; scheduleId?: string | null; calories?: number | null; proteinG?: number | null; spiceLevel?: number | null };
   const safeDiscount = discountPct !== undefined ? Math.min(100, Math.max(0, Number(discountPct) || 0)) : Number(row.discount_pct ?? 0);
   const safeLargePrice = largePrice !== undefined
     ? (largePrice != null && Number(largePrice) > 0 ? Number(largePrice) : null)
@@ -270,11 +276,14 @@ router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: Au
     ? (prepTimeMins != null && Number(prepTimeMins) > 0 ? Math.round(Number(prepTimeMins)) : null)
     : (row.prep_time_mins != null ? Number(row.prep_time_mins) : null);
   const safeScheduleId = scheduleId !== undefined ? (scheduleId || null) : (row.schedule_id as string | null) ?? null;
+  const safeCalories2   = calories   !== undefined ? (calories   != null && Number(calories)   > 0  ? Math.round(Number(calories))   : null) : (row.calories   != null ? Number(row.calories)   : null);
+  const safeProteinG2   = proteinG   !== undefined ? (proteinG   != null && Number(proteinG)   >= 0 ? Math.round(Number(proteinG))   : null) : (row.protein_g  != null ? Number(row.protein_g)  : null);
+  const safeSpiceLevel2 = spiceLevel !== undefined ? (spiceLevel != null ? Math.min(5, Math.max(0, Math.round(Number(spiceLevel)))) : null) : (row.spice_level != null ? Number(row.spice_level) : null);
   await pool.query(
-    `UPDATE menu_items SET name=$1, description=$2, price=$3, discount_pct=$4, large_price=$5, large_discount_pct=$6, category_id=$7, image=$8, available=$9, track_stock=$10, stock=$11, tags=$12, prep_time_mins=$13, schedule_id=$14 WHERE id=$15`,
+    `UPDATE menu_items SET name=$1, description=$2, price=$3, discount_pct=$4, large_price=$5, large_discount_pct=$6, category_id=$7, image=$8, available=$9, track_stock=$10, stock=$11, tags=$12, prep_time_mins=$13, schedule_id=$14, calories=$15, protein_g=$16, spice_level=$17 WHERE id=$18`,
     [name ?? row.name, description ?? row.description, price ?? row.price, safeDiscount, safeLargePrice, safeLargeDiscount,
      category ?? row.category_id, image !== undefined ? (image || null) : row.image,
-     available !== undefined ? available : row.available, safeTrackStock, safeStock, safeTags, safePrepTime, safeScheduleId, req.params.id],
+     available !== undefined ? available : row.available, safeTrackStock, safeStock, safeTags, safePrepTime, safeScheduleId, safeCalories2, safeProteinG2, safeSpiceLevel2, req.params.id],
   );
   const updated = await pool.query(
     `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`,

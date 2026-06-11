@@ -116,6 +116,27 @@ export function ProductDetailModal({ item, onClose }: Props) {
             )}
           </div>
 
+          {/* Nutrition pills */}
+          {(item.calories || item.proteinG != null || item.spiceLevel != null) && (
+            <div className="flex flex-wrap gap-2">
+              {item.calories ? (
+                <span className="flex items-center gap-1 text-xs bg-orange-50 text-orange-700 px-2.5 py-1 rounded-full border border-orange-100 font-medium">
+                  🔥 {item.calories} kcal
+                </span>
+              ) : null}
+              {item.proteinG != null ? (
+                <span className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-100 font-medium">
+                  💪 {item.proteinG}g protein
+                </span>
+              ) : null}
+              {item.spiceLevel != null ? (
+                <span className="flex items-center gap-1 text-xs bg-red-50 text-red-700 px-2.5 py-1 rounded-full border border-red-100 font-medium">
+                  🌶 Spice {item.spiceLevel}/5
+                </span>
+              ) : null}
+            </div>
+          )}
+
           {/* Description */}
           {item.description && (
             <p className="text-sm text-gray-500 leading-relaxed">{item.description}</p>
