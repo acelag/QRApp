@@ -59,7 +59,7 @@ export function ProductDetailModal({ item, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 bg-black/60 z-[60] flex items-end sm:items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
