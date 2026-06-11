@@ -65,6 +65,7 @@ import { MenuSchedulesPage } from './pages/admin/MenuSchedulesPage';
 import { CombosPage } from './pages/admin/CombosPage';
 import { StockPage } from './pages/admin/StockPage';
 import { StockReportPage } from './pages/admin/StockReportPage';
+import { LoyaltyPage } from './pages/admin/LoyaltyPage';
 import { FloorPlanPage } from './pages/admin/FloorPlanPage';
 
 function OfflineSyncManager() {
@@ -227,6 +228,7 @@ export default function App() {
             <Route path="/admin/table-status" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="tableStatus"><TableStatusPage /></ProtectedRoute>} />
             <Route path="/admin/stock" element={<ProtectedRoute roles={['admin','manager']} permission="stock"><StockPage /></ProtectedRoute>} />
             <Route path="/admin/stock-report" element={<ProtectedRoute roles={['admin','manager']} permission="stockReport"><StockReportPage /></ProtectedRoute>} />
+            <Route path="/admin/loyalty" element={<ProtectedRoute roles={['admin','manager']}><LoyaltyPage /></ProtectedRoute>} />
 
             {/* Kitchen — accessible by kitchen, admin and manager */}
             <Route path="/kitchen" element={<ProtectedRoute roles={['admin','manager','kitchen']}><KitchenPage /></ProtectedRoute>} />

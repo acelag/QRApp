@@ -4,19 +4,19 @@ import type { CartItem, Order, OrderStatus } from '../types';
 const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 export const orderService = {
-  placeOrder: (tableId: string, tableNumber: number, items: CartItem[], sessionId?: string, restaurantId?: string, promoCode?: string, customerPhone?: string) =>
+  placeOrder: (tableId: string, tableNumber: number, items: CartItem[], sessionId?: string, restaurantId?: string, promoCode?: string, customerPhone?: string, redeemPoints?: number) =>
     axios
-      .post<Order>(`${BASE}/orders`, { tableId, tableNumber, items, sessionId, restaurantId, orderType: 'dine-in', promoCode, customerPhone })
+      .post<Order>(`${BASE}/orders`, { tableId, tableNumber, items, sessionId, restaurantId, orderType: 'dine-in', promoCode, customerPhone, redeemPoints })
       .then((r) => r.data),
 
-  placeTakeawayOrder: (items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string, customerPhone?: string) =>
+  placeTakeawayOrder: (items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string, customerPhone?: string, redeemPoints?: number) =>
     axios
-      .post<Order>(`${BASE}/orders`, { items, orderType: 'takeaway', customerName, restaurantId, promoCode, customerPhone })
+      .post<Order>(`${BASE}/orders`, { items, orderType: 'takeaway', customerName, restaurantId, promoCode, customerPhone, redeemPoints })
       .then((r) => r.data),
 
-  placeRoomOrder: (roomId: string, roomNumber: number, items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string, customerPhone?: string, paymentMethod?: string) =>
+  placeRoomOrder: (roomId: string, roomNumber: number, items: CartItem[], customerName?: string, restaurantId?: string, promoCode?: string, customerPhone?: string, paymentMethod?: string, redeemPoints?: number) =>
     axios
-      .post<Order>(`${BASE}/orders`, { roomId, roomNumber, items, orderType: 'room-service', customerName, restaurantId, promoCode, customerPhone, paymentMethod })
+      .post<Order>(`${BASE}/orders`, { roomId, roomNumber, items, orderType: 'room-service', customerName, restaurantId, promoCode, customerPhone, paymentMethod, redeemPoints })
       .then((r) => r.data),
 
   getOrders: () => axios.get<Order[]>(`${BASE}/orders`).then((r) => r.data),

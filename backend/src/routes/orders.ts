@@ -135,6 +135,13 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   let validatedPromoCode: string | null = null;
   let totalAmount = 0;
 
+  // Loyalty redemption vars — set inside transaction, used for awarding after commit
+  const { redeemPoints: rawRedeemPts } = req.body as { redeemPoints?: number };
+  const redeemPointsReq = (rawRedeemPts && Number.isInteger(rawRedeemPts) && rawRedeemPts > 0) ? rawRedeemPts : 0;
+  let loyaltyDiscount = 0;
+  let loyaltyAccountId: string | null = null;
+  let actualRedeemedPoints = 0;
+
   const now = new Date().toISOString();
   const orderId = uuid();
 
@@ -167,7 +174,34 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
       }
     }
 
-    totalAmount = Math.max(0, subtotal - discountAmount);
+    // ── Loyalty: validate & lock points redemption ───────────────────────────
+    if (redeemPointsReq > 0 && customerPhone?.trim()) {
+      const cfgRow = (await client.query(
+        'SELECT * FROM loyalty_configs WHERE restaurant_id=$1 AND enabled=true',
+        [resolvedRestaurantId],
+      )).rows[0] as Record<string, unknown> | undefined;
+      if (cfgRow) {
+        const accRow = (await client.query(
+          'SELECT * FROM loyalty_accounts WHERE restaurant_id=$1 AND phone=$2 FOR UPDATE',
+          [resolvedRestaurantId, customerPhone.trim()],
+        )).rows[0] as Record<string, unknown> | undefined;
+        if (accRow) {
+          const balance   = Number(accRow.points_balance);
+          const rate      = Number(cfgRow.redeem_rate);
+          const minPts    = Number(cfgRow.min_redeem_points);
+          const maxByPct  = Math.floor(subtotal * (Number(cfgRow.max_redeem_pct) / 100) * rate);
+          actualRedeemedPoints = Math.min(redeemPointsReq, balance, maxByPct);
+          if (actualRedeemedPoints >= minPts && actualRedeemedPoints > 0) {
+            loyaltyDiscount  = Math.round((actualRedeemedPoints / rate) * 100) / 100;
+            loyaltyAccountId = accRow.id as string;
+          } else {
+            actualRedeemedPoints = 0;
+          }
+        }
+      }
+    }
+
+    totalAmount = Math.max(0, subtotal - discountAmount - loyaltyDiscount);
     const seqRes = await client.query(
       `UPDATE restaurants SET next_order_seq = next_order_seq + 1 WHERE id = $1 RETURNING next_order_seq, order_number_prefix`,
       [resolvedRestaurantId],
@@ -243,6 +277,19 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
         );
       }
     }
+    // Deduct redeemed loyalty points (inside transaction for atomicity)
+    if (loyaltyAccountId && actualRedeemedPoints > 0) {
+      await client.query(
+        'UPDATE loyalty_accounts SET points_balance=points_balance-$1, updated_at=$2 WHERE id=$3',
+        [actualRedeemedPoints, now, loyaltyAccountId],
+      );
+      await client.query(
+        `INSERT INTO loyalty_transactions (id,account_id,order_id,type,points,description,created_at)
+         VALUES ($1,$2,$3,'redeem',$4,'Points redeemed for order discount',$5)`,
+        [uuid(), loyaltyAccountId, orderId, -actualRedeemedPoints, now],
+      );
+    }
+
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
@@ -254,6 +301,42 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     throw err;
   } finally {
     client.release();
+  }
+
+  // Award loyalty points — best-effort, non-fatal
+  if (customerPhone?.trim()) {
+    try {
+      const cfgRow = (await pool.query(
+        'SELECT * FROM loyalty_configs WHERE restaurant_id=$1 AND enabled=true',
+        [resolvedRestaurantId],
+      )).rows[0] as Record<string, unknown> | undefined;
+      if (cfgRow) {
+        const earned = Math.floor(totalAmount * Number(cfgRow.points_per_unit));
+        if (earned > 0) {
+          const earnNow = new Date().toISOString();
+          await pool.query(
+            `INSERT INTO loyalty_accounts (id,restaurant_id,phone,points_balance,lifetime_points,created_at,updated_at)
+             VALUES ($1,$2,$3,0,0,$4,$4) ON CONFLICT (restaurant_id,phone) DO NOTHING`,
+            [uuid(), resolvedRestaurantId, customerPhone.trim(), earnNow],
+          );
+          const accId = ((await pool.query(
+            'SELECT id FROM loyalty_accounts WHERE restaurant_id=$1 AND phone=$2',
+            [resolvedRestaurantId, customerPhone.trim()],
+          )).rows[0] as Record<string, unknown>).id as string;
+          await pool.query(
+            'UPDATE loyalty_accounts SET points_balance=points_balance+$1, lifetime_points=lifetime_points+$1, updated_at=$2 WHERE id=$3',
+            [earned, earnNow, accId],
+          );
+          await pool.query(
+            `INSERT INTO loyalty_transactions (id,account_id,order_id,type,points,description,created_at)
+             VALUES ($1,$2,$3,'earn',$4,'Points earned for order',$5)`,
+            [uuid(), accId, orderId, earned, earnNow],
+          );
+        }
+      }
+    } catch (e) {
+      console.error('Loyalty award failed (non-fatal):', e);
+    }
   }
 
   const built = await buildOrder(orderId);

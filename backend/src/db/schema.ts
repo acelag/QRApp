@@ -491,6 +491,47 @@ export async function createSchema(): Promise<void> {
   await addCol('tables', 'floor_y',     'FLOAT NULL');
   await addCol('tables', 'floor_shape', "VARCHAR(10) NOT NULL DEFAULT 'rect'");
 
+  // ── Loyalty / points system ─────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS loyalty_configs (
+      id                VARCHAR(36)   NOT NULL PRIMARY KEY,
+      restaurant_id     VARCHAR(36)   NOT NULL UNIQUE,
+      enabled           BOOLEAN       NOT NULL DEFAULT FALSE,
+      points_per_unit   DECIMAL(10,4) NOT NULL DEFAULT 1.0,
+      redeem_rate       INTEGER       NOT NULL DEFAULT 100,
+      min_redeem_points INTEGER       NOT NULL DEFAULT 100,
+      max_redeem_pct    DECIMAL(5,2)  NOT NULL DEFAULT 50.0,
+      created_at        VARCHAR(50)   NOT NULL,
+      updated_at        VARCHAR(50)   NOT NULL
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS loyalty_accounts (
+      id              VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id   VARCHAR(36)  NOT NULL,
+      phone           VARCHAR(30)  NOT NULL,
+      name            VARCHAR(255) NULL,
+      points_balance  INTEGER      NOT NULL DEFAULT 0,
+      lifetime_points INTEGER      NOT NULL DEFAULT 0,
+      created_at      VARCHAR(50)  NOT NULL,
+      updated_at      VARCHAR(50)  NOT NULL,
+      UNIQUE(restaurant_id, phone)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS loyalty_transactions (
+      id          VARCHAR(36)  NOT NULL PRIMARY KEY,
+      account_id  VARCHAR(36)  NOT NULL REFERENCES loyalty_accounts(id) ON DELETE CASCADE,
+      order_id    VARCHAR(36)  NULL,
+      type        VARCHAR(20)  NOT NULL CHECK (type IN ('earn','redeem','adjust')),
+      points      INTEGER      NOT NULL,
+      description VARCHAR(255) NULL,
+      created_at  VARCHAR(50)  NOT NULL
+    );
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS menu_item_ingredients (
       id            VARCHAR(36)   NOT NULL PRIMARY KEY,

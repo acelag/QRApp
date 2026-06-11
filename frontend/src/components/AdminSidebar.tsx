@@ -5,7 +5,7 @@ import {
   Users, Settings, LogOut, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
   Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
-  LayoutGrid, ChevronDown, ChevronRight, Menu, X, Sun, Moon, MapPin,
+  LayoutGrid, ChevronDown, ChevronRight, Menu, X, Sun, Moon, MapPin, Star,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { RestaurantFeatures } from '../context/AuthContext';
@@ -101,7 +101,8 @@ const NAV: NavEntry[] = [
     label: 'Inventory',
     icon: Warehouse,
     children: [
-      { label: 'Stock', icon: Package, to: '/admin/stock', perm: 'stock' },
+      { label: 'Stock',   icon: Package, to: '/admin/stock',   perm: 'stock' },
+      { label: 'Loyalty', icon: Star,    to: '/admin/loyalty', adminOnly: true },
     ],
   },
   {

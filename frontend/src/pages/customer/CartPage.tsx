@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Trash2, NotebookPen } from 'lucide-react';
+import { ArrowLeft, Trash2, NotebookPen, Star } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { QuantitySelector } from '../../components/QuantitySelector';
 import { orderService } from '../../services/orderService';
+import { loyaltyService } from '../../services/loyaltyService';
+import type { LoyaltyConfig, LoyaltyAccount } from '../../services/loyaltyService';
 import { offlineQueue } from '../../services/offlineQueue';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
@@ -23,6 +25,46 @@ export function CartPage() {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [customerPhone, setCustomerPhone] = useState('');
+
+  // Loyalty
+  const [loyaltyConfig,   setLoyaltyConfig]   = useState<LoyaltyConfig | null>(null);
+  const [loyaltyAccount,  setLoyaltyAccount]  = useState<LoyaltyAccount | null>(null);
+  const [usePoints,       setUsePoints]       = useState(false);
+  const [loyaltyLoading,  setLoyaltyLoading]  = useState(false);
+  const loyaltyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced loyalty lookup when phone changes
+  useEffect(() => {
+    if (loyaltyTimer.current) clearTimeout(loyaltyTimer.current);
+    const digits = customerPhone.replace(/\D/g, '');
+    if (!restaurantId || digits.length < 8 || appendToOrderId) {
+      setLoyaltyConfig(null); setLoyaltyAccount(null); setUsePoints(false); return;
+    }
+    setLoyaltyLoading(true);
+    loyaltyTimer.current = setTimeout(async () => {
+      try {
+        const { config, account } = await loyaltyService.lookup(restaurantId, digits);
+        setLoyaltyConfig(config);
+        setLoyaltyAccount(account);
+        if (!config) setUsePoints(false);
+      } catch {
+        setLoyaltyConfig(null); setLoyaltyAccount(null);
+      } finally {
+        setLoyaltyLoading(false);
+      }
+    }, 500);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerPhone, restaurantId]);
+
+  // Derived: points to redeem and discount value
+  const redeemablePoints = loyaltyConfig && loyaltyAccount && usePoints
+    ? Math.min(
+        loyaltyAccount.pointsBalance,
+        Math.floor(total * (loyaltyConfig.maxRedeemPct / 100) * loyaltyConfig.redeemRate),
+      )
+    : 0;
+  const pointsDiscount = loyaltyConfig ? Math.round((redeemablePoints / loyaltyConfig.redeemRate) * 100) / 100 : 0;
+  const finalTotal = Math.max(0, total - pointsDiscount);
 
   function queueOfflineOrder() {
     const base = `${import.meta.env.VITE_API_URL ?? ''}/api`;
@@ -63,7 +105,7 @@ export function CartPage() {
         navigate(`/order-success/${appendToOrderId}`, { replace: true });
       } else {
         if (!tableId || !tableNumber) return;
-        const order = await orderService.placeOrder(tableId, tableNumber, items, sessionId ?? undefined, restaurantId ?? undefined, undefined, customerPhone.trim() || undefined);
+        const order = await orderService.placeOrder(tableId, tableNumber, items, sessionId ?? undefined, restaurantId ?? undefined, undefined, customerPhone.trim() || undefined, redeemablePoints > 0 ? redeemablePoints : undefined);
         clearCart();
         navigate(`/order-success/${order.id}`);
       }
@@ -211,10 +253,68 @@ export function CartPage() {
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
             />
           )}
+
+          {/* Loyalty widget */}
+          {!appendToOrderId && loyaltyLoading && (
+            <div className="flex items-center gap-2 text-xs text-gray-400 px-1">
+              <div className="w-3 h-3 border border-gray-300 border-t-orange-400 rounded-full animate-spin" />
+              Checking points…
+            </div>
+          )}
+          {!appendToOrderId && loyaltyConfig && loyaltyAccount && (
+            <div className={`rounded-xl border px-3 py-2.5 flex items-center gap-3 transition-colors ${
+              usePoints ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-200'
+            }`}>
+              <Star size={15} className={usePoints ? 'text-orange-500' : 'text-gray-400'} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-800">
+                  {loyaltyAccount.pointsBalance} pts
+                  {usePoints && pointsDiscount > 0 && (
+                    <span className="ml-1.5 text-green-600">= {fmt(pointsDiscount)} off</span>
+                  )}
+                </p>
+                {!usePoints && loyaltyAccount.pointsBalance >= loyaltyConfig.minRedeemPoints && (
+                  <p className="text-[11px] text-gray-400">
+                    Redeem for up to {fmt(Math.floor(loyaltyAccount.pointsBalance / loyaltyConfig.redeemRate))} discount
+                  </p>
+                )}
+                {!usePoints && loyaltyAccount.pointsBalance < loyaltyConfig.minRedeemPoints && (
+                  <p className="text-[11px] text-gray-400">
+                    Need {loyaltyConfig.minRedeemPoints} pts to redeem
+                  </p>
+                )}
+              </div>
+              {loyaltyAccount.pointsBalance >= loyaltyConfig.minRedeemPoints && (
+                <button
+                  onClick={() => setUsePoints(p => !p)}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${
+                    usePoints
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-white border border-orange-300 text-orange-600 hover:bg-orange-50'
+                  }`}
+                >
+                  {usePoints ? 'Applied ✓' : 'Use pts'}
+                </button>
+              )}
+            </div>
+          )}
+          {!appendToOrderId && loyaltyConfig && !loyaltyAccount && customerPhone.replace(/\D/g,'').length >= 8 && (
+            <div className="flex items-center gap-2 text-xs text-gray-400 px-1">
+              <Star size={12} className="text-orange-300" />
+              You'll earn {Math.floor(total * loyaltyConfig.pointsPerUnit)} pts for this order
+            </div>
+          )}
+
           <div className="flex justify-between text-sm text-gray-500">
             <span>{t('customer.subtotal')}</span>
             <span>{fmt(total)}</span>
           </div>
+          {pointsDiscount > 0 && (
+            <div className="flex justify-between text-sm text-green-600 font-medium">
+              <span>Points discount</span>
+              <span>−{fmt(pointsDiscount)}</span>
+            </div>
+          )}
           <button
             onClick={handlePlaceOrder}
             disabled={placing}
@@ -222,7 +322,9 @@ export function CartPage() {
           >
             {placing
               ? (appendToOrderId ? 'Adding items…' : t('customer.placingOrder'))
-              : (appendToOrderId ? `Add to Order · ${fmt(total)}` : t('customer.placeOrder', { amount: fmt(total) }))}
+              : (appendToOrderId
+                  ? `Add to Order · ${fmt(total)}`
+                  : t('customer.placeOrder', { amount: fmt(finalTotal) }))}
           </button>
         </div>
       </div>

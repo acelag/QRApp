@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, RotateCcw, Clock, ChefHat, Bell, PlusCircle } from 'lucide-react';
+import { CheckCircle, RotateCcw, Clock, ChefHat, Bell, PlusCircle, Star } from 'lucide-react';
 import type { Order } from '../../types';
 import type { CartItem } from '../../types/Order';
 import { orderService } from '../../services/orderService';
 import { restaurantService } from '../../services/restaurantService';
+import { loyaltyService } from '../../services/loyaltyService';
+import type { LoyaltyConfig, LoyaltyAccount } from '../../services/loyaltyService';
 import { CustomerNotifyButton } from '../../components/CustomerNotifyButton';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useCart } from '../../context/CartContext';
@@ -60,6 +62,10 @@ export function OrderSuccessPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
   const [bump, setBump] = useState(false);
+  const [loyaltyConfig, setLoyaltyConfig] = useState<LoyaltyConfig | null>(null);
+  const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
+  const [pointsEarned, setPointsEarned] = useState<number | null>(null);
+  const loyaltyFetched = useRef(false);
   const { fmt } = useCurrency();
   const { bulkAdd } = useCart();
   const firstLoad = useRef(true);
@@ -79,6 +85,19 @@ export function OrderSuccessPage() {
           firstLoad.current = false;
           restaurantService.getRestaurantInfo(o.restaurantId)
             .then((info) => setWaitTimeMin(info.waitTimeMin))
+            .catch(() => {});
+        }
+        // One-time loyalty lookup after order loads (if customer gave phone)
+        if (!loyaltyFetched.current && o.restaurantId && o.customerPhone) {
+          loyaltyFetched.current = true;
+          loyaltyService.lookup(o.restaurantId, o.customerPhone.replace(/\D/g, ''))
+            .then(({ config, account }) => {
+              if (config && config.enabled) {
+                setLoyaltyConfig(config);
+                setLoyaltyAccount(account);
+                setPointsEarned(Math.floor(o.totalAmount * config.pointsPerUnit));
+              }
+            })
             .catch(() => {});
         }
       }).catch(() => {});
@@ -232,6 +251,29 @@ export function OrderSuccessPage() {
             <div>
               <p className="text-sm font-semibold text-amber-700">{t('orderSuccess.estWait', { n: waitTimeMin })}</p>
               <p className="text-xs text-amber-500">{t('orderSuccess.startingSoon')}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Loyalty points earned card */}
+        {loyaltyConfig && pointsEarned !== null && pointsEarned > 0 && (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+              <Star size={18} className="text-amber-500 fill-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-800">
+                +{pointsEarned} pts earned!
+              </p>
+              {loyaltyAccount ? (
+                <p className="text-xs text-amber-600">
+                  Balance: <span className="font-semibold">{loyaltyAccount.pointsBalance} pts</span>
+                  {' '}·{' '}
+                  {fmt(Math.floor(loyaltyAccount.pointsBalance / loyaltyConfig.redeemRate))} to redeem
+                </p>
+              ) : (
+                <p className="text-xs text-amber-600">Welcome to our loyalty program!</p>
+              )}
             </div>
           </div>
         )}
