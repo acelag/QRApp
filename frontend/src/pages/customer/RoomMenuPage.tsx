@@ -285,7 +285,7 @@ export function RoomMenuPage() {
     <div className="min-h-screen bg-gray-50 pb-28">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-lg mx-auto px-4 py-4">
+        <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center gap-2 mb-1">
             <BedDouble size={20} className="text-blue-500" />
             <div>
@@ -306,11 +306,11 @@ export function RoomMenuPage() {
             )}
           </div>
         </div>
-        <div className="max-w-lg mx-auto px-4 pb-3">
+        <div className="max-w-5xl mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
         {visibleTags.length > 0 && (
-          <div className="max-w-lg mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
+          <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
             {visibleTags.map((tag) => (
               <button
                 key={tag.slug}
@@ -325,7 +325,7 @@ export function RoomMenuPage() {
           </div>
         )}
         {/* Search bar */}
-        <div className="max-w-lg mx-auto px-4 pb-3">
+        <div className="max-w-5xl mx-auto px-4 pb-3">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
@@ -346,7 +346,7 @@ export function RoomMenuPage() {
 
       {/* Room service closed banner */}
       {!isRoomServiceOpen && (
-        <div className="max-w-lg mx-auto px-4 pt-4">
+        <div className="max-w-5xl mx-auto px-4 pt-4">
           <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-4 flex items-start gap-3">
             <Clock size={18} className="text-red-500 shrink-0 mt-0.5" />
             <div>
@@ -361,7 +361,7 @@ export function RoomMenuPage() {
       )}
 
       {/* Menu grid */}
-      <main className="max-w-lg mx-auto px-4 pt-4">
+      <main className="max-w-5xl mx-auto px-4 pt-4">
         {/* Combos & Deals strip */}
         {combos.length > 0 && (
           <section className="mb-5">
@@ -403,7 +403,7 @@ export function RoomMenuPage() {
             {q ? `No items match "${searchQuery}"` : t('customer.allCategories')}
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {filtered.map((item) => {
               const hasLarge = item.largePrice != null && item.largePrice > 0;
               const hasToppings = (item.toppings ?? []).some((t) => t.available);
@@ -472,7 +472,7 @@ export function RoomMenuPage() {
       {/* Floating cart */}
       {itemCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
-          <div className="max-w-lg mx-auto px-4 pb-4">
+          <div className="max-w-5xl mx-auto px-4 pb-4">
             {cartOpen && (
               <div className="bg-white rounded-t-3xl shadow-2xl border border-gray-100 max-h-[60vh] flex flex-col">
                 <div className="px-4 pt-4 pb-2 border-b border-gray-100">

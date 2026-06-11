@@ -149,7 +149,7 @@ export function MenuPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-lg mx-auto px-4 py-4">
+        <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               {restaurantInfo?.logo
@@ -196,11 +196,11 @@ export function MenuPage() {
             )}
           </div>
         </div>
-        <div className="max-w-lg mx-auto px-4 pb-3">
+        <div className="max-w-5xl mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
         {visibleTags.length > 0 && (
-          <div className="max-w-lg mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
+          <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
             {visibleTags.map((tag) => {
               const isActive = activeTag === tag.slug;
               return (
@@ -216,7 +216,7 @@ export function MenuPage() {
           </div>
         )}
         {/* Search bar */}
-        <div className="max-w-lg mx-auto px-4 pb-3">
+        <div className="max-w-5xl mx-auto px-4 pb-3">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
@@ -235,7 +235,7 @@ export function MenuPage() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 pt-4">
+      <main className="max-w-5xl mx-auto px-4 pt-4">
         {/* Combos & Deals strip */}
         {combos.length > 0 && (
           <section className="mb-5">
@@ -295,7 +295,7 @@ export function MenuPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {filtered.map((item) => (
               <MenuCard key={item.id} item={item} view="grid" />
             ))}
