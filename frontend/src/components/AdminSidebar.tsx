@@ -315,29 +315,6 @@ export function AdminSidebar() {
           </span>
         </div>
 
-        <div className="px-4 py-4 border-t border-gray-100 flex items-center gap-3 flex-none">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-none">
-            {user?.name?.slice(0, 2).toUpperCase() ?? 'RA'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-gray-900 truncate">{user?.name ?? 'Restaurant Admin'}</p>
-            <p className="text-xs text-gray-400 truncate">{user?.username ?? ''}</p>
-          </div>
-          <button
-            onClick={toggleDark}
-            className="text-gray-400 hover:text-gray-700 transition-colors flex-none"
-            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {dark ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-          <button
-            onClick={handleLogout}
-            className="text-gray-400 hover:text-red-500 transition-colors flex-none"
-            title="Logout"
-          >
-            <LogOut size={14} />
-          </button>
-        </div>
       </>
     );
   }

@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogOut, ChevronDown } from 'lucide-react';
+import { ArrowLeft, LogOut, ChevronDown, Sun, Moon } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface AdminHeaderProps {
   title: string;
@@ -14,6 +15,7 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: AdminHeaderProps) {
   const { user, logout } = useAuth();
+  const { dark, toggleDark } = useTheme();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -52,6 +54,13 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
         {/* Page-specific actions */}
         {children}
 
+        <button
+          onClick={toggleDark}
+          className="text-gray-400 hover:text-gray-700 transition-colors shrink-0"
+          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {dark ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
         <NotificationBell />
 
         {/* User menu */}
