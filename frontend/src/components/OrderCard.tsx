@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, User, ClipboardCheck, Hourglass, Zap, PackageCheck } from 'lucide-react';
+import { StatusBadge } from './StatusBadge';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2 } from 'lucide-react';
 import { printService } from '../services/printService';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
@@ -24,7 +25,9 @@ interface Props {
   isNext?: boolean;
   priority?: number;
   hidePrices?: boolean;
+  /** Map of menuItem name → prepTimeMins (used in kitchen mode) */
   prepTimeMap?: Record<string, number>;
+  /** Current epoch ms — passed from parent so all cards tick in sync */
   clockMs?: number;
 }
 
@@ -37,6 +40,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const ageMins = Math.floor((now - new Date(order.createdAt).getTime()) / 60_000);
   const isStale = order.status === 'pending' && ageMins >= STALE_MINUTES;
 
+  /** Returns a countdown string for a given item name, or null if no prep time set */
   function itemCountdown(itemName: string): { label: string; over: boolean } | null {
     if (!prepTimeMap || !clockMs) return null;
     const prepMins = prepTimeMap[itemName];
@@ -47,7 +51,8 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       const overMins = Math.floor(-remainMs / 60_000);
       return { label: overMins > 0 ? `+${overMins}m` : 'due!', over: true };
     }
-    return { label: `${Math.ceil(remainMs / 60_000)}m`, over: false };
+    const remMins = Math.ceil(remainMs / 60_000);
+    return { label: `${remMins}m`, over: false };
   }
 
   const [cooked, setCooked] = useState<Set<number>>(new Set());
@@ -92,7 +97,10 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     if (result.success) {
       toast.success('Receipt sent to printer');
     } else {
-      const url = order.sessionId ? `/session-receipt/${order.sessionId}` : `/receipt/${order.id}`;
+      // Fallback to browser print if no printer configured
+      const url = order.sessionId
+        ? `/session-receipt/${order.sessionId}`
+        : `/receipt/${order.id}`;
       window.open(url, '_blank', 'width=400,height=600');
     }
   }
@@ -106,6 +114,21 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     }
   }
 
+  const priorityColor = priority === 1
+    ? 'bg-red-500 text-white'
+    : priority === 2
+    ? 'bg-orange-400 text-white'
+    : 'bg-gray-500 text-white';
+
+  // Per-order-type theming for the header band, icon and accents
+  const theme = order.orderType === 'takeaway'
+    ? { band: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500', Icon: ShoppingBag, label: 'Takeaway' }
+    : order.orderType === 'room-service'
+    ? { band: 'bg-blue-50',   text: 'text-blue-700',   icon: 'text-blue-500',   Icon: BedDouble,   label: `Room ${order.roomNumber}` }
+    : { band: 'bg-orange-50', text: 'text-orange-700', icon: 'text-orange-500', Icon: MapPin,      label: `Table ${order.tableNumber}` };
+  const TypeIcon = theme.Icon;
+
+  // Human-readable age: 45m · 5h 12m · 2d 3h (raw minutes get unwieldy fast)
   const formatAge = (mins: number): string => {
     if (mins < 60) return `${mins}m`;
     const h = Math.floor(mins / 60);
@@ -119,202 +142,180 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = isToday ? timeStr : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
 
-  // Per-type theming
-  const theme = order.orderType === 'takeaway'
-    ? { bg: 'bg-purple-50',  iconBg: 'bg-purple-100', text: 'text-purple-700', Icon: ShoppingBag, label: 'Takeaway' }
-    : order.orderType === 'room-service'
-    ? { bg: 'bg-blue-50',    iconBg: 'bg-blue-100',   text: 'text-blue-700',   Icon: BedDouble,   label: `Room ${order.roomNumber}` }
-    : { bg: 'bg-orange-50',  iconBg: 'bg-orange-100', text: 'text-orange-700', Icon: MapPin,       label: `Table ${order.tableNumber}` };
-  const TypeIcon = theme.Icon;
-
-  // Status badge config
-  const statusConfig: Record<string, { label: string; cls: string; Icon: React.ElementType }> = {
-    pending:   { label: 'Pending',   cls: 'bg-amber-100 text-amber-700',   Icon: Hourglass   },
-    preparing: { label: 'Preparing', cls: 'bg-orange-100 text-orange-700', Icon: Zap         },
-    ready:     { label: 'Ready',     cls: 'bg-green-100 text-green-700',   Icon: PackageCheck },
-    cancelled: { label: 'Cancelled', cls: 'bg-red-100 text-red-600',       Icon: XCircle     },
-  };
-  const sc = statusConfig[order.status] ?? statusConfig['pending'];
-  const StatusIcon = sc.Icon;
-
-  // Next status button label/color
-  const nextBtnConfig: Record<string, { label: string; cls: string; Icon: React.ElementType }> = {
-    preparing: { label: 'Mark As Preparing', cls: 'bg-emerald-700 hover:bg-emerald-800', Icon: ClipboardCheck },
-    ready:     { label: 'Mark As Ready',     cls: 'bg-green-600 hover:bg-green-700',     Icon: PackageCheck   },
-  };
-  const nbc = nextStatus ? nextBtnConfig[nextStatus] : null;
-  const NextIcon = nbc?.Icon ?? ClipboardCheck;
-
   return (
-    <div className={`${theme.bg} rounded-3xl p-4 space-y-3`}>
-
-      {/* ── Top row: type + status ── */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          {priority != null && (
-            <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-              priority === 1 ? 'bg-red-500 text-white' : priority === 2 ? 'bg-orange-400 text-white' : 'bg-gray-400 text-white'
-            }`}>{priority}</span>
-          )}
-          <div className={`w-10 h-10 rounded-2xl ${theme.iconBg} flex items-center justify-center shrink-0`}>
-            <TypeIcon size={20} className={theme.text} />
-          </div>
-          <div className="min-w-0">
-            <p className={`font-bold text-xl leading-tight ${theme.text}`}>{theme.label}</p>
+    <div className={`bg-white rounded-2xl shadow-sm hover:shadow-md overflow-hidden transition-shadow ${
+      isStale ? 'ring-2 ring-red-400' : 'border border-gray-100'
+    }`}>
+      {/* ── Header band ── */}
+      <div className={`px-4 py-3 border-b border-gray-100 ${theme.band}`}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {priority != null && (
+              <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${priorityColor}`}>
+                {priority}
+              </span>
+            )}
+            <span className={`w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center shrink-0 ${theme.icon}`}>
+              <TypeIcon size={15} />
+            </span>
+            <span className={`font-bold text-sm truncate ${theme.text}`}>{theme.label}</span>
             {order.customerName && order.orderType !== 'dine-in' && (
-              <p className="text-xs text-gray-500 truncate">{order.customerName}</p>
+              <span className="text-gray-500 text-sm truncate">· {order.customerName}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <StatusBadge status={order.status} />
+            {showPrint && (
+              <button onClick={handlePrint} title="Print Bill" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-white/60 transition-colors">
+                <Printer size={15} />
+              </button>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${sc.cls}`}>
-            <StatusIcon size={14} /> {sc.label}
-          </span>
-          {showPrint && (
-            <button onClick={handlePrint} title="Print Bill" className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-white/60 transition-colors">
-              <Printer size={15} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Order # + date + stalled ── */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
+        {/* Secondary line: order #, time, waiter, stale */}
+        <div className="mt-2 flex items-center gap-2 flex-wrap text-xs">
           {order.orderNumber && (
-            <span className="font-mono font-bold text-sm text-gray-800 bg-white/80 px-3 py-1 rounded-full shadow-sm">
+            <span className="font-mono font-bold text-gray-700 bg-white/70 px-2 py-0.5 rounded-md tracking-wide">
               #{order.orderNumber}
             </span>
           )}
-          <span className="flex items-center gap-1 text-xs text-gray-500">
-            <Clock size={12} /> {dateStr}
+          <span className="flex items-center gap-1 text-gray-400">
+            <Clock size={11} className="shrink-0" /> {dateStr}
           </span>
+          {order.assignedWaiterName && (
+            <span className="flex items-center gap-1 text-green-700 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">
+              <UserCheck size={11} /> {order.assignedWaiterName}
+            </span>
+          )}
+          {isNext && (
+            <span className="font-bold text-red-500 uppercase tracking-wide">▶ Next up</span>
+          )}
+          {isStale && (
+            <span className="flex items-center gap-1 font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full ml-auto animate-pulse">
+              <AlertTriangle size={11} /> {formatAge(ageMins)} stalled
+            </span>
+          )}
         </div>
-        {order.assignedWaiterName && (
-          <span className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-            <UserCheck size={11} /> {order.assignedWaiterName}
-          </span>
-        )}
-        {isNext && (
-          <span className="text-xs font-bold text-red-500 uppercase tracking-wide">▶ Next up</span>
-        )}
       </div>
-      {isStale && (
-        <div className="flex justify-end">
-          <span className="flex items-center gap-1.5 text-sm font-semibold text-red-600 bg-red-100 px-3 py-1.5 rounded-full animate-pulse">
-            <AlertTriangle size={14} /> {formatAge(ageMins)} stalled
-          </span>
-        </div>
-      )}
 
-      {/* ── Items ── */}
-      <div className="bg-white rounded-2xl overflow-hidden">
+      {/* Items */}
+      <ul className="px-4 pb-3 space-y-2">
         {order.items.map((item, idx) => {
           const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
           const lineTotal = (item.price + toppingsTotal) * item.quantity;
           const isDone = cooked.has(idx);
           return (
-            <div
+            <li
               key={idx}
-              className={`px-4 py-3 ${idx < order.items.length - 1 ? 'border-b border-dashed border-gray-200' : ''} ${hidePrices ? 'cursor-pointer select-none' : ''}`}
+              className={`text-sm ${hidePrices ? 'cursor-pointer select-none active:opacity-60 transition-opacity' : ''}`}
               onClick={hidePrices ? () => toggleItem(idx) : undefined}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex justify-between items-start gap-2">
                 {hidePrices && (
-                  <div className="shrink-0">
-                    {isDone ? <CheckCircle2 size={16} className="text-green-500" /> : <Circle size={16} className="text-gray-300" />}
+                  <div className="shrink-0 mt-0.5">
+                    {isDone
+                      ? <CheckCircle2 size={16} className="text-green-500" />
+                      : <Circle size={16} className="text-gray-300" />}
                   </div>
                 )}
-                {/* Qty controls */}
-                {isEditable && item.id ? (
-                  confirmRemoveIdx === idx ? (
-                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <span className="text-xs text-red-600 font-medium">Remove?</span>
-                      <button onClick={() => { onRemoveItem!(order.id, item.id!); setConfirmRemoveIdx(null); }} className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold">Yes</button>
-                      <button onClick={() => setConfirmRemoveIdx(null)} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">No</button>
-                    </div>
+                <span className={`text-gray-800 flex items-center gap-1.5 flex-wrap flex-1 transition-opacity ${isDone ? 'opacity-35 line-through' : ''}`}>
+                  {/* Quantity controls when editable */}
+                  {isEditable && item.id ? (
+                    confirmRemoveIdx === idx ? (
+                      <span className="flex items-center gap-1 shrink-0">
+                        <span className="text-xs text-red-600 font-medium">Remove?</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onRemoveItem!(order.id, item.id!); setConfirmRemoveIdx(null); }}
+                          className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold hover:bg-red-600"
+                        >Yes</button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmRemoveIdx(null); }}
+                          className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full hover:bg-gray-200"
+                        >No</button>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => {
+                            if (item.quantity <= 1) { setConfirmRemoveIdx(idx); }
+                            else onUpdateItemQty!(order.id, item.id!, item.quantity - 1);
+                          }}
+                          className="w-5 h-5 rounded flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        ><Minus size={11} /></button>
+                        <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums min-w-[1.5rem] text-center">{item.quantity}×</span>
+                        <button
+                          onClick={() => onUpdateItemQty!(order.id, item.id!, item.quantity + 1)}
+                          className="w-5 h-5 rounded flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                        ><Plus size={11} /></button>
+                        <button
+                          onClick={() => setConfirmRemoveIdx(idx)}
+                          className="w-5 h-5 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors ml-0.5"
+                          title="Remove item"
+                        ><Trash2 size={11} /></button>
+                      </span>
+                    )
                   ) : (
-                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => { if (item.quantity <= 1) setConfirmRemoveIdx(idx); else onUpdateItemQty!(order.id, item.id!, item.quantity - 1); }}
-                        className="w-7 h-7 rounded-full bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-100 transition-colors"
-                      ><Minus size={12} /></button>
-                      <span className="w-8 text-center font-bold text-sm text-gray-700 bg-green-50 rounded-lg py-0.5">{item.quantity}×</span>
-                      <button
-                        onClick={() => onUpdateItemQty!(order.id, item.id!, item.quantity + 1)}
-                        className="w-7 h-7 rounded-full bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-100 transition-colors"
-                      ><Plus size={12} /></button>
-                      <button
-                        onClick={() => setConfirmRemoveIdx(idx)}
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      ><Trash2 size={12} /></button>
-                    </div>
-                  )
-                ) : (
-                  <span className="font-bold text-sm text-gray-700 bg-gray-100 rounded-lg px-2 py-0.5 tabular-nums shrink-0">{item.quantity}×</span>
-                )}
-
-                <span className={`flex-1 font-semibold text-gray-900 text-sm ${isDone ? 'line-through opacity-40' : ''}`}>
-                  {item.name}
+                    <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums shrink-0">{item.quantity}×</span>
+                  )}
+                  <span className="font-medium">{item.name}</span>
                   {item.size && (
-                    <span className={`ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded-full ${item.size === 'large' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                      item.size === 'large' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                    }`}>
                       {item.size === 'large' ? 'L' : 'R'}
                     </span>
                   )}
-                  {item.notes && <span className="ml-1 text-gray-400 italic text-xs font-normal">({item.notes})</span>}
+                  {item.notes && <span className="text-gray-400 italic text-xs">({item.notes})</span>}
                   {hidePrices && (() => {
                     const cd = itemCountdown(item.name);
                     if (!cd) return null;
                     return (
-                      <span className={`ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded-full ${cd.over ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-amber-100 text-amber-700'}`}>
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                        cd.over ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-amber-100 text-amber-700'
+                      }`}>
                         ⏱ {cd.label}
                       </span>
                     );
                   })()}
                 </span>
                 {!hidePrices && (
-                  <span className="font-semibold text-gray-800 text-sm tabular-nums shrink-0">{fmt(lineTotal)}</span>
+                  <span className="text-gray-500 shrink-0 text-xs tabular-nums">{fmt(lineTotal)}</span>
                 )}
               </div>
-
               {(item.toppings ?? []).length > 0 && (
-                <div className={`mt-1.5 ml-10 space-y-0.5 ${isDone ? 'opacity-40' : ''}`}>
+                <ul className={`mt-1 space-y-0.5 transition-opacity ${hidePrices ? 'ml-6' : 'ml-6'} ${isDone ? 'opacity-35' : ''}`}>
                   {item.toppings!.map((t, ti) => (
-                    <div key={ti} className="flex justify-between text-xs text-gray-400">
+                    <li key={ti} className="flex justify-between text-xs text-gray-400">
                       <span>+ {t.name}</span>
-                      {!hidePrices && t.price > 0 && <span className="font-medium">+{fmt(t.price)}</span>}
-                    </div>
+                      {!hidePrices && t.price > 0 && <span>+{fmt(t.price)}</span>}
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
-      {/* ── Waiter assignment ── */}
+      {/* Waiter assignment */}
       {onAssignWaiter && waiters && waiters.length > 0 && (
-        <div className="relative">
-          <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <div className="px-4 pb-3">
           <select
             value={order.assignedWaiterId ?? ''}
             onChange={(e) => onAssignWaiter(order.id, e.target.value || null)}
-            className="w-full text-sm border border-gray-200 bg-white rounded-2xl pl-9 pr-4 py-2.5 text-gray-600 outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer appearance-none"
+            className="w-full text-xs border border-gray-200 rounded-xl px-3 py-1.5 text-gray-600 bg-white outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer"
           >
             <option value="">Assign waiter…</option>
             {waiters.map((w) => (
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
           </select>
-          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </div>
         </div>
       )}
 
-      {/* ── Rating ── */}
+      {/* Customer rating */}
       {order.rating != null && (
-        <div className="bg-white rounded-2xl px-4 py-2.5 flex items-center gap-2">
+        <div className="px-4 py-2 border-t border-gray-100 flex items-center gap-2">
           <div className="flex gap-0.5">
             {[1,2,3,4,5].map((s) => (
               <Star key={s} size={13} className={order.rating! >= s ? 'fill-amber-400 text-amber-400' : 'text-gray-200'} />
@@ -326,80 +327,102 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
         </div>
       )}
 
-      {/* ── Total ── */}
-      {!hidePrices && (
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Total</span>
-          <span className="text-2xl font-bold text-gray-900 tabular-nums">{fmt(order.totalAmount)}</span>
-        </div>
-      )}
-      {hidePrices && cooked.size > 0 && (
-        <div className="flex justify-center">
-          <span className={`text-xs font-bold px-3 py-1 rounded-full ${cooked.size === order.items.length ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600'}`}>
-            {cooked.size}/{order.items.length} done
-          </span>
-        </div>
-      )}
-
-      {/* ── Actions ── */}
-      {showActions && (
-        <div className="space-y-2">
-          {/* Print / WhatsApp row */}
-          {(showKitchenPrint || showPrint || (order.status === 'ready' && order.customerPhone)) && (
-            <div className="flex gap-2">
-              {showKitchenPrint && (
-                <button onClick={handleKitchenPrint} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-gray-300 text-gray-600 text-sm rounded-2xl font-medium bg-white hover:bg-gray-50 transition-colors">
-                  <Printer size={14} /> Kitchen
-                </button>
-              )}
-              {showPrint && (
-                <button onClick={handlePrint} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-gray-300 text-gray-600 text-sm rounded-2xl font-medium bg-white hover:bg-gray-50 transition-colors">
-                  <Printer size={14} /> Print Bill
-                </button>
-              )}
-              {order.status === 'ready' && order.customerPhone && (
-                <a href={buildBillWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-green-500 text-white text-sm rounded-2xl font-medium hover:bg-green-600 transition-colors">
-                  <MessageCircle size={14} /> Send Bill
-                </a>
-              )}
-            </div>
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-gray-100">
+        {/* Total / progress row */}
+        {(!hidePrices || cooked.size > 0) && (
+          <div className="flex items-center justify-between mb-2.5">
+            {!hidePrices ? (
+              <>
+                <span className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">Total</span>
+                <span className="font-bold text-gray-900 text-lg tabular-nums">{fmt(order.totalAmount)}</span>
+              </>
+            ) : (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                cooked.size === order.items.length
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-orange-100 text-orange-600'
+              }`}>
+                {cooked.size}/{order.items.length} done
+              </span>
+            )}
+          </div>
+        )}
+        {/* Actions — wrap freely so nothing clips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {showKitchenPrint && (
+            <button
+              onClick={handleKitchenPrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-full font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
+              title="Print kitchen ticket"
+            >
+              <Printer size={13} /> Kitchen
+            </button>
           )}
-
-          {/* Add Items + Cancel row */}
-          {(onAddItems && ['pending', 'preparing'].includes(order.status)) || (onCancel && order.status === 'pending') ? (
-            <div className="flex gap-2">
-              {onAddItems && ['pending', 'preparing'].includes(order.status) && (
-                <button onClick={() => onAddItems(order)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-green-400 text-green-700 text-sm rounded-2xl font-semibold bg-white hover:bg-green-50 transition-colors">
-                  <PlusCircle size={15} /> Add Items
+          {showPrint && (
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-full font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
+            >
+              <Printer size={13} /> Print Bill
+            </button>
+          )}
+          {showActions && order.status === 'ready' && order.customerPhone && (
+            <a
+              href={buildBillWhatsAppUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white text-sm rounded-full font-medium hover:bg-green-600 transition-colors whitespace-nowrap"
+            >
+              <MessageCircle size={13} /> Send Bill
+            </a>
+          )}
+          {showActions && onAddItems && ['pending', 'preparing'].includes(order.status) && (
+            <button
+              onClick={() => onAddItems(order)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-orange-300 text-orange-600 text-sm rounded-full font-medium hover:bg-orange-50 transition-colors whitespace-nowrap"
+              title="Add items to this order"
+            >
+              <PlusCircle size={13} /> Add Items
+            </button>
+          )}
+          {showActions && onCancel && order.status === 'pending' && (
+            confirmCancel ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-600 font-medium">Cancel order?</span>
+                <button
+                  onClick={() => { onCancel(order.id); setConfirmCancel(false); }}
+                  className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-full font-bold hover:bg-red-600 active:scale-95 transition-all"
+                >
+                  Yes
                 </button>
-              )}
-              {onCancel && order.status === 'pending' && (
-                confirmCancel ? (
-                  <div className="flex-1 flex items-center justify-center gap-1.5">
-                    <span className="text-xs text-red-600 font-medium">Cancel order?</span>
-                    <button onClick={() => { onCancel(order.id); setConfirmCancel(false); }} className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-full font-bold">Yes</button>
-                    <button onClick={() => setConfirmCancel(false)} className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-full">No</button>
-                  </div>
-                ) : (
-                  <button onClick={() => setConfirmCancel(true)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-red-300 text-red-500 text-sm rounded-2xl font-semibold bg-white hover:bg-red-50 transition-colors">
-                    <XCircle size={15} /> Cancel
-                  </button>
-                )
-              )}
-            </div>
-          ) : null}
-
-          {/* Primary status button */}
-          {onStatusChange && nextStatus && nbc && (
+                <button
+                  onClick={() => setConfirmCancel(false)}
+                  className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium hover:bg-gray-200 transition-all"
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmCancel(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-500 text-sm rounded-full font-medium hover:bg-red-50 transition-colors whitespace-nowrap"
+                title="Cancel this order"
+              >
+                <XCircle size={13} /> Cancel
+              </button>
+            )
+          )}
+          {showActions && onStatusChange && nextStatus && (
             <button
               onClick={() => onStatusChange(order.id, nextStatus)}
-              className={`w-full flex items-center justify-center gap-2 py-3 text-white text-sm rounded-2xl font-bold active:scale-[0.98] transition-all ${nbc.cls}`}
+              className="flex-1 min-w-[8rem] px-4 py-2 bg-orange-500 text-white text-sm rounded-xl font-bold hover:bg-orange-600 active:scale-95 transition-all capitalize whitespace-nowrap"
             >
-              <NextIcon size={16} /> {nbc.label}
+              Mark as {nextStatus}
             </button>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
