@@ -1,27 +1,39 @@
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Sun, Moon } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, LogOut, ChevronDown } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 interface AdminHeaderProps {
-  /** Page title shown on the left. */
   title: string;
-  /** Optional subtitle under the title. */
   subtitle?: string;
-  /** Back-arrow target. Omit for no back arrow. */
   backTo?: string;
-  /** Optional leading icon next to the title. */
   icon?: React.ElementType;
-  /** Page-specific actions, rendered left of the standard cluster. */
   children?: React.ReactNode;
 }
 
-/**
- * Shared sticky header used across all admin pages.
- * Always includes: language switcher, light/dark toggle, notifications bell.
- */
 export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: AdminHeaderProps) {
-  const { dark, toggleDark } = useTheme();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
+
+  const initials = user?.name
+    ? user.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+    : '??';
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
@@ -40,15 +52,44 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
         {/* Page-specific actions */}
         {children}
 
-        {/* Standard cluster */}
-        <button
-          onClick={toggleDark}
-          className="text-gray-400 hover:text-gray-700 transition-colors shrink-0"
-          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {dark ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
         <NotificationBell />
+
+        {/* User menu */}
+        <div className="relative shrink-0" ref={ref}>
+          <button
+            onClick={() => setOpen((o) => !o)}
+            className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            {/* Avatar */}
+            <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+              {initials}
+            </div>
+            {/* Name + role */}
+            <div className="hidden sm:block text-left">
+              <p className="text-sm font-semibold text-gray-800 leading-tight">{user?.name ?? 'Admin'}</p>
+              <p className="text-[11px] text-gray-400 capitalize leading-tight">{user?.role ?? ''}</p>
+            </div>
+            <ChevronDown size={14} className={`text-gray-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Dropdown */}
+          {open && (
+            <div className="absolute right-0 mt-2 w-44 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-50">
+              {/* User info (mobile only — hidden on sm+) */}
+              <div className="sm:hidden px-4 py-3 border-b border-gray-100">
+                <p className="text-sm font-semibold text-gray-800">{user?.name}</p>
+                <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut size={15} />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
