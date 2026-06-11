@@ -170,25 +170,6 @@ export function MenuCard({ item, view = 'grid', categoryName }: Props) {
           {/* Name */}
           <h3 className="font-bold text-gray-900 text-base leading-tight">{item.name}</h3>
 
-          {/* Tags as pills */}
-          {(item.tags ?? []).length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {item.tags!.map((slug) => {
-                const tag = allTags.find((t) => t.slug === slug);
-                return tag ? (
-                  <span key={slug} className={`inline-flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full ${tagPillCls(tag.category)}`}>
-                    {tag.emoji} {tag.label}
-                  </span>
-                ) : null;
-              })}
-            </div>
-          )}
-
-          {/* Prep time */}
-          {item.prepTimeMins && (
-            <p className="text-xs text-gray-400 mt-1.5">⏱ {item.prepTimeMins} min</p>
-          )}
-
           {/* Price + Add button */}
           <div className="mt-auto pt-3 flex items-center justify-between">
             <div>
