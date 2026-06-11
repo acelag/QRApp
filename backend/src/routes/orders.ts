@@ -219,6 +219,29 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
          WHERE id = $2 AND track_stock = true AND stock IS NOT NULL`,
         [item.quantity, item.menuItemId],
       );
+      // Deduct raw ingredients defined in the item's recipe
+      const recipeRows = await client.query(
+        `SELECT mii.quantity, mii.stock_item_id, si.quantity AS sq, si.name
+         FROM menu_item_ingredients mii
+         JOIN stock_items si ON si.id = mii.stock_item_id
+         WHERE mii.menu_item_id = $1`,
+        [item.menuItemId],
+      );
+      for (const ing of recipeRows.rows as { quantity: string; stock_item_id: string; sq: string; name: string }[]) {
+        const needed = Number(ing.quantity) * item.quantity;
+        if (Number(ing.sq) < needed) {
+          throw Object.assign(new Error(`Insufficient ingredient: ${ing.name}`), { statusCode: 400 });
+        }
+        await client.query(
+          'UPDATE stock_items SET quantity = quantity - $1, updated_at = $2 WHERE id = $3',
+          [needed, now, ing.stock_item_id],
+        );
+        await client.query(
+          `INSERT INTO stock_movements (id,stock_item_id,restaurant_id,type,quantity,reason,created_at)
+           VALUES ($1,$2,$3,'out',$4,'Order',$5)`,
+          [uuid(), ing.stock_item_id, resolvedRestaurantId, needed, now],
+        );
+      }
     }
     await client.query('COMMIT');
   } catch (err) {
@@ -396,6 +419,30 @@ router.patch('/:id/items', authenticate, requireRole('admin', 'manager', 'cashie
          WHERE id = $2 AND track_stock = true AND stock IS NOT NULL`,
         [item.quantity, item.menuItemId],
       );
+      // Deduct raw ingredients defined in the item's recipe
+      const addRecipeRows = await client.query(
+        `SELECT mii.quantity, mii.stock_item_id, si.quantity AS sq, si.name
+         FROM menu_item_ingredients mii
+         JOIN stock_items si ON si.id = mii.stock_item_id
+         WHERE mii.menu_item_id = $1`,
+        [item.menuItemId],
+      );
+      for (const ing of addRecipeRows.rows as { quantity: string; stock_item_id: string; sq: string; name: string }[]) {
+        const needed = Number(ing.quantity) * item.quantity;
+        if (Number(ing.sq) < needed) {
+          throw Object.assign(new Error(`Insufficient ingredient: ${ing.name}`), { statusCode: 400 });
+        }
+        const ts = new Date().toISOString();
+        await client.query(
+          'UPDATE stock_items SET quantity = quantity - $1, updated_at = $2 WHERE id = $3',
+          [needed, ts, ing.stock_item_id],
+        );
+        await client.query(
+          `INSERT INTO stock_movements (id,stock_item_id,restaurant_id,type,quantity,reason,created_at)
+           VALUES ($1,$2,$3,'out',$4,'Order',$5)`,
+          [uuid(), ing.stock_item_id, rid, needed, ts],
+        );
+      }
     }
     const newTotal = Number(order.total_amount) + addedAmount;
     const now = new Date().toISOString();
@@ -460,6 +507,26 @@ router.delete('/:id/items/:itemId', authenticate, requireRole('admin', 'manager'
       `UPDATE menu_items SET stock = stock + $1 WHERE id = $2 AND track_stock = true AND stock IS NOT NULL`,
       [item.quantity, item.menu_item_id],
     );
+    // Restore raw ingredients
+    const delRecipeRows = await client.query(
+      `SELECT mii.quantity, mii.stock_item_id
+       FROM menu_item_ingredients mii
+       WHERE mii.menu_item_id = $1`,
+      [item.menu_item_id],
+    );
+    for (const ing of delRecipeRows.rows as { quantity: string; stock_item_id: string }[]) {
+      const restore = Number(ing.quantity) * item.quantity;
+      const ts = new Date().toISOString();
+      await client.query(
+        'UPDATE stock_items SET quantity = quantity + $1, updated_at = $2 WHERE id = $3',
+        [restore, ts, ing.stock_item_id],
+      );
+      await client.query(
+        `INSERT INTO stock_movements (id,stock_item_id,restaurant_id,type,quantity,reason,created_at)
+         VALUES ($1,$2,$3,'in',$4,'Order item removed',$5)`,
+        [uuid(), ing.stock_item_id, rid, restore, ts],
+      );
+    }
 
     const newTotal = Math.max(0, Number(order.total_amount) - lineTotal);
     const now = new Date().toISOString();
@@ -546,6 +613,29 @@ router.patch('/:id/items/:itemId', authenticate, requireRole('admin', 'manager',
       const newTotal = Math.max(0, Number(order.total_amount) + totalDiff);
       await client.query('UPDATE orders SET total_amount=$1, updated_at=$2 WHERE id=$3', [newTotal, now, orderId]);
       await client.query('UPDATE order_items SET quantity=$1 WHERE id=$2', [quantity, itemId]);
+      // Adjust raw ingredient stock by the quantity diff
+      const qtyRecipeRows = await client.query(
+        `SELECT mii.quantity, mii.stock_item_id, si.quantity AS sq, si.name
+         FROM menu_item_ingredients mii
+         JOIN stock_items si ON si.id = mii.stock_item_id
+         WHERE mii.menu_item_id = $1`,
+        [item.menu_item_id],
+      );
+      for (const ing of qtyRecipeRows.rows as { quantity: string; stock_item_id: string; sq: string; name: string }[]) {
+        const ingDiff = Number(ing.quantity) * diff;
+        if (ingDiff > 0 && Number(ing.sq) < ingDiff) {
+          throw Object.assign(new Error(`Insufficient ingredient: ${ing.name}`), { statusCode: 400 });
+        }
+        await client.query(
+          'UPDATE stock_items SET quantity = quantity - $1, updated_at = $2 WHERE id = $3',
+          [ingDiff, now, ing.stock_item_id],
+        );
+        await client.query(
+          `INSERT INTO stock_movements (id,stock_item_id,restaurant_id,type,quantity,reason,created_at)
+           VALUES ($1,$2,$3,$4,$5,'Order qty change',$6)`,
+          [uuid(), ing.stock_item_id, rid, ingDiff > 0 ? 'out' : 'in', Math.abs(ingDiff), now],
+        );
+      }
     }
 
     if (notes !== undefined) {

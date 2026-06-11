@@ -422,4 +422,56 @@ router.delete('/:itemId/toppings/:toppingId', authenticate, requireRole('admin',
   res.status(204).send();
 });
 
+// ── Recipe (ingredient mapping) ───────────────────────────────────────────────
+const RECIPE_SQL = `
+  SELECT mii.id, mii.stock_item_id, mii.quantity, si.name, si.unit, si.cost_per_unit
+  FROM menu_item_ingredients mii
+  JOIN stock_items si ON si.id = mii.stock_item_id
+  WHERE mii.menu_item_id = $1
+  ORDER BY si.name`;
+
+const toRecipeRow = (r: Record<string, unknown>) => ({
+  id: r.id,
+  stockItemId: r.stock_item_id,
+  stockItemName: r.name,
+  unit: r.unit,
+  quantity: Number(r.quantity),
+  costPerUnit: Number(r.cost_per_unit),
+});
+
+router.get('/:id/recipe', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const rid = req.user!.restaurantId;
+  const item = await pool.query('SELECT id FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, rid]);
+  if (!item.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  const result = await pool.query(RECIPE_SQL, [req.params.id]);
+  res.json(result.rows.map(toRecipeRow));
+});
+
+router.put('/:id/recipe', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const rid = req.user!.restaurantId;
+  const item = await pool.query('SELECT id FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, rid]);
+  if (!item.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  const { ingredients } = req.body as { ingredients: { stockItemId: string; quantity: number }[] };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM menu_item_ingredients WHERE menu_item_id = $1', [req.params.id]);
+    for (const ing of (ingredients ?? [])) {
+      if (!ing.stockItemId || !ing.quantity || ing.quantity <= 0) continue;
+      await client.query(
+        'INSERT INTO menu_item_ingredients (id, menu_item_id, stock_item_id, quantity) VALUES ($1, $2, $3, $4)',
+        [uuid(), req.params.id, ing.stockItemId, ing.quantity],
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+  const result = await pool.query(RECIPE_SQL, [req.params.id]);
+  res.json(result.rows.map(toRecipeRow));
+});
+
 export default router;

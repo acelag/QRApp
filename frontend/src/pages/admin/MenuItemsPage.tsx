@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List, FlaskConical } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -31,6 +31,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
+import { RecipeModal } from '../../components/RecipeModal';
 
 const EMPTY: Omit<MenuItem, 'id'> = {
   name: '',
@@ -53,6 +54,7 @@ export function MenuItemsPage() {
   const { fmt } = useCurrency();
   const { user } = useAuth();
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [recipeItem, setRecipeItem] = useState<MenuItem | null>(null);
   const [expandedToppings, setExpandedToppings] = useState<string | null>(null);
   const [newTopping, setNewTopping] = useState<Record<string, { name: string; price: string }>>({});
   const [editingTopping, setEditingTopping] = useState<{ itemId: string; toppingId: string; name: string; price: string } | null>(null);
@@ -546,6 +548,7 @@ export function MenuItemsPage() {
                   <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 flex-1">{item.name}</p>
                   <div className="flex items-center gap-0 shrink-0">
                     <button onClick={() => openEdit(item)} className="text-gray-300 hover:text-blue-500 transition-colors p-1" title="Edit"><Pencil size={13} /></button>
+                    <button onClick={() => setRecipeItem(item)} className="text-gray-300 hover:text-green-500 transition-colors p-1" title="Recipe"><FlaskConical size={13} /></button>
                     <button onClick={() => duplicate(item.id)} className="text-gray-300 hover:text-orange-500 transition-colors p-1" title="Duplicate"><Copy size={13} /></button>
                     <button onClick={() => del(item.id)} className="text-gray-300 hover:text-red-500 transition-colors p-1" title="Delete"><Trash2 size={13} /></button>
                   </div>
@@ -861,6 +864,7 @@ export function MenuItemsPage() {
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-end gap-0.5">
                         <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 transition-colors p-1.5" title="Edit"><Pencil size={14} /></button>
+                        <button onClick={() => setRecipeItem(item)} className="text-gray-400 hover:text-green-500 transition-colors p-1.5" title="Recipe"><FlaskConical size={14} /></button>
                         <button onClick={() => duplicate(item.id)} className="text-gray-400 hover:text-orange-500 transition-colors p-1.5" title="Duplicate"><Copy size={14} /></button>
                         <button onClick={() => del(item.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5" title="Delete"><Trash2 size={14} /></button>
                       </div>
@@ -874,6 +878,11 @@ export function MenuItemsPage() {
         </div>
         )}
       </div>
+
+      {/* Recipe modal */}
+      {recipeItem && (
+        <RecipeModal menuItem={recipeItem} onClose={() => setRecipeItem(null)} />
+      )}
 
       {/* Form modal */}
       {showForm && (

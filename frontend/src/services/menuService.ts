@@ -2,6 +2,15 @@ import axios from 'axios';
 import type { Category, MenuItem } from '../types';
 import type { Topping } from '../types/MenuItem';
 
+export interface RecipeIngredient {
+  id: string;
+  stockItemId: string;
+  stockItemName: string;
+  unit: string;
+  quantity: number;
+  costPerUnit: number;
+}
+
 const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 export const menuService = {
@@ -58,4 +67,11 @@ export const menuService = {
 
   deleteTopping: (menuItemId: string, toppingId: string) =>
     axios.delete(`${BASE}/menu-items/${menuItemId}/toppings/${toppingId}`),
+
+  // Recipe / ingredient mapping
+  getRecipe: (menuItemId: string) =>
+    axios.get<RecipeIngredient[]>(`${BASE}/menu-items/${menuItemId}/recipe`).then((r) => r.data),
+
+  saveRecipe: (menuItemId: string, ingredients: { stockItemId: string; quantity: number }[]) =>
+    axios.put<RecipeIngredient[]>(`${BASE}/menu-items/${menuItemId}/recipe`, { ingredients }).then((r) => r.data),
 };

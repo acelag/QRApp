@@ -491,5 +491,15 @@ export async function createSchema(): Promise<void> {
   await addCol('tables', 'floor_y',     'FLOAT NULL');
   await addCol('tables', 'floor_shape', "VARCHAR(10) NOT NULL DEFAULT 'rect'");
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS menu_item_ingredients (
+      id            VARCHAR(36)   NOT NULL PRIMARY KEY,
+      menu_item_id  VARCHAR(36)   NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+      stock_item_id VARCHAR(36)   NOT NULL REFERENCES stock_items(id) ON DELETE CASCADE,
+      quantity      DECIMAL(10,3) NOT NULL,
+      UNIQUE(menu_item_id, stock_item_id)
+    );
+  `);
+
   console.log('✓ Schema ready');
 }
