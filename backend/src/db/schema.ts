@@ -548,5 +548,13 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'tax_name',              "VARCHAR(30) NOT NULL DEFAULT 'Tax'");
   await addCol('restaurants', 'service_charge_name',   "VARCHAR(30) NOT NULL DEFAULT 'Service Charge'");
 
+  // ── Receipt customization ───────────────────────────────────────────────────
+  await addCol('restaurants', 'receipt_header_line1',    "VARCHAR(100) NOT NULL DEFAULT ''");
+  await addCol('restaurants', 'receipt_header_line2',    "VARCHAR(100) NOT NULL DEFAULT ''");
+  await addCol('restaurants', 'receipt_footer_line1',    "VARCHAR(100) NOT NULL DEFAULT 'Thank you for dining with us!'");
+  await addCol('restaurants', 'receipt_footer_line2',    "VARCHAR(100) NOT NULL DEFAULT 'Please come again'");
+  await addCol('restaurants', 'receipt_show_order_no',   'BOOLEAN NOT NULL DEFAULT TRUE');
+  await addCol('restaurants', 'receipt_show_unit_price', 'BOOLEAN NOT NULL DEFAULT TRUE');
+
   console.log('✓ Schema ready');
 }

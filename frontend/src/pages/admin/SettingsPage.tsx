@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Eye, EyeOff, Loader2, CheckCircle2, Users,
   DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock, Printer,
-  Store, Smartphone,
+  Store, Smartphone, FileText,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
@@ -139,6 +139,15 @@ export function SettingsPage() {
   const [printerSuccess,     setPrinterSuccess]     = useState(false);
   const [testingPrinter,     setTestingPrinter]     = useState<'receipt' | 'kitchen' | null>(null);
 
+  // ── Receipt customization state ────────────────────────────────────────────
+  const [receiptHeaderLine1,   setReceiptHeaderLine1]   = useState('');
+  const [receiptHeaderLine2,   setReceiptHeaderLine2]   = useState('');
+  const [receiptFooterLine1,   setReceiptFooterLine1]   = useState('Thank you for dining with us!');
+  const [receiptFooterLine2,   setReceiptFooterLine2]   = useState('Please come again 🙏');
+  const [receiptShowOrderNo,   setReceiptShowOrderNo]   = useState(true);
+  const [receiptShowUnitPrice, setReceiptShowUnitPrice] = useState(true);
+  const [receiptSaving,        setReceiptSaving]        = useState(false);
+
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -177,6 +186,12 @@ export function SettingsPage() {
       setPrinterType(r.printerType ?? 'epson');
       setAutoPrintKitchen(r.autoPrintKitchen ?? false);
       setAutoPrintReceipt(r.autoPrintReceipt ?? false);
+      setReceiptHeaderLine1(r.receiptHeaderLine1 ?? '');
+      setReceiptHeaderLine2(r.receiptHeaderLine2 ?? '');
+      setReceiptFooterLine1(r.receiptFooterLine1 ?? 'Thank you for dining with us!');
+      setReceiptFooterLine2(r.receiptFooterLine2 ?? 'Please come again 🙏');
+      setReceiptShowOrderNo(r.receiptShowOrderNo !== false);
+      setReceiptShowUnitPrice(r.receiptShowUnitPrice !== false);
     });
   }, []);
 
@@ -410,10 +425,30 @@ export function SettingsPage() {
     }
   }
 
-  // Restaurant tab combined save (billing + prefix)
+  async function saveReceiptConfig() {
+    if (!restaurant) return;
+    setReceiptSaving(true);
+    try {
+      const updated = await restaurantService.updateReceiptConfig(restaurant.id, {
+        receiptHeaderLine1, receiptHeaderLine2,
+        receiptFooterLine1: receiptFooterLine1 || 'Thank you for dining with us!',
+        receiptFooterLine2,
+        receiptShowOrderNo, receiptShowUnitPrice,
+      });
+      setRestaurant(updated);
+      toast.success('Receipt layout saved');
+    } catch {
+      toast.error('Failed to save receipt settings');
+    } finally {
+      setReceiptSaving(false);
+    }
+  }
+
+  // Restaurant tab combined save (billing + prefix + receipt)
   async function saveRestaurant() {
     await saveBilling();
     await saveOrderPrefix();
+    await saveReceiptConfig();
     markClean('restaurant');
   }
 
@@ -722,6 +757,139 @@ export function SettingsPage() {
                   </span>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Receipt Layout */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
+              <FileText size={15} className="text-indigo-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800">Receipt Layout</h2>
+              <p className="text-xs text-gray-400">Header info, footer message, and which fields to print</p>
+            </div>
+          </div>
+
+          <div className="p-5 space-y-5">
+            {/* Header lines */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Header (below restaurant name)</p>
+              <div className="space-y-2">
+                <Field label="Line 1 — address or tagline">
+                  <input
+                    type="text" maxLength={100}
+                    value={receiptHeaderLine1}
+                    onChange={(e) => { setReceiptHeaderLine1(e.target.value); markDirty('restaurant'); }}
+                    placeholder="e.g. 123 High Street, London"
+                    className={input}
+                  />
+                </Field>
+                <Field label="Line 2 — phone / website">
+                  <input
+                    type="text" maxLength={100}
+                    value={receiptHeaderLine2}
+                    onChange={(e) => { setReceiptHeaderLine2(e.target.value); markDirty('restaurant'); }}
+                    placeholder="e.g. Tel: +44 20 1234 5678 · www.myrest.com"
+                    className={input}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* Footer lines */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Footer message</p>
+              <div className="space-y-2">
+                <Field label="Line 1">
+                  <input
+                    type="text" maxLength={100}
+                    value={receiptFooterLine1}
+                    onChange={(e) => { setReceiptFooterLine1(e.target.value); markDirty('restaurant'); }}
+                    placeholder="Thank you for dining with us!"
+                    className={input}
+                  />
+                </Field>
+                <Field label="Line 2">
+                  <input
+                    type="text" maxLength={100}
+                    value={receiptFooterLine2}
+                    onChange={(e) => { setReceiptFooterLine2(e.target.value); markDirty('restaurant'); }}
+                    placeholder="Please come again 🙏"
+                    className={input}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* Layout toggles */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Print options</p>
+              <div className="space-y-2">
+                {[
+                  { label: 'Show order number', sub: 'Prints the ORD-XXXX reference on the receipt', value: receiptShowOrderNo, set: setReceiptShowOrderNo },
+                  { label: 'Show unit price per line', sub: 'Prints "× $12.00 each" below each item', value: receiptShowUnitPrice, set: setReceiptShowUnitPrice },
+                ].map(({ label, sub, value, set }) => (
+                  <label key={label} className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${value ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <div
+                      onClick={() => { set(!value); markDirty('restaurant'); }}
+                      className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-indigo-500' : 'bg-gray-300'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-4' : ''}`} />
+                    </div>
+                    <div>
+                      <p className={`text-sm font-semibold ${value ? 'text-indigo-700' : 'text-gray-600'}`}>{label}</p>
+                      <p className="text-xs text-gray-400">{sub}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Live mini receipt preview */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Live preview</p>
+              <div className="flex justify-center">
+                <div className="font-mono text-[10px] bg-white border border-gray-300 rounded-lg p-4 w-[210px] leading-relaxed text-gray-800 shadow-sm select-none">
+                  {restaurant?.logo && (
+                    <div className="flex justify-center mb-1">
+                      <img src={restaurant.logo} alt="logo" className="w-8 h-8 object-contain" />
+                    </div>
+                  )}
+                  <p className="text-center font-bold text-xs">{restaurant?.name ?? 'RESTAURANT'}</p>
+                  {receiptHeaderLine1 && <p className="text-center text-gray-500 text-[9px]">{receiptHeaderLine1}</p>}
+                  {receiptHeaderLine2 && <p className="text-center text-gray-500 text-[9px]">{receiptHeaderLine2}</p>}
+                  <p className="text-center text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                  <p className="text-center font-bold text-[9px]">DINING BILL</p>
+                  <p className="text-center text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                  {receiptShowOrderNo && (
+                    <div className="flex justify-between font-bold text-[9px]"><span>Order No:</span><span>ORD001</span></div>
+                  )}
+                  <div className="flex justify-between text-[9px]"><span>1x Grilled Chicken</span><span>$12.00</span></div>
+                  {receiptShowUnitPrice && <div className="pl-2 text-gray-400 text-[9px]">$12.00 each</div>}
+                  <div className="flex justify-between text-[9px]"><span>1x Garden Salad</span><span>$8.00</span></div>
+                  {receiptShowUnitPrice && <div className="pl-2 text-gray-400 text-[9px]">$8.00 each</div>}
+                  <p className="text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                  <div className="flex justify-between text-[9px]"><span>Subtotal</span><span>$20.00</span></div>
+                  <div className="flex justify-between font-bold text-[9px] mt-0.5"><span>TOTAL</span><span>$20.00</span></div>
+                  <p className="text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                  <p className="text-center text-[9px]">{receiptFooterLine1 || 'Thank you for dining with us!'}</p>
+                  {receiptFooterLine2 && <p className="text-center text-gray-400 text-[8px]">{receiptFooterLine2}</p>}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                onClick={saveReceiptConfig}
+                disabled={receiptSaving}
+                className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-60"
+              >
+                {receiptSaving ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                {receiptSaving ? 'Saving…' : 'Save receipt layout'}
+              </button>
             </div>
           </div>
         </div>

@@ -38,6 +38,13 @@ export interface RestaurantSettings {
   printerType?:        'epson' | 'star';
   autoPrintKitchen?:   boolean;
   autoPrintReceipt?:   boolean;
+  // Receipt customization
+  receiptHeaderLine1?:   string;
+  receiptHeaderLine2?:   string;
+  receiptFooterLine1?:   string;
+  receiptFooterLine2?:   string;
+  receiptShowOrderNo?:   boolean;
+  receiptShowUnitPrice?: boolean;
 }
 
 /** Public restaurant info used by customer-facing pages (welcome screen, menus). */
@@ -196,4 +203,10 @@ export const restaurantService = {
     kitchenPrinterIp: string | null; kitchenPrinterPort: number;
     printerType: 'epson' | 'star'; autoPrintKitchen: boolean; autoPrintReceipt: boolean;
   }) => axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/printer`, payload).then((r) => r.data),
+
+  updateReceiptConfig: (id: string, config: {
+    receiptHeaderLine1: string; receiptHeaderLine2: string;
+    receiptFooterLine1: string; receiptFooterLine2: string;
+    receiptShowOrderNo: boolean; receiptShowUnitPrice: boolean;
+  }) => axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/receipt-config`, config).then((r) => r.data),
 };

@@ -44,6 +44,12 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   printerType:        ((row.printer_type as string | null) ?? 'epson') as 'epson' | 'star',
   autoPrintKitchen:   row.auto_print_kitchen === true,
   autoPrintReceipt:   row.auto_print_receipt === true,
+  receiptHeaderLine1:   (row.receipt_header_line1   as string | null) ?? '',
+  receiptHeaderLine2:   (row.receipt_header_line2   as string | null) ?? '',
+  receiptFooterLine1:   (row.receipt_footer_line1   as string | null) ?? 'Thank you for dining with us!',
+  receiptFooterLine2:   (row.receipt_footer_line2   as string | null) ?? 'Please come again 🙏',
+  receiptShowOrderNo:   row.receipt_show_order_no   !== false,
+  receiptShowUnitPrice: row.receipt_show_unit_price !== false,
   features: parseFeatures(row.features),
   plan:               (row.plan as string | null) ?? 'pro',
   subscriptionStatus: (row.subscription_status as string | null) ?? 'active',
@@ -319,6 +325,42 @@ router.patch('/:id/printer', authenticate, requireRole('admin', 'manager'), asyn
        printer_type = $5, auto_print_kitchen = $6, auto_print_receipt = $7
      WHERE id = $8`,
     [safeIp(receiptPrinterIp), safePort(receiptPrinterPort), safeIp(kitchenPrinterIp), safePort(kitchenPrinterPort), safeType, autoPrintKitchen === true, autoPrintReceipt === true, id],
+  );
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/receipt-config', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const {
+    receiptHeaderLine1, receiptHeaderLine2,
+    receiptFooterLine1, receiptFooterLine2,
+    receiptShowOrderNo, receiptShowUnitPrice,
+  } = req.body as {
+    receiptHeaderLine1?: string; receiptHeaderLine2?: string;
+    receiptFooterLine1?: string; receiptFooterLine2?: string;
+    receiptShowOrderNo?: boolean; receiptShowUnitPrice?: boolean;
+  };
+  const cap = (s: unknown, def = '') => (typeof s === 'string' ? s.slice(0, 100) : def);
+  await pool.query(
+    `UPDATE restaurants SET
+       receipt_header_line1    = $1,
+       receipt_header_line2    = $2,
+       receipt_footer_line1    = $3,
+       receipt_footer_line2    = $4,
+       receipt_show_order_no   = $5,
+       receipt_show_unit_price = $6
+     WHERE id = $7`,
+    [
+      cap(receiptHeaderLine1),
+      cap(receiptHeaderLine2),
+      cap(receiptFooterLine1, 'Thank you for dining with us!'),
+      cap(receiptFooterLine2, 'Please come again 🙏'),
+      receiptShowOrderNo !== false,
+      receiptShowUnitPrice !== false,
+      id,
+    ],
   );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));

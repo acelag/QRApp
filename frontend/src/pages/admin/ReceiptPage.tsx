@@ -135,6 +135,12 @@ export function ReceiptPage() {
           </div>
         )}
         <p className="center bold large">{settings?.name ?? 'RESTAURANT'}</p>
+        {settings?.receiptHeaderLine1 && (
+          <p className="center small" style={{ marginTop: 2 }}>{settings.receiptHeaderLine1}</p>
+        )}
+        {settings?.receiptHeaderLine2 && (
+          <p className="center small">{settings.receiptHeaderLine2}</p>
+        )}
         <Line />
 
         <p className="center bold">{order.orderType === 'takeaway' ? 'TAKEAWAY' : 'DINING BILL'}</p>
@@ -156,7 +162,7 @@ export function ReceiptPage() {
             <span>Name:</span><span>{order.customerName}</span>
           </div>
         )}
-        {order.orderNumber && (
+        {order.orderNumber && settings?.receiptShowOrderNo !== false && (
           <div className="row bold">
             <span>Order No:</span><span>{order.orderNumber}</span>
           </div>
@@ -187,9 +193,11 @@ export function ReceiptPage() {
                   * {item.notes}
                 </p>
               )}
-              <div className="row small" style={{ paddingLeft: 12 }}>
-                <span>{fmtAmt(item.price + toppingsTotal)} each</span>
-              </div>
+              {settings?.receiptShowUnitPrice !== false && (
+                <div className="row small" style={{ paddingLeft: 12 }}>
+                  <span>{fmtAmt(item.price + toppingsTotal)} each</span>
+                </div>
+              )}
             </div>
           );
         })}
@@ -228,8 +236,14 @@ export function ReceiptPage() {
         <Line />
 
         {/* Footer */}
-        <p className="center" style={{ marginTop: 8 }}>Thank you for dining with us!</p>
-        <p className="center small" style={{ marginTop: 4 }}>Please come again 🙏</p>
+        <p className="center" style={{ marginTop: 8 }}>
+          {settings?.receiptFooterLine1 ?? 'Thank you for dining with us!'}
+        </p>
+        {(settings?.receiptFooterLine2 ?? 'Please come again 🙏') && (
+          <p className="center small" style={{ marginTop: 4 }}>
+            {settings?.receiptFooterLine2 ?? 'Please come again 🙏'}
+          </p>
+        )}
         <Line char=" " />
         <Line char=" " />
       </div>
