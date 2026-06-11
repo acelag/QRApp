@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Trash2, NotebookPen, Star } from 'lucide-react';
+import { ArrowLeft, Trash2, NotebookPen, Star, AlertTriangle } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { QuantitySelector } from '../../components/QuantitySelector';
 import { orderService } from '../../services/orderService';
@@ -9,6 +9,10 @@ import { loyaltyService } from '../../services/loyaltyService';
 import type { LoyaltyConfig, LoyaltyAccount } from '../../services/loyaltyService';
 import { restaurantService, computeCharges } from '../../services/restaurantService';
 import type { RestaurantInfo } from '../../services/restaurantService';
+import { menuService } from '../../services/menuService';
+import { tagService } from '../../services/tagService';
+import type { Tag } from '../../services/tagService';
+import type { MenuItem } from '../../types';
 import { offlineQueue } from '../../services/offlineQueue';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
@@ -30,10 +34,37 @@ export function CartPage() {
 
   // Billing (tax / service charge)
   const [billing, setBilling] = useState<RestaurantInfo | null>(null);
+
+  // Allergen data
+  const [menuItemMap, setMenuItemMap] = useState<Map<string, MenuItem>>(new Map());
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+
   useEffect(() => {
     if (!restaurantId) return;
     restaurantService.getRestaurantInfo(restaurantId).then(setBilling).catch(() => {});
+    menuService.getItems(restaurantId)
+      .then(list => setMenuItemMap(new Map(list.map(i => [i.id, i]))))
+      .catch(() => {});
+    tagService.getTagsPublic(restaurantId).then(setAllTags).catch(() => {});
   }, [restaurantId]);
+
+  /** Returns the allergen Tag objects for a given cart item. */
+  function getItemAllergens(menuItemId: string): Tag[] {
+    const menuItem = menuItemMap.get(menuItemId);
+    if (!menuItem?.tags?.length) return [];
+    return allTags.filter(t => t.category === 'allergen' && (menuItem.tags ?? []).includes(t.slug));
+  }
+
+  /** All unique allergens across every item currently in the cart. */
+  const cartAllergens: Tag[] = (() => {
+    const slugs = new Set<string>();
+    for (const ci of items) {
+      for (const slug of (menuItemMap.get(ci.menuItemId)?.tags ?? [])) {
+        if (allTags.some(t => t.slug === slug && t.category === 'allergen')) slugs.add(slug);
+      }
+    }
+    return allTags.filter(t => t.category === 'allergen' && slugs.has(t.slug));
+  })();
 
   // Loyalty
   const [loyaltyConfig,   setLoyaltyConfig]   = useState<LoyaltyConfig | null>(null);
@@ -172,6 +203,7 @@ export function CartPage() {
           const key = cartKey(item.menuItemId, item.size, item.toppings?.map((t) => t.id));
           const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
           const lineUnit = item.price + toppingsTotal;
+          const itemAllergens = getItemAllergens(item.menuItemId);
           return (
             <div key={key} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <div className="flex items-start justify-between mb-2">
@@ -189,7 +221,16 @@ export function CartPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-orange-600 font-medium text-sm">{fmt(item.price)}</p>
+                  {itemAllergens.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {itemAllergens.map(tag => (
+                        <span key={tag.slug} className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          {tag.emoji} {tag.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-orange-600 font-medium text-sm mt-1">{fmt(item.price)}</p>
                   {(item.comboItems ?? []).length > 0 && (
                     <p className="text-xs text-gray-400 mt-0.5">{item.comboItems!.join(' · ')}</p>
                   )}
@@ -341,6 +382,20 @@ export function CartPage() {
               <span>+{fmt(charges.tax)}</span>
             </div>
           )}
+
+          {/* Allergen warning banner */}
+          {cartAllergens.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
+              <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-amber-800">Your order contains allergens</p>
+                <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                  {cartAllergens.map(t => `${t.emoji} ${t.label}`).join(' · ')}
+                </p>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handlePlaceOrder}
             disabled={placing}

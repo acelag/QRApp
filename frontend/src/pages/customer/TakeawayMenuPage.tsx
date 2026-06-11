@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw, Clock, Search, Package } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, RefreshCw, Clock, Search, Package, AlertTriangle } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
@@ -17,6 +17,7 @@ import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
+import { tagPillCls } from '../../services/tagService';
 import toast from 'react-hot-toast';
 
 type Size = 'regular' | 'large';
@@ -130,6 +131,18 @@ export function TakeawayMenuPage() {
     : tagFiltered;
   const presentSlugs = new Set(items.flatMap((i) => i.tags ?? []));
   const visibleTags = allTags.filter((t) => presentSlugs.has(t.slug));
+
+  // Unique allergens across cart items — for the checkout warning
+  const cartAllergens = (() => {
+    if (!cart.length) return [];
+    const menuMap = new Map(items.map(i => [i.id, i]));
+    const slugs = new Set(
+      cart.flatMap(c => (menuMap.get(c.menuItemId)?.tags ?? []).filter(slug =>
+        allTags.some(t => t.slug === slug && t.category === 'allergen')
+      ))
+    );
+    return allTags.filter(t => t.category === 'allergen' && slugs.has(t.slug));
+  })();
 
   const itemCount  = cart.reduce((s, c) => s + c.quantity, 0);
   const subtotal   = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
@@ -373,6 +386,18 @@ export function TakeawayMenuPage() {
                   </div>
                   <div className="p-3 flex flex-col flex-1">
                     <h3 className="font-semibold text-gray-900 text-sm leading-tight">{item.name}</h3>
+                    {(item.tags ?? []).some(slug => allTags.some(t => t.slug === slug && t.category === 'allergen')) && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {(item.tags ?? []).flatMap(slug => {
+                          const tag = allTags.find(t => t.slug === slug && t.category === 'allergen');
+                          return tag ? [tag] : [];
+                        }).map(tag => (
+                          <span key={tag.slug} className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${tagPillCls('allergen')}`}>
+                            {tag.emoji} {tag.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {item.description && (
                       <p className="text-xs text-gray-400 mt-1 line-clamp-2 flex-1">{item.description}</p>
                     )}
@@ -531,6 +556,19 @@ export function TakeawayMenuPage() {
                       <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-100 pt-1"><span>{t('common.total')}</span><span>{fmt(total)}</span></div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Allergen warning — shown when cart is open */}
+            {cartOpen && cartAllergens.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2 mb-2">
+                <AlertTriangle size={13} className="text-amber-500 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-amber-800">Your order contains allergens</p>
+                  <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                    {cartAllergens.map(t => `${t.emoji} ${t.label}`).join(' · ')}
+                  </p>
                 </div>
               </div>
             )}
