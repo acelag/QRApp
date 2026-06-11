@@ -76,18 +76,6 @@ export function MenuCard({ item, view = 'grid', categoryName }: Props) {
                 </span>
               )}
             </div>
-            {(item.tags ?? []).length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {item.tags!.map((slug) => {
-                  const tag = allTags.find((t) => t.slug === slug);
-                  return tag ? (
-                    <span key={slug} className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tagPillCls(tag.category)}`}>
-                      {tag.emoji} {tag.label}
-                    </span>
-                  ) : null;
-                })}
-              </div>
-            )}
             <div className="flex items-baseline gap-1 mt-1">
               {regDisc && <span className="text-[11px] text-gray-400 line-through">{fmt(regBase)}</span>}
               <span className={`text-sm font-bold ${regDisc ? 'text-green-600' : 'text-orange-600'}`}>{fmt(regPrice)}</span>
