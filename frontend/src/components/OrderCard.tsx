@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2 } from 'lucide-react';
 import { printService } from '../services/printService';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
@@ -16,6 +16,8 @@ interface Props {
   onAssignWaiter?: (id: string, waiterId: string | null) => void;
   onAddItems?: (order: Order) => void;
   onCancel?: (id: string) => void;
+  onRemoveItem?: (orderId: string, itemId: string) => void;
+  onUpdateItemQty?: (orderId: string, itemId: string, quantity: number) => void;
   waiters?: Waiter[];
   showActions?: boolean;
   showPrint?: boolean;
@@ -29,7 +31,7 @@ interface Props {
   clockMs?: number;
 }
 
-export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
   const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
   const { fmt } = useCurrency();
@@ -55,6 +57,9 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
 
   const [cooked, setCooked] = useState<Set<number>>(new Set());
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
+
+  const isEditable = showActions && ['pending', 'preparing'].includes(order.status) && (onRemoveItem || onUpdateItemQty);
 
   function toggleItem(idx: number) {
     setCooked((prev) => {
@@ -214,7 +219,44 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
                   </div>
                 )}
                 <span className={`text-gray-800 flex items-center gap-1.5 flex-wrap flex-1 transition-opacity ${isDone ? 'opacity-35 line-through' : ''}`}>
-                  <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums shrink-0">{item.quantity}×</span>
+                  {/* Quantity controls when editable */}
+                  {isEditable && item.id ? (
+                    confirmRemoveIdx === idx ? (
+                      <span className="flex items-center gap-1 shrink-0">
+                        <span className="text-xs text-red-600 font-medium">Remove?</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onRemoveItem!(order.id, item.id!); setConfirmRemoveIdx(null); }}
+                          className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold hover:bg-red-600"
+                        >Yes</button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmRemoveIdx(null); }}
+                          className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full hover:bg-gray-200"
+                        >No</button>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => {
+                            if (item.quantity <= 1) { setConfirmRemoveIdx(idx); }
+                            else onUpdateItemQty!(order.id, item.id!, item.quantity - 1);
+                          }}
+                          className="w-5 h-5 rounded flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        ><Minus size={11} /></button>
+                        <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums min-w-[1.5rem] text-center">{item.quantity}×</span>
+                        <button
+                          onClick={() => onUpdateItemQty!(order.id, item.id!, item.quantity + 1)}
+                          className="w-5 h-5 rounded flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                        ><Plus size={11} /></button>
+                        <button
+                          onClick={() => setConfirmRemoveIdx(idx)}
+                          className="w-5 h-5 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors ml-0.5"
+                          title="Remove item"
+                        ><Trash2 size={11} /></button>
+                      </span>
+                    )
+                  ) : (
+                    <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums shrink-0">{item.quantity}×</span>
+                  )}
                   <span className="font-medium">{item.name}</span>
                   {item.size && (
                     <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${

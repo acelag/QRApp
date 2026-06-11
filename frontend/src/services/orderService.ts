@@ -38,6 +38,12 @@ export const orderService = {
   addItems: (id: string, items: CartItem[]) =>
     axios.patch<Order>(`${BASE}/orders/${id}/items`, { items }).then((r) => r.data),
 
+  removeItem: (orderId: string, itemId: string) =>
+    axios.delete<Order>(`${BASE}/orders/${orderId}/items/${itemId}`).then((r) => r.data),
+
+  updateItem: (orderId: string, itemId: string, quantity: number, notes?: string) =>
+    axios.patch<Order>(`${BASE}/orders/${orderId}/items/${itemId}`, { quantity, notes }).then((r) => r.data),
+
   submitFeedback: (orderId: string, rating: number, note?: string) =>
     axios
       .post<{ ok: boolean; rating: number; note: string | null }>(`${BASE}/orders/${orderId}/feedback`, { rating, note })

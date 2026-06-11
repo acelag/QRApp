@@ -56,6 +56,7 @@ async function buildOrder(orderId: string) {
     feedbackNote: (o.feedback_note as string | null) ?? null,
     createdAt: o.created_at, updatedAt: o.updated_at,
     items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
+      id: i.id,
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
       notes: i.notes ?? undefined, size: (i.size as string | null) ?? undefined,
       comboId: (i.combo_id as string | null) ?? undefined,
@@ -408,6 +409,158 @@ router.patch('/:id/items', authenticate, requireRole('admin', 'manager', 'cashie
   }
 
   res.json(await buildOrder(String(req.params.id)));
+});
+
+// DELETE /:id/items/:itemId  — remove a single line item from a pending/preparing order
+router.delete('/:id/items/:itemId', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
+  const orderId = String(req.params.id);
+  const itemId = String(req.params.itemId);
+  const rid = req.user!.restaurantId;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const orderRes = await client.query(
+      'SELECT id, status, total_amount, restaurant_id FROM orders WHERE id = $1 FOR UPDATE',
+      [orderId],
+    );
+    if (!orderRes.rows.length) { await client.query('ROLLBACK'); res.status(404).json({ error: 'Order not found' }); return; }
+    const order = orderRes.rows[0] as { id: string; status: string; total_amount: string; restaurant_id: string };
+    if (rid && order.restaurant_id !== rid) { await client.query('ROLLBACK'); res.status(403).json({ error: 'Forbidden' }); return; }
+    if (!['pending', 'preparing'].includes(order.status)) {
+      await client.query('ROLLBACK'); res.status(400).json({ error: 'Can only modify pending or preparing orders' }); return;
+    }
+
+    const itemRes = await client.query(
+      'SELECT id, menu_item_id, price, quantity FROM order_items WHERE id = $1 AND order_id = $2',
+      [itemId, orderId],
+    );
+    if (!itemRes.rows.length) { await client.query('ROLLBACK'); res.status(404).json({ error: 'Item not found' }); return; }
+    const item = itemRes.rows[0] as { id: string; menu_item_id: string; price: string; quantity: number };
+
+    const countRes = await client.query('SELECT COUNT(*) FROM order_items WHERE order_id = $1', [orderId]);
+    if (Number((countRes.rows[0] as { count: string }).count) <= 1) {
+      await client.query('ROLLBACK');
+      res.status(400).json({ error: 'Cannot remove the last item — cancel the order instead.' }); return;
+    }
+
+    const toppingsRes = await client.query(
+      'SELECT price FROM order_item_toppings WHERE order_item_id = $1',
+      [itemId],
+    );
+    const toppingsTotal = (toppingsRes.rows as { price: string }[]).reduce((s, t) => s + Number(t.price), 0);
+    const lineTotal = (Number(item.price) + toppingsTotal) * item.quantity;
+
+    // order_item_toppings has ON DELETE CASCADE so deleting the item is enough
+    await client.query('DELETE FROM order_items WHERE id = $1', [itemId]);
+
+    // Restore stock
+    await client.query(
+      `UPDATE menu_items SET stock = stock + $1 WHERE id = $2 AND track_stock = true AND stock IS NOT NULL`,
+      [item.quantity, item.menu_item_id],
+    );
+
+    const newTotal = Math.max(0, Number(order.total_amount) - lineTotal);
+    const now = new Date().toISOString();
+    await client.query('UPDATE orders SET total_amount=$1, updated_at=$2 WHERE id=$3', [newTotal, now, orderId]);
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.json(await buildOrder(orderId));
+});
+
+// PATCH /:id/items/:itemId  — change quantity (and/or notes) on a single line item
+router.patch('/:id/items/:itemId', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter'), async (req: AuthRequest, res) => {
+  const orderId = String(req.params.id);
+  const itemId = String(req.params.itemId);
+  const { quantity, notes } = req.body as { quantity?: number; notes?: string };
+
+  if (quantity !== undefined && (!Number.isInteger(quantity) || quantity < 1)) {
+    res.status(400).json({ error: 'quantity must be a positive integer' }); return;
+  }
+
+  const rid = req.user!.restaurantId;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const orderRes = await client.query(
+      'SELECT id, status, total_amount, restaurant_id FROM orders WHERE id = $1 FOR UPDATE',
+      [orderId],
+    );
+    if (!orderRes.rows.length) { await client.query('ROLLBACK'); res.status(404).json({ error: 'Order not found' }); return; }
+    const order = orderRes.rows[0] as { id: string; status: string; total_amount: string; restaurant_id: string };
+    if (rid && order.restaurant_id !== rid) { await client.query('ROLLBACK'); res.status(403).json({ error: 'Forbidden' }); return; }
+    if (!['pending', 'preparing'].includes(order.status)) {
+      await client.query('ROLLBACK'); res.status(400).json({ error: 'Can only modify pending or preparing orders' }); return;
+    }
+
+    const itemRes = await client.query(
+      'SELECT id, menu_item_id, price, quantity FROM order_items WHERE id = $1 AND order_id = $2',
+      [itemId, orderId],
+    );
+    if (!itemRes.rows.length) { await client.query('ROLLBACK'); res.status(404).json({ error: 'Item not found' }); return; }
+    const item = itemRes.rows[0] as { id: string; menu_item_id: string; price: string; quantity: number };
+
+    const now = new Date().toISOString();
+
+    if (quantity !== undefined && quantity !== item.quantity) {
+      const diff = quantity - item.quantity;
+      if (diff > 0) {
+        const stockCheck = await client.query(
+          'SELECT stock FROM menu_items WHERE id = $1 AND track_stock = true AND stock IS NOT NULL',
+          [item.menu_item_id],
+        );
+        if (stockCheck.rows.length) {
+          const currentStock = Number((stockCheck.rows[0] as { stock: number }).stock);
+          if (currentStock < diff) {
+            await client.query('ROLLBACK');
+            res.status(400).json({ error: 'Insufficient stock for this quantity' }); return;
+          }
+        }
+        await client.query(
+          `UPDATE menu_items SET stock = GREATEST(0, stock - $1), available = CASE WHEN stock - $1 <= 0 THEN false ELSE available END WHERE id = $2 AND track_stock = true AND stock IS NOT NULL`,
+          [diff, item.menu_item_id],
+        );
+      } else {
+        await client.query(
+          `UPDATE menu_items SET stock = stock + $1 WHERE id = $2 AND track_stock = true AND stock IS NOT NULL`,
+          [-diff, item.menu_item_id],
+        );
+      }
+
+      const toppingsRes = await client.query(
+        'SELECT price FROM order_item_toppings WHERE order_item_id = $1',
+        [itemId],
+      );
+      const toppingsTotal = (toppingsRes.rows as { price: string }[]).reduce((s, t) => s + Number(t.price), 0);
+      const totalDiff = (Number(item.price) + toppingsTotal) * diff;
+      const newTotal = Math.max(0, Number(order.total_amount) + totalDiff);
+      await client.query('UPDATE orders SET total_amount=$1, updated_at=$2 WHERE id=$3', [newTotal, now, orderId]);
+      await client.query('UPDATE order_items SET quantity=$1 WHERE id=$2', [quantity, itemId]);
+    }
+
+    if (notes !== undefined) {
+      await client.query('UPDATE order_items SET notes=$1 WHERE id=$2', [notes || null, itemId]);
+    }
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.json(await buildOrder(orderId));
 });
 
 // POST /:id/feedback  — public, no auth (customer rates their own order)

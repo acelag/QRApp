@@ -85,6 +85,25 @@ export function OrdersPage() {
     setAddItemsOrder(null);
   }
 
+  async function handleRemoveItem(orderId: string, itemId: string) {
+    try {
+      const updated = await orderService.removeItem(orderId, itemId);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
+      toast.success('Item removed');
+    } catch {
+      toast.error('Failed to remove item');
+    }
+  }
+
+  async function handleUpdateItemQty(orderId: string, itemId: string, quantity: number) {
+    try {
+      const updated = await orderService.updateItem(orderId, itemId, quantity);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
+    } catch {
+      toast.error('Failed to update quantity');
+    }
+  }
+
   const filtered = tab === 'all'
     ? orders.filter((o) => o.status !== 'cancelled')
     : tab === 'takeaway'
@@ -144,6 +163,8 @@ export function OrdersPage() {
                   onAssignWaiter={handleAssignWaiter}
                   onAddItems={setAddItemsOrder}
                   onCancel={handleCancel}
+                  onRemoveItem={handleRemoveItem}
+                  onUpdateItemQty={handleUpdateItemQty}
                   waiters={waiters}
                   showActions
                 />
