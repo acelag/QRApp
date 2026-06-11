@@ -19,7 +19,6 @@ import type { MenuSchedule } from '../../services/menuScheduleService';
 import { comboService, type Combo } from '../../services/comboService';
 import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package } from 'lucide-react';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 export function MenuPage() {
   const { t } = useTranslation();
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
@@ -158,7 +157,6 @@ export function MenuPage() {
               <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? 'Menu'}</h1>
             </div>
             <div className="flex items-center gap-2">
-              <LanguageSwitcher className="shrink-0" />
               {/* Grid / List toggle */}
               <div className="flex items-center bg-gray-100 rounded-full p-0.5">
                 <button

@@ -6,7 +6,6 @@ import { restaurantService, type RestaurantInfo } from '../../services/restauran
 import { menuService } from '../../services/menuService';
 import { sessionService } from '../../services/sessionService';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
 
 export function WelcomePage() {
@@ -53,11 +52,6 @@ export function WelcomePage() {
 
   return (
     <div className="relative">
-      {/* Language switcher — top right, floated over the welcome screen */}
-      <div className="absolute top-12 right-5 z-20">
-        <LanguageSwitcher className="shrink-0" />
-      </div>
-
       <WelcomeScreen
         restaurantName={info?.name ?? 'Welcome'}
         logo={info?.logo}
