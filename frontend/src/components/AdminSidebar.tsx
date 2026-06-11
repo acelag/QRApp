@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
@@ -142,6 +142,22 @@ export function AdminSidebar() {
     () => localStorage.getItem('qra-sidebar-collapsed') === '1'
   );
 
+  // Flyout popup for collapsed sidebar groups
+  const [flyout, setFlyout] = useState<{ group: string; y: number } | null>(null);
+  const flyoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function openFlyout(label: string, e: React.MouseEvent<HTMLElement>) {
+    if (flyoutTimer.current) clearTimeout(flyoutTimer.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setFlyout({ group: label, y: rect.top });
+  }
+  function scheduleFlyoutClose() {
+    flyoutTimer.current = setTimeout(() => setFlyout(null), 120);
+  }
+  function cancelFlyoutClose() {
+    if (flyoutTimer.current) clearTimeout(flyoutTimer.current);
+  }
+
   const isStaff = !!user && user.role !== 'admin' && user.role !== 'super_admin';
 
   function isVisible(item: NavItem): boolean {
@@ -164,6 +180,7 @@ export function AdminSidebar() {
 
   useEffect(() => {
     setMobileOpen(false);
+    setFlyout(null);
     setOpenGroups((prev) => {
       const next = new Set(prev);
       NAV.forEach((entry) => {
@@ -359,18 +376,23 @@ export function AdminSidebar() {
               if (visibleChildren.length === 0) return null;
 
               const hasActive = visibleChildren.some((c) => isItemActive(c, location.pathname));
-              const firstChild = visibleChildren[0];
+              const isFlyoutOpen = flyout?.group === entry.label;
 
               return (
                 <button
                   key={entry.label}
                   title={entry.label}
-                  onClick={() => navigate(firstChild.to)}
-                  className={`flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-colors ${
-                    hasActive ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+                  onMouseEnter={(e) => openFlyout(entry.label, e)}
+                  onMouseLeave={scheduleFlyoutClose}
+                  className={`relative flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-colors ${
+                    hasActive || isFlyoutOpen
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
                   <entry.icon size={18} />
+                  {/* Small dot to indicate sub-items */}
+                  <span className="absolute bottom-1.5 right-1.5 w-1 h-1 rounded-full bg-current opacity-40" />
                 </button>
               );
             })}
@@ -487,6 +509,65 @@ export function AdminSidebar() {
 
         <DesktopNav />
       </aside>
+
+      {/* ── Collapsed-sidebar flyout popup ───────────────────────────────────── */}
+      {collapsed && flyout && (() => {
+        const entry = NAV.find((e) => e.type === 'group' && e.label === flyout.group) as NavGroup | undefined;
+        if (!entry) return null;
+        const visibleChildren = entry.children.filter(isVisible);
+        if (visibleChildren.length === 0) return null;
+
+        // Clamp panel top so it never overflows the viewport bottom
+        const panelHeight = visibleChildren.length * 36 + 48;
+        const top = Math.min(flyout.y, Math.max(8, window.innerHeight - panelHeight - 8));
+
+        return (
+          <div
+            className="hidden md:block fixed z-[200] bg-white rounded-2xl shadow-2xl border border-gray-100 py-1.5 min-w-[200px]"
+            style={{ left: 68, top }}
+            onMouseEnter={cancelFlyoutClose}
+            onMouseLeave={scheduleFlyoutClose}
+          >
+            {/* Group label header */}
+            <div className="flex items-center gap-2 px-3 pt-1 pb-2 border-b border-gray-50">
+              <entry.icon size={13} className="text-gray-400 flex-shrink-0" />
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{entry.label}</p>
+            </div>
+
+            {/* Child links */}
+            <div className="pt-1">
+              {visibleChildren.map((child) => {
+                const active = isItemActive(child, location.pathname);
+                return (
+                  <Link
+                    key={child.label}
+                    to={child.to}
+                    onClick={() => setFlyout(null)}
+                    className={`flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors ${
+                      active
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <child.icon size={14} className={active ? 'text-blue-600' : 'text-gray-400'} />
+                    <span className="flex-1">{child.label}</span>
+                    {child.to === '/admin/stock' && lowStockCount > 0 && (
+                      <span className="text-[10px] font-bold bg-amber-400 text-white rounded-full min-w-[18px] px-1 text-center leading-4">
+                        {lowStockCount}
+                      </span>
+                    )}
+                    {child.badge && activeCount > 0 && (
+                      <span className="text-[10px] font-bold bg-orange-500 text-white rounded-full min-w-[18px] px-1 text-center leading-4">
+                        {activeCount}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }
