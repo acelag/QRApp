@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShoppingBag, TrendingUp, TrendingDown, XCircle, Banknote,
-  Star, Clock, Receipt, ChefHat, CheckCircle2, Package,
+  Star, Clock, Receipt, ChefHat, CheckCircle2,
   AlertTriangle, Utensils, Search, ArrowUpRight,
 } from 'lucide-react';
 import { stockService, type StockItem } from '../../services/stockService';
@@ -10,9 +10,8 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import { TrialBanner } from '../../components/TrialBanner';
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
-  XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
-  PieChart, Pie, Cell,
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -90,8 +89,8 @@ export function DashboardPage() {
   // ── derived values ──────────────────────────────────────────────────────────
   const todayStr      = new Date().toLocaleDateString('en-CA');
   const todayOrders   = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
-  const activeOrders  = orders.filter((o) => !['cancelled','completed'].includes(o.status));
-  const completed     = todayOrders.filter((o) => o.status === 'completed' || o.status === 'ready');
+  const activeOrders  = orders.filter((o) => o.status !== 'cancelled');
+  const completed     = todayOrders.filter((o) => o.status === 'ready');
   const cancelled     = todayOrders.filter((o) => o.status === 'cancelled');
   const todayRevenue  = today?.revenue ?? todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
   const avgOrderValue = todayOrders.length > 0 ? todayRevenue / todayOrders.length : 0;
@@ -118,8 +117,8 @@ export function DashboardPage() {
     const row = daily.find((r) => r.date === key);
     return {
       day:     d.toLocaleDateString('en-US', { weekday: 'short' }),
-      revenue: row?.revenue  ?? 0,
-      orders:  row?.orders   ?? 0,
+      revenue: row?.revenue    ?? 0,
+      orders:  row?.orderCount ?? 0,
     };
   });
 
@@ -345,9 +344,7 @@ export function DashboardPage() {
                         >
                           {/* Item thumbnail / placeholder */}
                           <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                            {firstItem?.image
-                              ? <img src={firstItem.image} alt="" className="w-full h-full object-cover" />
-                              : <Utensils size={14} className="text-orange-300" />}
+                            <Utensils size={14} className="text-orange-300" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-800 truncate">
