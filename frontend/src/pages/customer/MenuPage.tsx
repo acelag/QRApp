@@ -197,22 +197,6 @@ export function MenuPage() {
         <div className="max-w-5xl mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
-        {visibleTags.length > 0 && (
-          <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
-            {visibleTags.map((tag) => {
-              const isActive = activeTag === tag.slug;
-              return (
-                <button
-                  key={tag.slug}
-                  onClick={() => setActiveTag(isActive ? null : tag.slug)}
-                  className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${tagPillCls(tag.category, isActive)}`}
-                >
-                  {tag.emoji} {tag.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
         {/* Search bar */}
         <div className="max-w-5xl mx-auto px-4 pb-3">
           <div className="relative">
