@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, LogOut, ChefHat, MonitorPlay,
@@ -132,7 +132,6 @@ function groupHasActiveChild(group: NavGroup, pathname: string) {
 export function AdminSidebar() {
   const { user, logout, features, hasPermission } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const { enabled: subsEnabled } = useSubscriptionConfig();
   const { dark, toggleDark } = useTheme();
   const [activeCount,    setActiveCount]    = useState(0);
