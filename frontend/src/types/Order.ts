@@ -48,6 +48,8 @@ export interface Order {
   status: OrderStatus;
   totalAmount: number;
   discountAmount?: number;
+  taxAmount?: number;
+  serviceChargeAmount?: number;
   promoCode?: string | null;
   paymentMethod?: string | null;
   customerPhone?: string | null;

@@ -43,14 +43,22 @@ export function ReceiptPage() {
   const dateStr = now.toLocaleDateString();
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const subtotal = order.totalAmount;
   const sym = getCurrencySymbol(settings?.currency ?? 'USD');
   const fmtAmt = (n: number) => `${sym}${n.toFixed(2)}`;
-  // Service charge → dine-in only | Tax → all orders
-  const charges = computeCharges(subtotal, {
-    serviceChargePct: order.orderType === 'dine-in' ? (settings?.serviceChargePct ?? 0) : 0,
-    taxPct:           settings?.taxPct ?? 0,
-  });
+
+  // Use stored SC/tax amounts when available (new orders); fall back to re-computation for old orders
+  const hasStoredCharges = (order.taxAmount ?? 0) > 0 || (order.serviceChargeAmount ?? 0) > 0;
+  const subtotal = hasStoredCharges
+    ? order.totalAmount - (order.taxAmount ?? 0) - (order.serviceChargeAmount ?? 0) + (order.discountAmount ?? 0)
+    : order.totalAmount + (order.discountAmount ?? 0);
+  const charges = hasStoredCharges
+    ? { serviceCharge: order.serviceChargeAmount ?? 0, tax: order.taxAmount ?? 0, grandTotal: order.totalAmount }
+    : computeCharges(subtotal - (order.discountAmount ?? 0), {
+        serviceChargePct: order.orderType === 'dine-in' ? (settings?.serviceChargePct ?? 0) : 0,
+        taxPct:           settings?.taxPct ?? 0,
+      });
+  const scName  = settings?.serviceChargeName ?? 'Service Charge';
+  const taxName = settings?.taxName           ?? 'Tax';
 
   return (
     <>
@@ -191,17 +199,23 @@ export function ReceiptPage() {
         {/* Totals */}
         <div className="row">
           <span>Subtotal</span>
-          <span>{fmtAmt(subtotal)}</span>
+          <span>{fmtAmt(subtotal - (order.discountAmount ?? 0))}</span>
         </div>
+        {(order.discountAmount ?? 0) > 0 && (
+          <div className="row">
+            <span>Discount{order.promoCode ? ` (${order.promoCode})` : ''}</span>
+            <span>-{fmtAmt(order.discountAmount ?? 0)}</span>
+          </div>
+        )}
         {charges.serviceCharge > 0 && (
           <div className="row">
-            <span>Service Charge ({settings?.serviceChargePct}%)</span>
+            <span>{scName}{!hasStoredCharges ? ` (${settings?.serviceChargePct}%)` : ''}</span>
             <span>{fmtAmt(charges.serviceCharge)}</span>
           </div>
         )}
         {charges.tax > 0 && (
           <div className="row">
-            <span>Tax ({settings?.taxPct}%)</span>
+            <span>{taxName}{!hasStoredCharges ? ` (${settings?.taxPct}%)` : ''}</span>
             <span>{fmtAmt(charges.tax)}</span>
           </div>
         )}

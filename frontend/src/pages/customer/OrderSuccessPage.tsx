@@ -319,19 +319,40 @@ export function OrderSuccessPage() {
           </ul>
 
           <div className="border-t border-gray-100 mt-3 pt-3 space-y-1">
-            {(order.discountAmount ?? 0) > 0 && (
-              <>
-                <div className="flex justify-between text-sm text-gray-400">
-                  <span>{t('common.subtotal')}</span>
-                  <span>{fmt(order.totalAmount + (order.discountAmount ?? 0))}</span>
-                </div>
-                <div className="flex justify-between text-sm text-green-600 font-medium">
-                  <span>{order.promoCode ? t('orderSuccess.discount', { code: order.promoCode }) : t('common.discount')}</span>
-                  <span>−{fmt(order.discountAmount ?? 0)}</span>
-                </div>
-              </>
-            )}
-            <div className="flex justify-between font-bold text-gray-900">
+            {/* Derive items-only subtotal = total - tax - SC + discount */}
+            {((order.discountAmount ?? 0) > 0 || (order.taxAmount ?? 0) > 0 || (order.serviceChargeAmount ?? 0) > 0) && (() => {
+              const itemsSubtotal = order.totalAmount
+                - (order.taxAmount ?? 0)
+                - (order.serviceChargeAmount ?? 0)
+                + (order.discountAmount ?? 0);
+              return (
+                <>
+                  <div className="flex justify-between text-sm text-gray-400">
+                    <span>{t('common.subtotal')}</span>
+                    <span>{fmt(itemsSubtotal)}</span>
+                  </div>
+                  {(order.discountAmount ?? 0) > 0 && (
+                    <div className="flex justify-between text-sm text-green-600 font-medium">
+                      <span>{order.promoCode ? t('orderSuccess.discount', { code: order.promoCode }) : t('common.discount')}</span>
+                      <span>−{fmt(order.discountAmount ?? 0)}</span>
+                    </div>
+                  )}
+                  {(order.serviceChargeAmount ?? 0) > 0 && (
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Service Charge</span>
+                      <span>+{fmt(order.serviceChargeAmount ?? 0)}</span>
+                    </div>
+                  )}
+                  {(order.taxAmount ?? 0) > 0 && (
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Tax</span>
+                      <span>+{fmt(order.taxAmount ?? 0)}</span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+            <div className="flex justify-between font-bold text-gray-900 border-t border-gray-100 pt-1 mt-1">
               <span>{t('common.total')}</span>
               <span>{fmt(order.totalAmount)}</span>
             </div>

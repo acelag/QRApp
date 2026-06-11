@@ -7,6 +7,8 @@ import { QuantitySelector } from '../../components/QuantitySelector';
 import { orderService } from '../../services/orderService';
 import { loyaltyService } from '../../services/loyaltyService';
 import type { LoyaltyConfig, LoyaltyAccount } from '../../services/loyaltyService';
+import { restaurantService, computeCharges } from '../../services/restaurantService';
+import type { RestaurantInfo } from '../../services/restaurantService';
 import { offlineQueue } from '../../services/offlineQueue';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
@@ -25,6 +27,13 @@ export function CartPage() {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [customerPhone, setCustomerPhone] = useState('');
+
+  // Billing (tax / service charge)
+  const [billing, setBilling] = useState<RestaurantInfo | null>(null);
+  useEffect(() => {
+    if (!restaurantId) return;
+    restaurantService.getRestaurantInfo(restaurantId).then(setBilling).catch(() => {});
+  }, [restaurantId]);
 
   // Loyalty
   const [loyaltyConfig,   setLoyaltyConfig]   = useState<LoyaltyConfig | null>(null);
@@ -64,7 +73,12 @@ export function CartPage() {
       )
     : 0;
   const pointsDiscount = loyaltyConfig ? Math.round((redeemablePoints / loyaltyConfig.redeemRate) * 100) / 100 : 0;
-  const finalTotal = Math.max(0, total - pointsDiscount);
+  const taxableBase    = Math.max(0, total - pointsDiscount);
+  const charges        = computeCharges(taxableBase, {
+    serviceChargePct: billing?.serviceChargePct ?? 0,
+    taxPct:           billing?.taxPct           ?? 0,
+  });
+  const finalTotal = charges.grandTotal;
 
   function queueOfflineOrder() {
     const base = `${import.meta.env.VITE_API_URL ?? ''}/api`;
@@ -313,6 +327,18 @@ export function CartPage() {
             <div className="flex justify-between text-sm text-green-600 font-medium">
               <span>Points discount</span>
               <span>−{fmt(pointsDiscount)}</span>
+            </div>
+          )}
+          {charges.serviceCharge > 0 && (
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>{billing?.serviceChargeName ?? 'Service Charge'} ({billing?.serviceChargePct}%)</span>
+              <span>+{fmt(charges.serviceCharge)}</span>
+            </div>
+          )}
+          {charges.tax > 0 && (
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>{billing?.taxName ?? 'Tax'} ({billing?.taxPct}%)</span>
+              <span>+{fmt(charges.tax)}</span>
             </div>
           )}
           <button

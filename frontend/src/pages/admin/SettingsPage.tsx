@@ -82,8 +82,10 @@ export function SettingsPage() {
 
   // ── Restaurant state ───────────────────────────────────────────────────────
   const [restaurant, setRestaurant] = useState<RestaurantSettings | null>(null);
-  const [serviceChargePct, setServiceChargePct] = useState('0');
-  const [taxPct, setTaxPct] = useState('0');
+  const [serviceChargePct,  setServiceChargePct]  = useState('0');
+  const [taxPct,            setTaxPct]            = useState('0');
+  const [serviceChargeName, setServiceChargeName] = useState('Service Charge');
+  const [taxName,           setTaxName]           = useState('Tax');
   const [currency, setCurrency] = useState('USD');
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingSuccess, setBillingSuccess] = useState(false);
@@ -145,6 +147,8 @@ export function SettingsPage() {
       setRestaurant(r);
       setServiceChargePct(String(r.serviceChargePct));
       setTaxPct(String(r.taxPct));
+      setServiceChargeName(r.serviceChargeName ?? 'Service Charge');
+      setTaxName(r.taxName ?? 'Tax');
       setCurrency(r.currency ?? 'USD');
       setThemeColor(r.themeColor ?? '#f97316');
       setOrderPrefix(r.orderNumberPrefix ?? 'ORD');
@@ -392,7 +396,11 @@ export function SettingsPage() {
     setBillingLoading(true);
     setBillingSuccess(false);
     try {
-      const updated = await restaurantService.updateCharges(restaurant.id, { serviceChargePct: sc, taxPct: tax, currency });
+      const updated = await restaurantService.updateCharges(restaurant.id, {
+        serviceChargePct: sc, taxPct: tax, currency,
+        serviceChargeName: serviceChargeName.trim() || 'Service Charge',
+        taxName: taxName.trim() || 'Tax',
+      });
       setRestaurant(updated);
       loadCurrency(updated.id);
       setBillingSuccess(true);
@@ -603,9 +611,27 @@ export function SettingsPage() {
             )}
 
             <div className="grid grid-cols-2 gap-3">
+              <Field label="Service Charge Name">
+                <input
+                  type="text" maxLength={30}
+                  value={serviceChargeName}
+                  onChange={(e) => { setServiceChargeName(e.target.value); markDirty('restaurant'); }}
+                  placeholder="e.g. Service Charge"
+                  className={input}
+                />
+              </Field>
+              <Field label="Tax Name">
+                <input
+                  type="text" maxLength={30}
+                  value={taxName}
+                  onChange={(e) => { setTaxName(e.target.value); markDirty('restaurant'); }}
+                  placeholder="e.g. VAT, GST, Tax"
+                  className={input}
+                />
+              </Field>
               {[
-                { label: 'Service Charge', value: serviceChargePct, set: setServiceChargePct },
-                { label: 'Tax',            value: taxPct,            set: setTaxPct },
+                { label: 'Service Charge Rate', value: serviceChargePct, set: setServiceChargePct },
+                { label: 'Tax Rate',            value: taxPct,            set: setTaxPct },
               ].map(({ label, value, set }) => (
                 <Field key={label} label={label}>
                   <div className="relative">
@@ -644,12 +670,12 @@ export function SettingsPage() {
                 </div>
                 {previewSC > 0 && (
                   <div className="flex justify-between text-gray-500 text-xs">
-                    <span>Service Charge ({serviceChargePct}%)</span><span>+{sym}{previewSC.toFixed(2)}</span>
+                    <span>{serviceChargeName || 'Service Charge'} ({serviceChargePct}%)</span><span>+{sym}{previewSC.toFixed(2)}</span>
                   </div>
                 )}
                 {previewTax > 0 && (
                   <div className="flex justify-between text-gray-500 text-xs">
-                    <span>Tax ({taxPct}%)</span><span>+{sym}{previewTax.toFixed(2)}</span>
+                    <span>{taxName || 'Tax'} ({taxPct}%)</span><span>+{sym}{previewTax.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 mt-1">

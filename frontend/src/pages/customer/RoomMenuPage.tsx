@@ -7,7 +7,7 @@ import type { SelectedTopping } from '../../types/Order';
 import type { CartItem } from '../../types/Order';
 import { effectivePrice } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
-import { restaurantService, type RestaurantInfo } from '../../services/restaurantService';
+import { restaurantService, computeCharges, type RestaurantInfo } from '../../services/restaurantService';
 import { orderService } from '../../services/orderService';
 import { roomService } from '../../services/roomService';
 import { comboService, type Combo } from '../../services/comboService';
@@ -149,10 +149,13 @@ export function RoomMenuPage() {
     : tagFiltered;
   const presentSlugs = new Set(items.flatMap((i) => i.tags ?? []));
   const visibleTags = allTags.filter((t) => presentSlugs.has(t.slug));
-  const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
-  const subtotal  = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
-  const discount  = promoResult?.valid ? (promoResult.discountAmount ?? 0) : 0;
-  const total     = Math.max(0, subtotal - discount);
+  const itemCount  = cart.reduce((s, c) => s + c.quantity, 0);
+  const subtotal   = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
+  const discount   = promoResult?.valid ? (promoResult.discountAmount ?? 0) : 0;
+  const taxBase    = Math.max(0, subtotal - discount);
+  // Room service: no service charge; tax applies
+  const charges    = computeCharges(taxBase, { serviceChargePct: 0, taxPct: welcomeInfo?.taxPct ?? 0 });
+  const total      = charges.grandTotal;
 
   const isRoomServiceOpen = (() => {
     if (!rsOpen || !rsClose) return true;
@@ -564,10 +567,15 @@ export function RoomMenuPage() {
                       </button>
                     </div>
                   )}
-                  {discount > 0 && (
+                  {(discount > 0 || charges.tax > 0) && (
                     <div className="mt-2 space-y-0.5 text-xs text-gray-500">
                       <div className="flex justify-between"><span>{t('customer.subtotal')}</span><span>{fmt(subtotal)}</span></div>
-                      <div className="flex justify-between text-green-600 font-medium"><span>Discount</span><span>−{fmt(discount)}</span></div>
+                      {discount > 0 && (
+                        <div className="flex justify-between text-green-600 font-medium"><span>Discount</span><span>−{fmt(discount)}</span></div>
+                      )}
+                      {charges.tax > 0 && (
+                        <div className="flex justify-between"><span>{welcomeInfo?.taxName ?? 'Tax'} ({welcomeInfo?.taxPct}%)</span><span>+{fmt(charges.tax)}</span></div>
+                      )}
                       <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-100 pt-1"><span>{t('common.total')}</span><span>{fmt(total)}</span></div>
                     </div>
                   )}

@@ -16,6 +16,8 @@ export type { FeatureKey, RestaurantFeatures } from '../lib/features';
 const toRestaurant = (row: Record<string, unknown>) => ({
   id: row.id, name: row.name, slug: row.slug, active: row.active === true, createdAt: row.created_at,
   serviceChargePct: Number(row.service_charge_pct ?? 0), taxPct: Number(row.tax_pct ?? 0),
+  serviceChargeName: (row.service_charge_name as string | null) ?? 'Service Charge',
+  taxName:           (row.tax_name           as string | null) ?? 'Tax',
   currency: (row.currency as string | null) ?? 'USD',
   logo: (row.logo as string | null) ?? null,
   themeColor: (row.theme_color as string | null) ?? '#f97316',
@@ -59,7 +61,11 @@ router.get('/:id/currency', async (req, res) => {
 
 router.get('/:id/info', async (req, res) => {
   const result = await pool.query(
-    'SELECT name, logo, theme_color, wait_time_min, room_service_open, room_service_close, facebook_url, instagram_url, welcome_image_url, tiktok_url, whatsapp_url, youtube_url, twitter_url, welcome_heading, welcome_tagline FROM restaurants WHERE id = $1',
+    `SELECT name, logo, theme_color, wait_time_min, room_service_open, room_service_close,
+            facebook_url, instagram_url, welcome_image_url, tiktok_url, whatsapp_url,
+            youtube_url, twitter_url, welcome_heading, welcome_tagline,
+            service_charge_pct, tax_pct, service_charge_name, tax_name
+     FROM restaurants WHERE id = $1`,
     [req.params.id],
   );
   if (!result.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
@@ -80,6 +86,10 @@ router.get('/:id/info', async (req, res) => {
     twitterUrl:      (row.twitter_url       as string | null) ?? null,
     welcomeHeading:  (row.welcome_heading   as string | null) ?? null,
     welcomeTagline:  (row.welcome_tagline   as string | null) ?? null,
+    serviceChargePct:  Number(row.service_charge_pct ?? 0),
+    taxPct:            Number(row.tax_pct ?? 0),
+    serviceChargeName: (row.service_charge_name as string | null) ?? 'Service Charge',
+    taxName:           (row.tax_name           as string | null) ?? 'Tax',
   });
 });
 
@@ -160,16 +170,25 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 router.patch('/:id/charges', authenticate, async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
-  const { serviceChargePct, taxPct, currency } = req.body as { serviceChargePct?: number; taxPct?: number; currency?: string };
+  const { serviceChargePct, taxPct, currency, serviceChargeName, taxName } =
+    req.body as { serviceChargePct?: number; taxPct?: number; currency?: string; serviceChargeName?: string; taxName?: string };
   const toNum = (v: unknown) => { const n = Number(v); return (isNaN(n) || n < 0 || n > 100) ? null : Math.round(n * 100) / 100; };
   const sc = toNum(serviceChargePct); const tax = toNum(taxPct);
   if (sc === null || tax === null) { res.status(400).json({ error: 'Values must be numbers between 0 and 100' }); return; }
   const safeCurrency = typeof currency === 'string' && currency.trim().length > 0 ? currency.trim().toUpperCase() : null;
-  const result = safeCurrency
-    ? await pool.query('UPDATE restaurants SET service_charge_pct=$1, tax_pct=$2, currency=$3 WHERE id=$4', [sc, tax, safeCurrency, id])
-    : await pool.query('UPDATE restaurants SET service_charge_pct=$1, tax_pct=$2 WHERE id=$3', [sc, tax, id]);
-  if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  const safeScName  = typeof serviceChargeName === 'string' && serviceChargeName.trim() ? serviceChargeName.trim().slice(0, 30) : null;
+  const safeTaxName = typeof taxName           === 'string' && taxName.trim()           ? taxName.trim().slice(0, 30)           : null;
+  await pool.query(
+    `UPDATE restaurants
+     SET service_charge_pct = $1, tax_pct = $2,
+         currency            = COALESCE($3, currency),
+         service_charge_name = COALESCE($4, service_charge_name),
+         tax_name            = COALESCE($5, tax_name)
+     WHERE id = $6`,
+    [sc, tax, safeCurrency, safeScName, safeTaxName, id],
+  );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
 });
 

@@ -47,6 +47,8 @@ async function buildOrder(orderId: string) {
     orderType: (o.order_type as string) ?? 'dine-in', customerName: (o.customer_name as string) ?? null,
     status: o.status as OrderStatus, totalAmount: Number(o.total_amount),
     discountAmount: Number(o.discount_amount ?? 0),
+    taxAmount: Number(o.tax_amount ?? 0),
+    serviceChargeAmount: Number(o.service_charge_amount ?? 0),
     promoCode: (o.promo_code as string | null) ?? null,
     paymentMethod: (o.payment_method as string | null) ?? null,
     customerPhone: (o.customer_phone as string | null) ?? null,
@@ -134,6 +136,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   let discountAmount = 0;
   let validatedPromoCode: string | null = null;
   let totalAmount = 0;
+  let taxableAmount = 0; // subtotal minus discounts, pre-tax — used for loyalty earn after transaction
 
   // Loyalty redemption vars — set inside transaction, used for awarding after commit
   const { redeemPoints: rawRedeemPts } = req.body as { redeemPoints?: number };
@@ -201,7 +204,21 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
       }
     }
 
-    totalAmount = Math.max(0, subtotal - discountAmount - loyaltyDiscount);
+    taxableAmount = Math.max(0, subtotal - discountAmount - loyaltyDiscount);
+
+    // ── Service charge + tax ────────────────────────────────────────────────
+    const restRates = (await client.query(
+      'SELECT service_charge_pct, tax_pct FROM restaurants WHERE id = $1',
+      [resolvedRestaurantId],
+    )).rows[0] as Record<string, unknown> | undefined;
+    const scPct  = Number(restRates?.service_charge_pct ?? 0);
+    const taxPct = Number(restRates?.tax_pct ?? 0);
+    const serviceChargeAmount = orderType === 'dine-in'
+      ? Math.round(taxableAmount * scPct  / 100 * 100) / 100
+      : 0;
+    const taxAmount = Math.round((taxableAmount + serviceChargeAmount) * taxPct / 100 * 100) / 100;
+    totalAmount = taxableAmount + serviceChargeAmount + taxAmount;
+
     const seqRes = await client.query(
       `UPDATE restaurants SET next_order_seq = next_order_seq + 1 WHERE id = $1 RETURNING next_order_seq, order_number_prefix`,
       [resolvedRestaurantId],
@@ -211,9 +228,9 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     const prefix = (seqRow.order_number_prefix as string | null) ?? 'ORD';
     const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
     await client.query(
-      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,customer_phone,status,total_amount,discount_amount,promo_code,order_number,payment_method,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,$16,$16)`,
-      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, customerPhone?.trim() || null, totalAmount, discountAmount, validatedPromoCode, orderNumber, initialPaymentMethod?.trim() || null, now],
+      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,customer_phone,status,total_amount,discount_amount,promo_code,order_number,payment_method,tax_amount,service_charge_amount,created_at,updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,$16,$17,$18,$18)`,
+      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, customerPhone?.trim() || null, totalAmount, discountAmount, validatedPromoCode, orderNumber, initialPaymentMethod?.trim() || null, taxAmount, serviceChargeAmount, now],
     );
     // Increment promo code usage
     if (validatedPromoCode) {
@@ -311,7 +328,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
         [resolvedRestaurantId],
       )).rows[0] as Record<string, unknown> | undefined;
       if (cfgRow) {
-        const earned = Math.floor(totalAmount * Number(cfgRow.points_per_unit));
+        const earned = Math.floor(taxableAmount * Number(cfgRow.points_per_unit));
         if (earned > 0) {
           const earnNow = new Date().toISOString();
           await pool.query(

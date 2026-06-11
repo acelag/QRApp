@@ -10,6 +10,8 @@ export interface RestaurantSettings {
   createdAt: string;
   serviceChargePct: number;
   taxPct: number;
+  serviceChargeName?: string;
+  taxName?: string;
   currency: string;
   logo?: string | null;
   themeColor?: string | null;
@@ -55,6 +57,11 @@ export interface RestaurantInfo {
   twitterUrl: string | null;
   welcomeHeading: string | null;
   welcomeTagline: string | null;
+  /** Billing rates — included so customer cart pages can show tax/SC breakdown */
+  serviceChargePct: number;
+  taxPct: number;
+  serviceChargeName: string;
+  taxName: string;
 }
 
 /** Public branded-login info fetched by slug for /login/:slug. */
@@ -85,6 +92,8 @@ export interface BillingCharges {
   serviceChargePct: number;
   taxPct: number;
   currency?: string;
+  serviceChargeName?: string;
+  taxName?: string;
 }
 
 export const CURRENCIES = [

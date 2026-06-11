@@ -542,5 +542,11 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  // ── VAT / tax line items ────────────────────────────────────────────────────
+  await addCol('orders',      'tax_amount',            'DECIMAL(10,2) NOT NULL DEFAULT 0');
+  await addCol('orders',      'service_charge_amount', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
+  await addCol('restaurants', 'tax_name',              "VARCHAR(30) NOT NULL DEFAULT 'Tax'");
+  await addCol('restaurants', 'service_charge_name',   "VARCHAR(30) NOT NULL DEFAULT 'Service Charge'");
+
   console.log('✓ Schema ready');
 }
