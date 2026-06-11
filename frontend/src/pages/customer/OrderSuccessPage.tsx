@@ -307,7 +307,11 @@ export function OrderSuccessPage() {
         )}
         <button
           onClick={handleReorder}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 active:scale-[0.98] transition-all"
+          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all ${
+            order.status === 'ready'
+              ? 'bg-orange-500 text-white hover:bg-orange-600'
+              : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
         >
           <RotateCcw size={16} /> {t('orderSuccess.orderAgain')}
         </button>
