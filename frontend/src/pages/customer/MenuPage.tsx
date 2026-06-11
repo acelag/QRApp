@@ -289,13 +289,15 @@ export function MenuPage() {
         ) : view === 'list' ? (
           <div className="flex flex-col gap-2">
             {filtered.map((item) => (
-              <MenuCard key={item.id} item={item} view="list" />
+              <MenuCard key={item.id} item={item} view="list"
+                categoryName={categories.find((c) => c.id === item.category)?.name} />
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {filtered.map((item) => (
-              <MenuCard key={item.id} item={item} view="grid" />
+              <MenuCard key={item.id} item={item} view="grid"
+                categoryName={categories.find((c) => c.id === item.category)?.name} />
             ))}
           </div>
         )}
