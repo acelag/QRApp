@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, LogOut, ChefHat, MonitorPlay,
@@ -22,8 +22,8 @@ interface NavItem {
   badge?: boolean;
   matchPrefix?: string;
   featureKey?: keyof RestaurantFeatures;
-  perm?: PermissionKey;   // staff must hold this permission to see the item
-  adminOnly?: boolean;    // only admin / super_admin (never assignable to staff)
+  perm?: PermissionKey;
+  adminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -94,7 +94,6 @@ const NAV: NavEntry[] = [
       { label: 'Roster',            icon: CalendarDays, to: '/admin/roster',          featureKey: 'roster',           perm: 'roster' },
     ],
   },
-
   {
     type: 'group',
     label: 'Inventory',
@@ -130,26 +129,25 @@ function groupHasActiveChild(group: NavGroup, pathname: string) {
 export function AdminSidebar() {
   const { user, logout, features, hasPermission } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { enabled: subsEnabled } = useSubscriptionConfig();
   const { dark, toggleDark } = useTheme();
   const [activeCount, setActiveCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('qra-sidebar-collapsed') === '1'
+  );
 
   const isStaff = !!user && user.role !== 'admin' && user.role !== 'super_admin';
 
   function isVisible(item: NavItem): boolean {
-    // Restaurant-level feature gate (super-admin controls this per restaurant).
     if (item.featureKey && features[item.featureKey] === false) return false;
-    // The Subscription/billing link only shows when the system is enabled.
     if (item.to === '/admin/billing' && !subsEnabled) return false;
-    // Admin-only items: hidden from staff.
     if (item.adminOnly) return !isStaff;
-    // Staff: must hold the page permission. Admin/super_admin see everything enabled.
     if (isStaff && item.perm) return hasPermission(item.perm);
     return true;
   }
 
-  // Track which groups are open; auto-open groups whose child is active
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     NAV.forEach((entry) => {
@@ -160,7 +158,6 @@ export function AdminSidebar() {
     return initial;
   });
 
-  // Re-open group on navigation + close mobile drawer
   useEffect(() => {
     setMobileOpen(false);
     setOpenGroups((prev) => {
@@ -192,13 +189,20 @@ export function AdminSidebar() {
     });
   }
 
-  function handleLogout() { logout(); window.location.href = '/'; } // temp: back to demo launcher
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('qra-sidebar-collapsed', next ? '1' : '0');
+      return next;
+    });
+  }
 
-  // Shared nav content used in both desktop sidebar and mobile drawer
+  function handleLogout() { logout(); window.location.href = '/'; }
+
+  // Shared nav content for mobile drawer (always expanded)
   function NavContent() {
     return (
       <>
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {NAV.map((entry) => {
             if (entry.type === 'item') {
@@ -223,7 +227,6 @@ export function AdminSidebar() {
               );
             }
 
-            // Group — filter children by feature flags
             const visibleChildren = entry.children.filter(isVisible);
             if (visibleChildren.length === 0) return null;
 
@@ -245,7 +248,6 @@ export function AdminSidebar() {
                     : <ChevronRight size={14} className="text-gray-400" />
                   }
                 </button>
-
                 {isOpen && (
                   <div className="ml-4 mt-0.5 space-y-0.5 border-l border-gray-100 pl-3">
                     {visibleChildren.map((child) => {
@@ -270,7 +272,6 @@ export function AdminSidebar() {
           })}
         </nav>
 
-        {/* Version + last deployed */}
         <div className="px-5 py-1.5 text-center flex-none leading-tight">
           <span className="text-[10px] text-gray-300 font-mono">v{__APP_VERSION__}</span>
           <span className="block text-[9px] text-gray-300" title={__BUILD_TIME__}>
@@ -278,7 +279,6 @@ export function AdminSidebar() {
           </span>
         </div>
 
-        {/* User */}
         <div className="px-4 py-4 border-t border-gray-100 flex items-center gap-3 flex-none">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-none">
             {user?.name?.slice(0, 2).toUpperCase() ?? 'RA'}
@@ -304,6 +304,87 @@ export function AdminSidebar() {
         </div>
       </>
     );
+  }
+
+  // Desktop nav content — changes based on collapsed state
+  function DesktopNav() {
+    if (collapsed) {
+      return (
+        <>
+          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+            {NAV.map((entry) => {
+              if (entry.type === 'item') {
+                if (!isVisible(entry)) return null;
+                const active = isItemActive(entry, location.pathname);
+                return (
+                  <Link
+                    key={entry.label}
+                    to={entry.to}
+                    title={entry.label}
+                    className={`flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-colors relative ${
+                      active ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <entry.icon size={18} />
+                    {entry.badge && activeCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold bg-orange-500 text-white rounded-full min-w-[16px] px-1 py-0 text-center leading-4">
+                        {activeCount}
+                      </span>
+                    )}
+                  </Link>
+                );
+              }
+
+              const visibleChildren = entry.children.filter(isVisible);
+              if (visibleChildren.length === 0) return null;
+
+              const hasActive = visibleChildren.some((c) => isItemActive(c, location.pathname));
+              const firstChild = visibleChildren[0];
+
+              return (
+                <button
+                  key={entry.label}
+                  title={entry.label}
+                  onClick={() => navigate(firstChild.to)}
+                  className={`flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-colors ${
+                    hasActive ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <entry.icon size={18} />
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="py-2 text-center flex-none">
+            <span className="text-[9px] text-gray-300 font-mono">v{__APP_VERSION__}</span>
+          </div>
+
+          <div className="py-4 border-t border-gray-100 flex flex-col items-center gap-3 flex-none">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+              {user?.name?.slice(0, 2).toUpperCase() ?? 'RA'}
+            </div>
+            <button
+              onClick={toggleDark}
+              className="text-gray-400 hover:text-gray-700 transition-colors"
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {dark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-gray-400 hover:text-red-500 transition-colors"
+              title="Logout"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    // Expanded desktop nav (same as mobile NavContent structure)
+    return <NavContent />;
   }
 
   return (
@@ -344,7 +425,6 @@ export function AdminSidebar() {
           transform transition-transform duration-300 ease-in-out
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        {/* Drawer header */}
         <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between flex-none">
           <div>
             <p className="text-base font-bold text-gray-900 leading-tight">Restaurant POS</p>
@@ -361,14 +441,31 @@ export function AdminSidebar() {
         <NavContent />
       </div>
 
-      {/* ── Desktop sidebar (hidden on mobile) ──────────────────────────────── */}
-      <aside className="hidden md:flex w-56 flex-none bg-white border-r border-gray-100 flex-col h-full">
-        {/* Brand */}
-        <div className="px-5 py-5 border-b border-gray-100 flex-none">
-          <p className="text-base font-bold text-gray-900 leading-tight">Restaurant POS</p>
-          <p className="text-xs text-gray-400 mt-0.5">Admin Portal</p>
+      {/* ── Desktop sidebar ──────────────────────────────────────────────────── */}
+      <aside
+        className={`hidden md:flex flex-none bg-white border-r border-gray-100 flex-col h-full transition-all duration-300 ease-in-out ${
+          collapsed ? 'w-16' : 'w-56'
+        }`}
+      >
+        {/* Brand / hamburger toggle */}
+        <div className={`border-b border-gray-100 flex-none flex items-center ${collapsed ? 'justify-center px-2 py-5' : 'px-4 py-5 justify-between'}`}>
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="text-base font-bold text-gray-900 leading-tight truncate">Restaurant POS</p>
+              <p className="text-xs text-gray-400 mt-0.5">Admin Portal</p>
+            </div>
+          )}
+          <button
+            onClick={toggleCollapsed}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-none"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <Menu size={18} />
+          </button>
         </div>
-        <NavContent />
+
+        <DesktopNav />
       </aside>
     </>
   );
