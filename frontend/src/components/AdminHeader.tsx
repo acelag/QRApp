@@ -21,11 +21,12 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    function handleClickOutside(e: Event) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    // pointerdown fires on both mouse and touch (mousedown misses touch on Android WebView)
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, []);
 
   function handleLogout() {
@@ -38,7 +39,7 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
     : '??';
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-40">
+    <header className="bg-white shadow-sm sticky top-14 md:top-0 z-30">
       <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
         {backTo && (
           <Link to={backTo} className="text-gray-600 hover:text-gray-900 shrink-0">
