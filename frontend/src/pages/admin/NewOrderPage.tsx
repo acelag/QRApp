@@ -1,6 +1,6 @@
-﻿import { useEffect, useReducer, useState } from 'react';
+﻿import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Tag, X, LayoutGrid, List } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Tag, X, LayoutGrid, List, Search } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Table, Room } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
@@ -84,6 +84,8 @@ export function NewOrderPage() {
   const [view, setView] = useState<'grid' | 'list'>(() =>
     (localStorage.getItem('qra_neworder_view') as 'grid' | 'list' | null) ?? 'grid'
   );
+  const [search, setSearch] = useState(() => localStorage.getItem('qra_neworder_search') ?? '');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.allSettled([
@@ -148,7 +150,21 @@ export function NewOrderPage() {
     setPromoError('');
   }
 
-  const filtered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
+  const searchQ = search.trim().toLowerCase();
+  const filtered = items
+    .filter((i) => activeCategory === 'all' || i.category === activeCategory)
+    .filter((i) => !searchQ || i.name.toLowerCase().includes(searchQ) || (i.description ?? '').toLowerCase().includes(searchQ));
+
+  function handleSearch(v: string) {
+    setSearch(v);
+    localStorage.setItem('qra_neworder_search', v);
+  }
+
+  function clearSearch() {
+    setSearch('');
+    localStorage.removeItem('qra_neworder_search');
+    searchRef.current?.focus();
+  }
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
 
   function handleAddItem(item: MenuItem) {
@@ -223,6 +239,29 @@ export function NewOrderPage() {
           </div>
         </div>
 
+        {/* Search bar */}
+        <div className="px-3 sm:px-4 lg:px-6 pb-3">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              ref={searchRef}
+              type="search"
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search menu items…"
+              className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 rounded-full outline-none focus:bg-white focus:ring-2 focus:ring-orange-300 transition-all placeholder:text-gray-400"
+            />
+            {search && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
+              >
+                <X size={11} className="text-white" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Mode tabs */}
         <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2">
           <button
@@ -281,7 +320,16 @@ export function NewOrderPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-gray-400 pt-12">No items</p>
+            <div className="text-center pt-12">
+              <p className="text-gray-400">
+                {searchQ ? `No results for "${search}"` : 'No items'}
+              </p>
+              {searchQ && (
+                <button onClick={clearSearch} className="mt-2 text-sm text-orange-500 hover:underline">
+                  Clear search
+                </button>
+              )}
+            </div>
           ) : view === 'list' ? (
             /* â”€â”€ LIST VIEW â”€â”€ */
             <div className="flex flex-col gap-2">
