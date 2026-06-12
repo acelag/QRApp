@@ -98,7 +98,7 @@ export function BillsPage() {
       try {
         const updated = await sessionService.markAsPaid(session.id, method);
         setSessions((prev) => prev.map((s) => (s.id === session.id ? updated : s)));
-        toast.success(`Table ${session.tableNumber} â€” paid by ${method}`);
+        toast.success(`Table ${session.tableNumber} â€" paid by ${method}`);
       } catch (err) {
         toast.error(getApiError(err));
       } finally {
@@ -240,7 +240,7 @@ export function BillsPage() {
           </div>
         ) : tab === 'table' ? (
           <>
-            {/* â”€â”€ Open table sessions â”€â”€ */}
+            {/* â"€â"€ Open table sessions â"€â"€ */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
@@ -412,7 +412,7 @@ export function BillsPage() {
               )}
             </section>
 
-            {/* â”€â”€ Paid today â”€â”€ */}
+            {/* â"€â"€ Paid today â"€â"€ */}
             {paidToday.length > 0 && (
               <section className="space-y-3">
                 <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
@@ -481,7 +481,7 @@ export function BillsPage() {
           </>
         ) : tab === 'takeaway' ? (
           <>
-            {/* â”€â”€ Active takeaway orders â”€â”€ */}
+            {/* â"€â"€ Active takeaway orders â"€â"€ */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
@@ -582,7 +582,7 @@ export function BillsPage() {
               )}
             </section>
 
-            {/* â”€â”€ Paid today takeaway â”€â”€ */}
+            {/* â"€â"€ Paid today takeaway â"€â"€ */}
             {paidTodayTakeaway.length > 0 && (
               <section className="space-y-3">
                 <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
@@ -653,7 +653,7 @@ export function BillsPage() {
             )}
           </>
         ) : (
-          /* â”€â”€ Refunds tab â”€â”€ */
+          /* â"€â"€ Refunds tab â"€â"€ */
           <section className="space-y-4">
             {todayRefunds.length > 0 && (
               <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 flex items-center justify-between">
@@ -724,8 +724,13 @@ export function BillsPage() {
           title="How was this paid?"
           subtitle={
             paymentTarget.type === 'session'
-              ? `Table ${paymentTarget.session.tableNumber} â€” ${fmt(paymentTarget.session.totalAmount ?? 0)}`
-              : `${paymentTarget.order.orderNumber ?? 'Takeaway'} â€” ${fmt(paymentTarget.order.totalAmount)}`
+              ? `Table ${paymentTarget.session.tableNumber} â€" ${fmt(paymentTarget.session.totalAmount ?? 0)}`
+              : `${paymentTarget.order.orderNumber ?? 'Takeaway'} â€" ${fmt(paymentTarget.order.totalAmount)}`
+          }
+          total={
+            paymentTarget.type === 'session'
+              ? (paymentTarget.session.totalAmount ?? 0)
+              : paymentTarget.order.totalAmount
           }
           onConfirm={confirmPayment}
           onClose={() => setPaymentTarget(null)}

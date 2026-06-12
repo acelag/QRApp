@@ -152,6 +152,7 @@ export function RoomChargesPage() {
         <PaymentMethodModal
           title={`Settle â€” ${settling.orderNumber ?? settling.id.slice(0, 8)}`}
           subtitle={`Room ${settling.roomNumber} Â· ${fmt(settling.totalAmount)}`}
+          total={settling.totalAmount}
           onConfirm={(method: PaymentMethod) => handleSettle(settling, method)}
           onClose={() => setSettling(null)}
         />
