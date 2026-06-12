@@ -16,6 +16,7 @@ import { SplitBillModal } from '../../components/SplitBillModal';
 import { PaymentMethodModal, paymentMethodIcon, paymentMethodLabel, type PaymentMethod } from '../../components/PaymentMethodModal';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
+import { printService } from '../../services/printService';
 import { RefundModal } from '../../components/RefundModal';
 import { getApiError } from '../../lib/apiError';
 
@@ -99,6 +100,7 @@ export function BillsPage() {
         const updated = await sessionService.markAsPaid(session.id, method);
         setSessions((prev) => prev.map((s) => (s.id === session.id ? updated : s)));
         toast.success(`Table ${session.tableNumber} â€" paid by ${method}`);
+        printService.sessionReceipt(session.id); // fire-and-forget
       } catch (err) {
         toast.error(getApiError(err));
       } finally {
@@ -112,6 +114,7 @@ export function BillsPage() {
         const updated = await orderService.settleRoomCharge(order.id, method);
         setTakeawayOrders((prev) => prev.map((o) => (o.id === order.id ? updated : o)));
         toast.success(`Order marked as paid by ${method}`);
+        printService.receipt(order.id); // fire-and-forget
       } catch {
         toast.error('Failed to update order');
       } finally {

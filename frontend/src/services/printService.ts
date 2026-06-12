@@ -20,6 +20,9 @@ export const printService = {
   receipt: (orderId: string): Promise<PrintResult> =>
     safePrint(() => axios.post<{ message: string }>(`${BASE}/receipt/${orderId}`).then((r) => ({ success: true, message: r.data.message }))),
 
+  sessionReceipt: (sessionId: string): Promise<PrintResult> =>
+    safePrint(() => axios.post<{ message: string }>(`${BASE}/session/${sessionId}`).then((r) => ({ success: true, message: r.data.message }))),
+
   test: (role: 'receipt' | 'kitchen'): Promise<PrintResult> =>
     safePrint(() => axios.post<{ message: string }>(`${BASE}/test`, { role }).then((r) => ({ success: true, message: r.data.message }))),
 };

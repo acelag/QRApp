@@ -7,6 +7,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
+import { printService } from '../../services/printService';
 
 export function RoomChargesPage() {
   const { fmt } = useCurrency();
@@ -34,6 +35,7 @@ export function RoomChargesPage() {
       const updated = await orderService.settleRoomCharge(order.id, method);
       setOrders((prev) => prev.filter((o) => o.id !== updated.id));
       toast.success(`Room ${order.roomNumber} charge settled (${paymentMethodLabel(method)})`);
+      printService.receipt(order.id); // fire-and-forget
     } catch {
       toast.error('Failed to settle charge');
     }
