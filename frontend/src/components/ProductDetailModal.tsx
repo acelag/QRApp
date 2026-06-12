@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, Plus, Minus, Flame, ShoppingCart, UtensilsCrossed } from 'lucide-react';
+import { X, Plus, Minus, Flame, ShoppingCart, UtensilsCrossed, ZoomIn } from 'lucide-react';
+import { ImageLightbox } from './ImageLightbox';
 import type { MenuItem } from '../types/MenuItem';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
@@ -28,6 +29,7 @@ export function ProductDetailModal({ item, onClose }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [notes, setNotes]     = useState('');
   const [qty, setQty]         = useState(1);
+  const [lightbox, setLightbox] = useState(false);
 
   const activeSize   = hasLarge ? size : undefined;
   const basePrice    = effectivePrice(item, activeSize);
@@ -57,6 +59,7 @@ export function ProductDetailModal({ item, onClose }: Props) {
   }
 
   return (
+    <>
     <div
       className="fixed inset-0 bg-black/60 z-[60] flex items-end sm:items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
@@ -66,7 +69,16 @@ export function ProductDetailModal({ item, onClose }: Props) {
         {/* ── Hero image ─────────────────────────────────────────────────── */}
         <div className="relative flex-none">
           {item.image ? (
-            <img src={item.image} alt={item.name} className="w-full h-56 sm:h-64 object-cover" />
+            <div
+              onClick={() => setLightbox(true)}
+              className="cursor-zoom-in active:brightness-90 transition-[filter]"
+            >
+              <img src={item.image} alt={item.name} className="w-full h-56 sm:h-64 object-cover" />
+              {/* Zoom hint badge */}
+              <div className="absolute bottom-3 right-3 w-7 h-7 bg-black/30 rounded-full flex items-center justify-center pointer-events-none">
+                <ZoomIn size={13} className="text-white" />
+              </div>
+            </div>
           ) : (
             <div className="w-full h-56 sm:h-64 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
               <UtensilsCrossed size={56} className="text-orange-200" />
@@ -86,7 +98,7 @@ export function ProductDetailModal({ item, onClose }: Props) {
               <Flame size={11} /> Only {item.stock} left
             </span>
           )}
-          {/* Close button */}
+          {/* Close button — sibling of image div so its click never triggers the zoom */}
           <button
             onClick={onClose}
             className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
@@ -273,5 +285,10 @@ export function ProductDetailModal({ item, onClose }: Props) {
         </div>
       </div>
     </div>
+
+    {lightbox && item.image && (
+      <ImageLightbox src={item.image} alt={item.name} onClose={() => setLightbox(false)} />
+    )}
+    </>
   );
 }
