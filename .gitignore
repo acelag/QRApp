@@ -27,3 +27,10 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Capacitor native build artifacts (keep the project skeletons in git, ignore build outputs)
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+frontend/ios/App/Pods/
+frontend/ios/App/App/public/

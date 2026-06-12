@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">QRA System</string>
+    <string name="title_activity_main">QRA System</string>
+    <string name="package_name">com.qrasystem.app</string>
+    <string name="custom_url_scheme">com.qrasystem.app</string>
+</resources>
