@@ -1,7 +1,8 @@
 ﻿import { useEffect, useState } from 'react';
-import { BedDouble, CheckCircle2, RefreshCw } from 'lucide-react';
+import { BedDouble, CheckCircle2, Printer, RefreshCw } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
+import { restaurantService, type RestaurantSettings } from '../../services/restaurantService';
 import { PaymentMethodModal, paymentMethodLabel, type PaymentMethod } from '../../components/PaymentMethodModal';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
@@ -11,9 +12,12 @@ import { printService } from '../../services/printService';
 
 export function RoomChargesPage() {
   const { fmt } = useCurrency();
-  const [orders, setOrders]         = useState<Order[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [settling, setSettling]     = useState<Order | null>(null);
+  const [orders, setOrders]           = useState<Order[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [settling, setSettling]       = useState<Order | null>(null);
+  const [settings, setSettings]       = useState<RestaurantSettings | null>(null);
+
+  useEffect(() => { restaurantService.getMyRestaurant().then(setSettings).catch(() => {}); }, []);
 
   const fetchOrders = async () => {
     try {
@@ -35,7 +39,25 @@ export function RoomChargesPage() {
       const updated = await orderService.settleRoomCharge(order.id, method);
       setOrders((prev) => prev.filter((o) => o.id !== updated.id));
       toast.success(`Room ${order.roomNumber} charge settled (${paymentMethodLabel(method)})`);
-      printService.receipt(order.id); // fire-and-forget
+      if (settings?.autoPrintReceipt) {
+        printService.receipt(order.id);
+      } else {
+        const oid = order.id, room = order.roomNumber;
+        toast.custom((t) => (
+          <div className={`flex items-center gap-3 bg-white shadow-lg rounded-2xl px-4 py-3 border border-gray-100 text-sm max-w-xs transition-opacity ${t.visible ? 'opacity-100' : 'opacity-0'}`}>
+            <Printer size={16} className="text-orange-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900">Room {room}</p>
+              <p className="text-xs text-gray-400">Tap to print receipt</p>
+            </div>
+            <button onClick={() => { printService.receipt(oid); toast.dismiss(t.id); }}
+              className="shrink-0 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-full transition-colors">
+              Print
+            </button>
+            <button onClick={() => toast.dismiss(t.id)} className="text-gray-300 hover:text-gray-500 text-base leading-none">✕</button>
+          </div>
+        ), { duration: 12000 });
+      }
     } catch {
       toast.error('Failed to settle charge');
     }
