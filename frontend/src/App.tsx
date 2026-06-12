@@ -28,6 +28,7 @@ import { WelcomePage } from './pages/customer/WelcomePage';
 import { TakeawayMenuPage } from './pages/customer/TakeawayMenuPage';
 import { RoomMenuPage } from './pages/customer/RoomMenuPage';
 import { DashboardPage } from './pages/admin/DashboardPage';
+import { LauncherPage } from './pages/admin/LauncherPage';
 import { OrdersPage } from './pages/admin/OrdersPage';
 import { MenuItemsPage } from './pages/admin/MenuItemsPage';
 import { MenuSetupPage } from './pages/admin/MenuSetupPage';
@@ -195,6 +196,7 @@ export default function App() {
 
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><DashboardPage /></ProtectedRoute>} />
+            <Route path="/admin/launcher" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><LauncherPage /></ProtectedRoute>} />
             <Route path="/admin/orders" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="orders"><OrdersPage /></ProtectedRoute>} />
             <Route path="/admin/menu" element={<ProtectedRoute roles={['admin','manager']} permission="menu"><MenuItemsPage /></ProtectedRoute>} />
             <Route path="/admin/menu-setup" element={<ProtectedRoute roles={['admin','manager']} permission="menu"><MenuSetupPage /></ProtectedRoute>} />

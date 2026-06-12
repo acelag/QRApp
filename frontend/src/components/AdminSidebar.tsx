@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
+  LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2, Rocket,
   Users, Settings, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
   Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
@@ -42,6 +42,7 @@ type NavEntry = NavSingle | NavGroup;
 
 const NAV: NavEntry[] = [
   { type: 'item', label: 'Dashboard', icon: LayoutDashboard, to: '/admin', exact: true },
+  { type: 'item', label: 'Launcher',  icon: Rocket,          to: '/admin/launcher' },
   { type: 'item', label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders', badge: true, perm: 'orders' },
 
   {
