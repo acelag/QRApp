@@ -538,13 +538,13 @@ export function NewOrderPage() {
                         <span className="text-sm font-semibold text-gray-700 shrink-0">
                           {fmt((c.price + toppingsTotal) * c.quantity)}
                         </span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => dispatch({ type: 'DEC', key })} className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">
-                            <Minus size={12} />
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button onClick={() => dispatch({ type: 'DEC', key })} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all">
+                            <Minus size={13} />
                           </button>
-                          <span className="text-xs font-bold w-4 text-center">{c.quantity}</span>
-                          <button onClick={() => dispatch({ type: 'INC', key })} className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600">
-                            <Plus size={12} />
+                          <span className="text-xs font-bold w-5 text-center">{c.quantity}</span>
+                          <button onClick={() => dispatch({ type: 'INC', key })} className="w-9 h-9 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 active:scale-95 transition-all">
+                            <Plus size={13} />
                           </button>
                           <button onClick={() => dispatch({ type: 'REMOVE', key })} className="text-gray-300 hover:text-red-400 ml-1">
                             <Trash2 size={13} />

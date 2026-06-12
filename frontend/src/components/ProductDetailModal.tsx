@@ -252,16 +252,16 @@ export function ProductDetailModal({ item, onClose }: Props) {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all"
               >
-                <Minus size={14} />
+                <Minus size={16} />
               </button>
-              <span className="w-6 text-center font-bold text-gray-900">{qty}</span>
+              <span className="w-8 text-center font-bold text-gray-900">{qty}</span>
               <button
                 onClick={() => setQty((q) => q + 1)}
-                className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center hover:bg-orange-200 transition-colors"
+                className="w-11 h-11 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center hover:bg-orange-200 active:scale-95 transition-all"
               >
-                <Plus size={14} />
+                <Plus size={16} />
               </button>
             </div>
           </div>

@@ -9,21 +9,21 @@ interface Props {
 
 export function QuantitySelector({ value, onChange, min = 1, max = 99 }: Props) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <button
         onClick={() => onChange(value - 1)}
         disabled={value <= min}
-        className="w-8 h-8 rounded-full flex items-center justify-center bg-orange-100 text-orange-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-200 transition-colors"
+        className="w-11 h-11 rounded-full flex items-center justify-center bg-orange-100 text-orange-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-200 active:scale-95 transition-all"
       >
-        <Minus size={14} />
+        <Minus size={16} />
       </button>
-      <span className="w-6 text-center font-semibold text-gray-800">{value}</span>
+      <span className="w-8 text-center font-semibold text-gray-800">{value}</span>
       <button
         onClick={() => onChange(value + 1)}
         disabled={value >= max}
-        className="w-8 h-8 rounded-full flex items-center justify-center bg-orange-500 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 transition-colors"
+        className="w-11 h-11 rounded-full flex items-center justify-center bg-orange-500 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 active:scale-95 transition-all"
       >
-        <Plus size={14} />
+        <Plus size={16} />
       </button>
     </div>
   );

@@ -457,12 +457,12 @@ export function TakeawayMenuPage() {
                       <li key={key} className="py-2.5">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={() => dispatch({ type: 'DEC', key })} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">
-                              <Minus size={12} />
+                            <button onClick={() => dispatch({ type: 'DEC', key })} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all">
+                              <Minus size={14} />
                             </button>
-                            <span className="w-5 text-center font-bold text-gray-900 text-sm">{c.quantity}</span>
-                            <button onClick={() => dispatch({ type: 'INC', key })} className="w-7 h-7 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center hover:bg-purple-200">
-                              <Plus size={12} />
+                            <span className="w-6 text-center font-bold text-gray-900 text-sm">{c.quantity}</span>
+                            <button onClick={() => dispatch({ type: 'INC', key })} className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center hover:bg-purple-200 active:scale-95 transition-all">
+                              <Plus size={14} />
                             </button>
                           </div>
                           <div className="flex-1 min-w-0">
