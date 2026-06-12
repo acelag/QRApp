@@ -11,6 +11,7 @@ import { orderService } from '../../services/orderService';
 import { menuService } from '../../services/menuService';
 import { restaurantService } from '../../services/restaurantService';
 import { OrderCard } from '../../components/OrderCard';
+import { PullToRefresh } from '../../components/PullToRefresh';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -239,6 +240,7 @@ export function KitchenPage() {
 
       {/* â”€â”€ Orders tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === 'orders' && (
+        <PullToRefresh onRefresh={fetchOrders}>
         <main className="px-3 sm:px-4 lg:px-6 py-4">
           {orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center pt-24 text-gray-500">
@@ -265,6 +267,7 @@ export function KitchenPage() {
             </div>
           )}
         </main>
+        </PullToRefresh>
       )}
 
       {/* â”€â”€ Items tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}

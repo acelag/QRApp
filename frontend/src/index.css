@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;

@@ -11,6 +11,7 @@ import { AddItemsModal } from '../../components/AddItemsModal';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
+import { PullToRefresh } from '../../components/PullToRefresh';
 
 
 export function OrdersPage() {
@@ -146,6 +147,7 @@ export function OrdersPage() {
         </div>
       </div>
 
+      <PullToRefresh onRefresh={fetch}>
       <div className="px-3 sm:px-4 lg:px-6 py-4">
         {loading ? (
           <div className="flex justify-center pt-12">
@@ -173,6 +175,7 @@ export function OrdersPage() {
           </div>
         )}
       </div>
+      </PullToRefresh>
       {addItemsOrder && (
         <AddItemsModal
           order={addItemsOrder}
