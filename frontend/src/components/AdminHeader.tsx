@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, LogOut, ChevronDown, Sun, Moon } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
+import { SoundAlertToggle } from './SoundAlertToggle';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -54,6 +55,8 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
 
         {/* Page-specific actions */}
         {children}
+
+        <SoundAlertToggle />
 
         <button
           onClick={toggleDark}
