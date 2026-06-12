@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { X, Plus, Minus, Flame, ShoppingCart, UtensilsCrossed } from 'lucide-react';
 import type { MenuItem } from '../types/MenuItem';
-import type { SelectedTopping } from '../types/Order';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
