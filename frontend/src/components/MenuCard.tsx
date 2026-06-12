@@ -4,8 +4,6 @@ import type { MenuItem } from '../types';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
-import { useTags } from '../context/TagsContext';
-import { tagPillCls } from '../services/tagService';
 import { ProductDetailModal } from './ProductDetailModal';
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -21,7 +19,6 @@ interface Props {
 export function MenuCard({ item, view = 'grid', categoryName, isFavourite = false, onToggleFavourite }: Props) {
   const { addItem, items } = useCart();
   const { fmt } = useCurrency();
-  const { tags: allTags } = useTags();
   const hasLarge    = item.largePrice != null && item.largePrice > 0;
   const hasToppings = (item.toppings ?? []).some((t) => t.available);
   const isLowStock  = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= LOW_STOCK_THRESHOLD;

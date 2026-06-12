@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
-  Users, Settings, LogOut, ChefHat, MonitorPlay,
+  Users, Settings, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
   Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
-  LayoutGrid, ChevronDown, ChevronRight, Menu, X, Sun, Moon, MapPin, Star,
+  LayoutGrid, ChevronDown, ChevronRight, Menu, X, MapPin, Star,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { RestaurantFeatures } from '../context/AuthContext';
@@ -130,10 +130,10 @@ function groupHasActiveChild(group: NavGroup, pathname: string) {
 }
 
 export function AdminSidebar() {
-  const { user, logout, features, hasPermission } = useAuth();
+  const { user, features, hasPermission } = useAuth();
   const location = useLocation();
   const { enabled: subsEnabled } = useSubscriptionConfig();
-  const { dark, toggleDark } = useTheme();
+  useTheme();
   const [activeCount,    setActiveCount]    = useState(0);
   const [lowStockCount,  setLowStockCount]  = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -228,7 +228,6 @@ export function AdminSidebar() {
     });
   }
 
-  function handleLogout() { logout(); window.location.href = '/'; }
 
   // Shared nav content for mobile drawer (always expanded)
   function NavContent() {

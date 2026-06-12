@@ -13,7 +13,7 @@ import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
-import { tagPillCls } from '../../services/tagService';
+
 import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
 import type { MenuSchedule } from '../../services/menuScheduleService';
 import { comboService, type Combo } from '../../services/comboService';
@@ -26,11 +26,11 @@ export function MenuPage() {
   const { setTable, setSession, setRestaurant, tableNumber, tableId, addCombo } = useCart();
   const { loadCurrency, fmt } = useCurrency();
   const { loadTheme } = useTheme();
-  const { tags: allTags, loadTags } = useTags();
+  const { loadTags } = useTags();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeTag, _setActiveTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -125,10 +125,6 @@ export function MenuPage() {
         .filter((i) => (activeTag ? (i.tags ?? []).includes(activeTag) : true))
     : tagFiltered;
   const filtered = showFavourites ? baseFiltered.filter((i) => isFavourite(i.id)) : baseFiltered;
-  // Only show tag chips for tags that exist on at least one visible menu item
-  const presentSlugs = new Set(visibleItems.flatMap((i) => i.tags ?? []));
-  const visibleTags = allTags.filter((t) => presentSlugs.has(t.slug));
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
