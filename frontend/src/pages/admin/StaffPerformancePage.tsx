@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { RefreshCw, Trophy, TrendingUp, ShoppingBag, UserCheck, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -16,7 +16,7 @@ interface WaiterStat {
 }
 
 function fmtMins(m: number): string {
-  if (m <= 0) return '—';
+  if (m <= 0) return 'â€”';
   if (m < 60) return `${Math.round(m)} min`;
   const h = Math.floor(m / 60);
   const rem = Math.round(m % 60);
@@ -46,7 +46,7 @@ function rangeToFromTo(range: Range, customFrom: string, customTo: string): [str
   return [customFrom, customTo];
 }
 
-const MEDAL = ['🥇', '🥈', '🥉'];
+const MEDAL = ['ðŸ¥‡', 'ðŸ¥ˆ', 'ðŸ¥‰'];
 
 export function StaffPerformancePage() {
   const { fmt } = useCurrency();
@@ -91,7 +91,7 @@ export function StaffPerformancePage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Staff Performance" backTo="/admin">
         <button onClick={load} className="text-gray-400 hover:text-gray-600 p-1.5">
           <RefreshCw size={17} />
@@ -118,7 +118,7 @@ export function StaffPerformancePage() {
           <div className="px-3 sm:px-4 lg:px-6 pb-3 flex items-center gap-2">
             <input type="date" value={customFrom} onChange={(e) => setFrom(e.target.value)}
               className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-300 text-gray-700" />
-            <span className="text-gray-400 text-sm">→</span>
+            <span className="text-gray-400 text-sm">â†’</span>
             <input type="date" value={customTo} onChange={(e) => setTo(e.target.value)}
               className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-300 text-gray-700" />
           </div>
@@ -134,7 +134,7 @@ export function StaffPerformancePage() {
             <div className="grid grid-cols-3 gap-3">
               <StatCard icon={<ShoppingBag size={16} />} label="Assigned Orders" value={String(totalOrders)} />
               <StatCard icon={<TrendingUp size={16} />} label="Waiter Revenue" value={fmt(totalRevenue)} />
-              <StatCard icon={<Trophy size={16} />} label="Top Performer" value={topWaiter?.waiterName ?? '—'} small />
+              <StatCard icon={<Trophy size={16} />} label="Top Performer" value={topWaiter?.waiterName ?? 'â€”'} small />
             </div>
 
             {/* Unassigned callout */}
@@ -172,7 +172,7 @@ export function StaffPerformancePage() {
                           <p className="font-semibold text-gray-900 flex-1 text-sm">{w.waiterName}</p>
                           <div className="text-right shrink-0">
                             <p className="font-bold text-gray-900 text-sm">{fmt(w.totalRevenue)}</p>
-                            <p className="text-xs text-gray-400">{w.orderCount} orders · {w.servedCount} served</p>
+                            <p className="text-xs text-gray-400">{w.orderCount} orders Â· {w.servedCount} served</p>
                           </div>
                         </div>
                         {/* Revenue bar */}

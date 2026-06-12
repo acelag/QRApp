@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -146,7 +146,7 @@ export function UsersPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Manage Users" backTo="/admin/settings">
         <button
           onClick={openNew}
@@ -185,7 +185,7 @@ export function UsersPage() {
           <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
-                {editing ? `Edit — ${editing.name}` : 'New User'}
+                {editing ? `Edit â€” ${editing.name}` : 'New User'}
               </h2>
               <button onClick={() => setShowForm(false)}><X size={20} className="text-gray-400" /></button>
             </div>
@@ -199,7 +199,7 @@ export function UsersPage() {
             {/* Two-column layout */}
             <div className="grid md:grid-cols-2 gap-6 items-start">
 
-            {/* ── Left column: account fields + role ── */}
+            {/* â”€â”€ Left column: account fields + role â”€â”€ */}
             <div className="space-y-4">
             {/* Name */}
             <div>
@@ -237,7 +237,7 @@ export function UsersPage() {
                   type={showPwd ? 'text' : 'password'}
                   value={form.password}
                   onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  placeholder={editing ? '••••••••' : 'Min. 6 characters'}
+                  placeholder={editing ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' : 'Min. 6 characters'}
                   autoComplete="new-password"
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
                 />
@@ -269,9 +269,9 @@ export function UsersPage() {
                 ))}
               </div>
             </div>
-            </div>{/* ── end left column ── */}
+            </div>{/* â”€â”€ end left column â”€â”€ */}
 
-            {/* ── Right column: Access & Permissions ── */}
+            {/* â”€â”€ Right column: Access & Permissions â”€â”€ */}
             <div className="md:border-l md:border-gray-100 md:pl-6">
             {form.role === 'admin' ? (
               <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 text-sm text-orange-700">
@@ -283,7 +283,7 @@ export function UsersPage() {
                   <label className="text-sm font-medium text-gray-700">Access &amp; Permissions</label>
                   <div className="flex gap-2 text-xs">
                     <button type="button" onClick={() => setForm((f) => ({ ...f, permissions: assignable.map((p) => p.key) }))} className="text-orange-600 font-semibold hover:underline">All</button>
-                    <span className="text-gray-300">·</span>
+                    <span className="text-gray-300">Â·</span>
                     <button type="button" onClick={() => setForm((f) => ({ ...f, permissions: [] }))} className="text-gray-500 font-semibold hover:underline">None</button>
                   </div>
                 </div>
@@ -308,7 +308,7 @@ export function UsersPage() {
                                 }`}
                               >
                                 <span className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border ${on ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300'}`}>
-                                  {on && <span className="text-[10px] leading-none">✓</span>}
+                                  {on && <span className="text-[10px] leading-none">âœ“</span>}
                                 </span>
                                 <span className="truncate">{it.label}</span>
                               </button>
@@ -321,8 +321,8 @@ export function UsersPage() {
                 </div>
               </div>
             )}
-            </div>{/* ── end right column ── */}
-            </div>{/* ── end two-column grid ── */}
+            </div>{/* â”€â”€ end right column â”€â”€ */}
+            </div>{/* â”€â”€ end two-column grid â”€â”€ */}
 
             <button
               onClick={save}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Pencil, Check, X, Store, LogOut,
@@ -82,7 +82,7 @@ export function RestaurantsPage() {
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [editName, setEditName]       = useState('');
 
-  // expanded restaurant id → its users
+  // expanded restaurant id â†’ its users
   const [expandedId, setExpandedId]   = useState<string | null>(null);
   const [usersMap, setUsersMap]       = useState<Record<string, RestaurantUser[]>>({});
   const [usersLoading, setUsersLoading] = useState(false);
@@ -134,7 +134,7 @@ export function RestaurantsPage() {
 
   useEffect(() => { load(); }, []);
 
-  // ── Toggle active ────────────────────────────────────────────────────────────
+  // â”€â”€ Toggle active â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function toggleActive(r: Restaurant) {
     const next = !r.active;
     try {
@@ -146,7 +146,7 @@ export function RestaurantsPage() {
     }
   }
 
-  // ── Toggle feature flag ──────────────────────────────────────────────────────
+  // â”€â”€ Toggle feature flag â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function toggleFeature(r: Restaurant, key: keyof RestaurantFeatures) {
     const current = r.features ?? ALL_FEATURES_ON;
     const next = !current[key];
@@ -163,7 +163,7 @@ export function RestaurantsPage() {
     }
   }
 
-  // ── Expand / load users ──────────────────────────────────────────────────────
+  // â”€â”€ Expand / load users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function toggleExpand(id: string) {
     if (expandedId === id) { setExpandedId(null); return; }
     setExpandedId(id);
@@ -179,7 +179,7 @@ export function RestaurantsPage() {
     }
   }
 
-  // ── Impersonate ──────────────────────────────────────────────────────────────
+  // â”€â”€ Impersonate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function loginAs(userId: string, username: string) {
     setImpersonating(userId);
     try {
@@ -203,7 +203,7 @@ export function RestaurantsPage() {
     }
   }
 
-  // ── Create ───────────────────────────────────────────────────────────────────
+  // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleCreate() {
     if (!form.name.trim() || !form.adminUsername.trim() || !form.adminPassword.trim()) {
       toast.error('Name, admin username and password are required'); return;
@@ -224,7 +224,7 @@ export function RestaurantsPage() {
     }
   }
 
-  // ── Rename ───────────────────────────────────────────────────────────────────
+  // â”€â”€ Rename â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function startEdit(r: Restaurant) { setEditingId(r.id); setEditName(r.name); }
 
   async function saveEdit(id: string) {
@@ -239,7 +239,7 @@ export function RestaurantsPage() {
     }
   }
 
-  // ── Toggle switch UI ─────────────────────────────────────────────────────────
+  // â”€â”€ Toggle switch UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function Switch({ on, onChange }: { on: boolean; onChange: () => void }) {
     return (
       <button
@@ -247,7 +247,7 @@ export function RestaurantsPage() {
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
           on ? 'bg-green-500' : 'bg-gray-300'
         }`}
-        title={on ? 'Active — click to deactivate' : 'Inactive — click to activate'}
+        title={on ? 'Active â€” click to deactivate' : 'Inactive â€” click to activate'}
       >
         <span
           className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
@@ -316,7 +316,7 @@ export function RestaurantsPage() {
                   r.active ? 'border-gray-100' : 'border-red-100 bg-red-50/30'
                 }`}
               >
-                {/* ── Restaurant row ── */}
+                {/* â”€â”€ Restaurant row â”€â”€ */}
                 <div className="flex items-center gap-3 p-4">
                   {/* Icon */}
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -353,7 +353,7 @@ export function RestaurantsPage() {
                       {r.subscriptionStatus && (
                         <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${SUB_BADGE[r.subscriptionStatus] ?? 'bg-gray-100 text-gray-600'}`}>
                           {r.subscriptionStatus.replace('_', ' ')}
-                          {r.subscriptionStatus === 'trialing' && r.trialEndsAt ? ` · ${daysUntil(r.trialEndsAt)}d` : ''}
+                          {r.subscriptionStatus === 'trialing' && r.trialEndsAt ? ` Â· ${daysUntil(r.trialEndsAt)}d` : ''}
                         </span>
                       )}
                     </div>
@@ -410,7 +410,7 @@ export function RestaurantsPage() {
                   </div>
                 </div>
 
-                {/* ── Users panel ── */}
+                {/* â”€â”€ Users panel â”€â”€ */}
                 {isExpanded && (
                   <div className="border-t border-gray-100 px-4 pb-4 pt-3">
                     <div className="flex items-center gap-2 mb-3">
@@ -452,7 +452,7 @@ export function RestaurantsPage() {
                               title={`Login as ${u.username}`}
                             >
                               {impersonating === u.id ? (
-                                <span className="animate-pulse">…</span>
+                                <span className="animate-pulse">â€¦</span>
                               ) : (
                                 <>
                                   <LogIn size={12} /> Login As
@@ -466,7 +466,7 @@ export function RestaurantsPage() {
                   </div>
                 )}
 
-                {/* ── Billing panel ── */}
+                {/* â”€â”€ Billing panel â”€â”€ */}
                 {billingOpenId === r.id && (
                   <div className="border-t border-gray-100 px-4 pb-4 pt-3">
                     <div className="flex items-center gap-2 mb-3">
@@ -514,13 +514,13 @@ export function RestaurantsPage() {
                         disabled={savingBilling}
                         className="px-4 py-1.5 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
                       >
-                        {savingBilling ? 'Saving…' : 'Save'}
+                        {savingBilling ? 'Savingâ€¦' : 'Save'}
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* ── Features panel ── */}
+                {/* â”€â”€ Features panel â”€â”€ */}
                 {isFeaturesOpen && (
                   <div className="border-t border-gray-100 px-4 pb-4 pt-3">
                     <div className="flex items-center gap-2 mb-3">

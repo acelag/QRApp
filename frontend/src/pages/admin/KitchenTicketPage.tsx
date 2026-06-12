@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -24,7 +24,7 @@ export function KitchenTicketPage() {
   }, [orderId]);
 
   if (error) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Order not found.</p>;
-  if (!order) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loading…</p>;
+  if (!order) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loadingâ€¦</p>;
 
   const now     = new Date(order.createdAt);
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -33,9 +33,9 @@ export function KitchenTicketPage() {
   const totalQty = order.items.reduce((s, i) => s + i.quantity, 0);
 
   function locationLine(): string {
-    if (order!.orderType === 'room-service') return `ROOM  ${order!.roomNumber ?? '—'}`;
-    if (order!.orderType === 'takeaway')     return `TAKEAWAY${order!.customerName ? `  ·  ${order!.customerName.toUpperCase()}` : ''}`;
-    return `TABLE  ${order!.tableNumber ?? '—'}`;
+    if (order!.orderType === 'room-service') return `ROOM  ${order!.roomNumber ?? 'â€”'}`;
+    if (order!.orderType === 'takeaway')     return `TAKEAWAY${order!.customerName ? `  Â·  ${order!.customerName.toUpperCase()}` : ''}`;
+    return `TABLE  ${order!.tableNumber ?? 'â€”'}`;
   }
 
   return (
@@ -127,10 +127,10 @@ export function KitchenTicketPage() {
         }
       `}</style>
 
-      {/* On-screen button — hidden when printing */}
+      {/* On-screen button â€” hidden when printing */}
       <div className="no-print" style={{ textAlign: 'center', paddingTop: 16 }}>
         <button className="print-btn" onClick={() => window.print()}>
-          🖨️ Print Kitchen Ticket
+          ðŸ–¨ï¸ Print Kitchen Ticket
         </button>
       </div>
 
@@ -145,7 +145,7 @@ export function KitchenTicketPage() {
           {order.orderNumber ? `#${order.orderNumber}` : `#${order.id.slice(0, 6).toUpperCase()}`}
         </p>
         <p className="center" style={{ fontSize: 11, marginTop: 2 }}>
-          {dateStr}  ·  {timeStr}
+          {dateStr}  Â·  {timeStr}
         </p>
 
         <Dash />
@@ -155,11 +155,11 @@ export function KitchenTicketPage() {
 
         <Dash char="=" />
 
-        {/* Items — no prices, large and clear */}
+        {/* Items â€” no prices, large and clear */}
         {order.items.map((item, idx) => (
           <div key={idx} style={{ marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="item-qty">{item.quantity}×</span>
+              <span className="item-qty">{item.quantity}Ã—</span>
               <span className="item-name">
                 {item.name}
                 {item.size && (
@@ -173,7 +173,7 @@ export function KitchenTicketPage() {
               <p key={ti} className="topping">+ {t.name}</p>
             ))}
             {item.notes && (
-              <p className="note">★ {item.notes}</p>
+              <p className="note">â˜… {item.notes}</p>
             )}
           </div>
         ))}

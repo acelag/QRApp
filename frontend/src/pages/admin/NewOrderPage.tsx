@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+﻿import { useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Tag, X, LayoutGrid, List } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
@@ -198,7 +198,7 @@ export function NewOrderPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
@@ -274,7 +274,7 @@ export function NewOrderPage() {
       </header>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 flex flex-col lg:flex-row gap-4 items-start">
-        {/* ── Menu grid ── */}
+        {/* â”€â”€ Menu grid â”€â”€ */}
         <div className="flex-1 min-w-0">
           {loading ? (
             <div className="flex justify-center pt-16">
@@ -283,7 +283,7 @@ export function NewOrderPage() {
           ) : filtered.length === 0 ? (
             <p className="text-center text-gray-400 pt-12">No items</p>
           ) : view === 'list' ? (
-            /* ── LIST VIEW ── */
+            /* â”€â”€ LIST VIEW â”€â”€ */
             <div className="flex flex-col gap-2">
               {filtered.map((item) => {
                 const hasLarge = (item.largePrice ?? 0) > 0;
@@ -304,7 +304,7 @@ export function NewOrderPage() {
                     <div className="relative shrink-0">
                       {item.image
                         ? <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-xl" />
-                        : <div className="w-14 h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl flex items-center justify-center text-2xl">🍽️</div>}
+                        : <div className="w-14 h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl flex items-center justify-center text-2xl">ðŸ½ï¸</div>}
                       {totalInCart > 0 && (
                         <span className="absolute -top-1 -left-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                           {totalInCart}
@@ -344,7 +344,7 @@ export function NewOrderPage() {
               })}
             </div>
           ) : (
-            /* ── GRID VIEW ── */
+            /* â”€â”€ GRID VIEW â”€â”€ */
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {filtered.map((item) => {
                 const hasLarge = (item.largePrice ?? 0) > 0;
@@ -364,7 +364,7 @@ export function NewOrderPage() {
                     <div className="relative w-full h-28 rounded-xl bg-orange-50 overflow-hidden mb-2">
                       {item.image
                         ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center text-3xl">🍽️</div>}
+                        : <div className="w-full h-full flex items-center justify-center text-3xl">ðŸ½ï¸</div>}
                       {(hasToppings || hasLarge) && (
                         <span className="absolute top-1 right-1 bg-orange-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
                           {hasToppings ? '+ Extras' : 'R / L'}
@@ -401,10 +401,10 @@ export function NewOrderPage() {
           )}
         </div>
 
-        {/* ── Sidebar ── */}
+        {/* â”€â”€ Sidebar â”€â”€ */}
         <div className="w-full lg:w-80 lg:shrink-0 lg:sticky lg:top-40 space-y-3">
 
-          {/* Table selector — dine-in only */}
+          {/* Table selector â€” dine-in only */}
           {mode === 'dine-in' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Select Table</p>
@@ -429,13 +429,13 @@ export function NewOrderPage() {
               )}
               {selectedTable && (
                 <p className="text-xs text-orange-600 font-medium mt-2 text-center">
-                  Table {selectedTable.number} · {selectedTable.seats} seats
+                  Table {selectedTable.number} Â· {selectedTable.seats} seats
                 </p>
               )}
             </div>
           )}
 
-          {/* Room selector — room-service only */}
+          {/* Room selector â€” room-service only */}
           {mode === 'room-service' && (
             <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Select Room</p>
@@ -461,7 +461,7 @@ export function NewOrderPage() {
               )}
               {selectedRoom && (
                 <p className="text-xs text-blue-600 font-medium mt-2 text-center">
-                  Room {selectedRoom.number}{selectedRoom.name ? ` — ${selectedRoom.name}` : ''}
+                  Room {selectedRoom.number}{selectedRoom.name ? ` â€” ${selectedRoom.name}` : ''}
                 </p>
               )}
             </div>
@@ -533,7 +533,7 @@ export function NewOrderPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-400">{fmt(c.price + toppingsTotal)} × {c.quantity}</p>
+                          <p className="text-xs text-gray-400">{fmt(c.price + toppingsTotal)} Ã— {c.quantity}</p>
                         </div>
                         <span className="text-sm font-semibold text-gray-700 shrink-0">
                           {fmt((c.price + toppingsTotal) * c.quantity)}
@@ -567,7 +567,7 @@ export function NewOrderPage() {
                             value={c.notes ?? ''}
                             onChange={(e) => dispatch({ type: 'SET_NOTES', key, notes: e.target.value })}
                             onBlur={() => setEditingNotesKey(null)}
-                            placeholder="e.g. no onions, less spicy…"
+                            placeholder="e.g. no onions, less spicyâ€¦"
                             className="w-full text-xs border border-orange-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-orange-300"
                           />
                         ) : (
@@ -575,7 +575,7 @@ export function NewOrderPage() {
                             onClick={() => setEditingNotesKey(key)}
                             className="text-xs text-orange-400 hover:text-orange-600"
                           >
-                            {c.notes ? `📝 ${c.notes}` : '+ Add note'}
+                            {c.notes ? `ðŸ“ ${c.notes}` : '+ Add note'}
                           </button>
                         )}
                       </div>
@@ -594,7 +594,7 @@ export function NewOrderPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-green-700">{appliedPromo.code}</p>
                       <p className="text-xs text-green-600">
-                        {appliedPromo.type === 'percentage' ? `${appliedPromo.value}%` : fmt(appliedPromo.value!)} off · saving {fmt(discount)}
+                        {appliedPromo.type === 'percentage' ? `${appliedPromo.value}%` : fmt(appliedPromo.value!)} off Â· saving {fmt(discount)}
                       </p>
                     </div>
                     <button onClick={removePromo} className="text-green-400 hover:text-red-400 transition-colors">
@@ -634,7 +634,7 @@ export function NewOrderPage() {
                       <span>Subtotal</span><span>{fmt(total)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-green-600 font-semibold">
-                      <span>Discount ({appliedPromo?.code})</span><span>−{fmt(discount)}</span>
+                      <span>Discount ({appliedPromo?.code})</span><span>âˆ’{fmt(discount)}</span>
                     </div>
                   </>
                 )}
@@ -659,12 +659,12 @@ export function NewOrderPage() {
                 }`}
               >
                 {placing
-                  ? <><Loader2 size={16} className="animate-spin" /> Placing…</>
+                  ? <><Loader2 size={16} className="animate-spin" /> Placingâ€¦</>
                   : mode === 'takeaway'
                   ? <><Check size={16} /> Place Takeaway Order</>
                   : mode === 'room-service'
-                  ? <><Check size={16} /> Place Room Service Order{selectedRoom ? ` · Room ${selectedRoom.number}` : ''}</>
-                  : <><Check size={16} /> Place Dine-in Order{selectedTable ? ` · Table ${selectedTable.number}` : ''}</>
+                  ? <><Check size={16} /> Place Room Service Order{selectedRoom ? ` Â· Room ${selectedRoom.number}` : ''}</>
+                  : <><Check size={16} /> Place Dine-in Order{selectedTable ? ` Â· Table ${selectedTable.number}` : ''}</>
                 }
               </button>
             </div>

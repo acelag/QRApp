@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+﻿import { useEffect, useRef, useState, useCallback } from 'react';
 import { Save, Pencil, Eye, ToggleLeft, ToggleRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
@@ -44,7 +44,7 @@ export function FloorPlanPage() {
   const [saving, setSaving] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
 
-  // ── Load tables ──────────────────────────────────────────────────────────────
+  // â”€â”€ Load tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     tableService.getTables().then((data) => {
       setTables(data.filter((t) => t.active));
@@ -58,7 +58,7 @@ export function FloorPlanPage() {
     }).catch(() => toast.error('Failed to load tables'));
   }, []);
 
-  // ── Poll live status ─────────────────────────────────────────────────────────
+  // â”€â”€ Poll live status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const load = () =>
       tableService.getStatus().then((rows) => {
@@ -71,7 +71,7 @@ export function FloorPlanPage() {
     return () => clearInterval(id);
   }, []);
 
-  // ── Global drag handlers ──────────────────────────────────────────────────────
+  // â”€â”€ Global drag handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const onMouseMove = useCallback((e: MouseEvent) => {
     if (!drag || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -110,7 +110,7 @@ export function FloorPlanPage() {
     };
   }, [drag, onMouseMove, onMouseUp, onTouchMove]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function startDrag(e: React.MouseEvent | React.TouchEvent, id: string) {
     if (!editMode) return;
     e.preventDefault();
@@ -166,14 +166,14 @@ export function FloorPlanPage() {
     }
   }
 
-  // ── Partitioning ──────────────────────────────────────────────────────────────
+  // â”€â”€ Partitioning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const placed = tables.filter((t) => positions[t.id] != null);
   const unplaced = tables.filter((t) => positions[t.id] == null);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
         <AdminHeader title="Floor Plan" backTo="/admin">
           <div className="flex items-center gap-2">
             <button
@@ -192,7 +192,7 @@ export function FloorPlanPage() {
                 disabled={saving}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-60 transition-colors"
               >
-                <Save size={14} /> {saving ? 'Saving…' : 'Save Layout'}
+                <Save size={14} /> {saving ? 'Savingâ€¦' : 'Save Layout'}
               </button>
             )}
           </div>
@@ -230,8 +230,8 @@ export function FloorPlanPage() {
           >
             {placed.length === 0 && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 text-sm gap-2">
-                <span className="text-4xl">🪑</span>
-                <span>{editMode ? 'Click tables below to place them on the floor' : 'No tables placed yet — switch to Edit mode'}</span>
+                <span className="text-4xl">ðŸª‘</span>
+                <span>{editMode ? 'Click tables below to place them on the floor' : 'No tables placed yet â€” switch to Edit mode'}</span>
               </div>
             )}
 
@@ -267,13 +267,13 @@ export function FloorPlanPage() {
                   )}
 
                   <span className="font-bold text-sm leading-none">T{table.number}</span>
-                  <span className="text-[10px] opacity-70 mt-0.5">{table.seats}⑆</span>
+                  <span className="text-[10px] opacity-70 mt-0.5">{table.seats}â‘†</span>
 
                   {/* Live info in view mode */}
                   {!editMode && st && st.status !== 'free' && (
                     <span className="text-[9px] opacity-60 mt-0.5 text-center px-1 leading-tight">
                       {st.orderCount > 0 && `${st.orderCount} ord`}
-                      {st.sessionTotal > 0 && ` · ${fmt(st.sessionTotal)}`}
+                      {st.sessionTotal > 0 && ` Â· ${fmt(st.sessionTotal)}`}
                     </span>
                   )}
                   {!editMode && st && st.sessionStarted && (
@@ -299,7 +299,7 @@ export function FloorPlanPage() {
                         className="text-[9px] bg-white border border-red-200 rounded px-1 py-0.5 text-red-400 hover:bg-red-50"
                         title="Remove from floor"
                       >
-                        ×
+                        Ã—
                       </button>
                     </div>
                   )}
@@ -312,7 +312,7 @@ export function FloorPlanPage() {
           {editMode && unplaced.length > 0 && (
             <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                Unplaced tables — click to add to floor
+                Unplaced tables â€” click to add to floor
               </p>
               <div className="flex flex-wrap gap-2">
                 {unplaced.map((t) => (
@@ -322,7 +322,7 @@ export function FloorPlanPage() {
                     className="flex flex-col items-center justify-center w-16 h-14 rounded-xl border-2 border-dashed border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
                   >
                     <span className="font-bold text-sm">T{t.number}</span>
-                    <span className="text-[10px] opacity-70">{t.seats}⑆</span>
+                    <span className="text-[10px] opacity-70">{t.seats}â‘†</span>
                   </button>
                 ))}
               </div>
@@ -332,7 +332,7 @@ export function FloorPlanPage() {
           {/* View-mode: unplaced notice */}
           {!editMode && unplaced.length > 0 && (
             <p className="text-xs text-gray-400 text-center">
-              {unplaced.length} table{unplaced.length > 1 ? 's' : ''} not yet placed on floor plan —
+              {unplaced.length} table{unplaced.length > 1 ? 's' : ''} not yet placed on floor plan â€”
               switch to <span className="font-medium">Edit mode</span> to position them.
             </p>
           )}

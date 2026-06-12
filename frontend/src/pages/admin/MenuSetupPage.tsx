@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Pencil, Trash2, X, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import { menuService } from '../../services/menuService';
@@ -21,7 +21,7 @@ export function MenuSetupPage() {
 
   // Tag management
   const [newTagLabel, setNewTagLabel] = useState('');
-  const [newTagEmoji, setNewTagEmoji] = useState('🏷️');
+  const [newTagEmoji, setNewTagEmoji] = useState('ðŸ·ï¸');
   const [newTagCategory, setNewTagCategory] = useState<TagCategory>('label');
   const [editingTag, setEditingTag] = useState<{ id: string; label: string; emoji: string; category: TagCategory } | null>(null);
   const [savingTag, setSavingTag] = useState(false);
@@ -34,7 +34,7 @@ export function MenuSetupPage() {
     tagService.getTagsAdmin().then(setTags).catch(() => {});
   }, []);
 
-  // ── Category handlers ──────────────────────────────────────────────────────
+  // â”€â”€ Category handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleBulkToggle(cat: Category, available: boolean) {
     if (bulkToggling.has(cat.id)) return;
     const count = items.filter((i) => i.category === cat.id).length;
@@ -84,7 +84,7 @@ export function MenuSetupPage() {
   async function deleteCategory(cat: Category) {
     const inUse = items.some((i) => i.category === cat.id);
     if (inUse) {
-      toast.error(`"${cat.name}" is used by menu items — remove those items first`);
+      toast.error(`"${cat.name}" is used by menu items â€” remove those items first`);
       return;
     }
     if (!confirm(`Delete category "${cat.name}"?`)) return;
@@ -97,15 +97,15 @@ export function MenuSetupPage() {
     }
   }
 
-  // ── Tag handlers ───────────────────────────────────────────────────────────
+  // â”€â”€ Tag handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function addTag() {
     if (!newTagLabel.trim()) return;
     setSavingTag(true);
     try {
-      const t = await tagService.createTag(newTagLabel.trim(), newTagEmoji.trim() || '🏷️', newTagCategory);
+      const t = await tagService.createTag(newTagLabel.trim(), newTagEmoji.trim() || 'ðŸ·ï¸', newTagCategory);
       setTags((prev) => [...prev, t]);
       setNewTagLabel('');
-      setNewTagEmoji('🏷️');
+      setNewTagEmoji('ðŸ·ï¸');
       setNewTagCategory('label');
       toast.success('Tag added');
     } catch {
@@ -119,7 +119,7 @@ export function MenuSetupPage() {
     if (!editingTag || !editingTag.label.trim()) return;
     setSavingTag(true);
     try {
-      const t = await tagService.updateTag(editingTag.id, editingTag.label.trim(), editingTag.emoji.trim() || '🏷️', editingTag.category);
+      const t = await tagService.updateTag(editingTag.id, editingTag.label.trim(), editingTag.emoji.trim() || 'ðŸ·ï¸', editingTag.category);
       setTags((prev) => prev.map((tg) => tg.id === t.id ? t : tg));
       setEditingTag(null);
       toast.success('Tag updated');
@@ -145,11 +145,11 @@ export function MenuSetupPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
         <AdminHeader title="Categories & Tags" backTo="/admin/menu" />
 
         <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-5xl">
-          {/* ── Categories ──────────────────────────────────────────────────── */}
+          {/* â”€â”€ Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <h2 className="font-semibold text-gray-700 mb-1 text-sm">Categories</h2>
             <p className="text-xs text-gray-400 mb-3">Group your menu items. Use the eye icons to bulk-toggle availability for a whole category.</p>
@@ -217,7 +217,7 @@ export function MenuSetupPage() {
             </div>
           </div>
 
-          {/* ── Tags ────────────────────────────────────────────────────────── */}
+          {/* â”€â”€ Tags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <h2 className="font-semibold text-gray-700 mb-1 text-sm">Tags</h2>
             <p className="text-xs text-gray-400 mb-3">Labels, dietary markers and allergens you can attach to menu items.</p>
@@ -290,7 +290,7 @@ export function MenuSetupPage() {
               <input
                 value={newTagEmoji}
                 onChange={(e) => setNewTagEmoji(e.target.value)}
-                placeholder="🏷️"
+                placeholder="ðŸ·ï¸"
                 maxLength={4}
                 className="w-12 text-center border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300"
                 title="Emoji"

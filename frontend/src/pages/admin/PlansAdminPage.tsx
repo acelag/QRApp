@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Check, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -110,8 +110,8 @@ export function PlansAdminPage() {
             <h2 className="font-semibold text-gray-800">Subscription system</h2>
             <p className="text-sm text-gray-400 mt-0.5">
               {enabled
-                ? 'On — marketing site, signup, trials and billing are active.'
-                : 'Off — pricing/signup are hidden and all restaurants have full access.'}
+                ? 'On â€” marketing site, signup, trials and billing are active.'
+                : 'Off â€” pricing/signup are hidden and all restaurants have full access.'}
             </p>
           </div>
           <button

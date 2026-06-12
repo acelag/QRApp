@@ -17,10 +17,6 @@ import { offlineQueue } from './services/offlineQueue';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { stockService } from './services/stockService';
 
-// Register the PWA service worker early so the install prompt can fire
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
-}
 
 import { LoginPage } from './pages/LoginPage';
 import { MenuPage } from './pages/customer/MenuPage';

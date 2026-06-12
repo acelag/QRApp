@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+﻿import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Eye, EyeOff, Loader2, CheckCircle2, Users,
@@ -68,7 +68,7 @@ export function SettingsPage() {
     setIsDirty((prev) => ({ ...prev, [tab]: false }));
   }
 
-  // ── Account state ──────────────────────────────────────────────────────────
+  // â”€â”€ Account state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [currentPassword, setCurrentPassword] = useState('');
   const [newUsername, setNewUsername] = useState(user?.username ?? '');
   const [newName, setNewName] = useState(user?.name ?? '');
@@ -80,7 +80,7 @@ export function SettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // ── Restaurant state ───────────────────────────────────────────────────────
+  // â”€â”€ Restaurant state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [restaurant, setRestaurant] = useState<RestaurantSettings | null>(null);
   const [serviceChargePct,  setServiceChargePct]  = useState('0');
   const [taxPct,            setTaxPct]            = useState('0');
@@ -95,7 +95,7 @@ export function SettingsPage() {
   const [orderPrefix, setOrderPrefix] = useState('ORD');
   const [prefixSaving, setPrefixSaving] = useState(false);
 
-  // ── Operations state ───────────────────────────────────────────────────────
+  // â”€â”€ Operations state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
   const [waitTimeSaving, setWaitTimeSaving] = useState(false);
   const [timezone, setTimezone] = useState('UTC');
@@ -106,7 +106,7 @@ export function SettingsPage() {
   const [rsSaving, setRsSaving] = useState(false);
   const [rsSuccess, setRsSuccess] = useState(false);
 
-  // ── Content state ──────────────────────────────────────────────────────────
+  // â”€â”€ Content state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [facebookUrl, setFacebookUrl] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
   const [tiktokUrl, setTiktokUrl] = useState('');
@@ -120,14 +120,14 @@ export function SettingsPage() {
   const [socialSaving, setSocialSaving] = useState(false);
   const [socialSuccess, setSocialSuccess] = useState(false);
 
-  // ── Login-page branding state ────────────────────────────────────────────────
+  // â”€â”€ Login-page branding state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [loginMedia, setLoginMedia] = useState<string[]>([]);
   const [loginVideoUrl, setLoginVideoUrl] = useState('');
   const [loginUploading, setLoginUploading] = useState(false);
   const [loginSaving, setLoginSaving] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
 
-  // ── Printer state ──────────────────────────────────────────────────────────
+  // â”€â”€ Printer state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [receiptPrinterIp,   setReceiptPrinterIp]   = useState('');
   const [receiptPrinterPort, setReceiptPrinterPort] = useState('9100');
   const [kitchenPrinterIp,   setKitchenPrinterIp]   = useState('');
@@ -139,11 +139,11 @@ export function SettingsPage() {
   const [printerSuccess,     setPrinterSuccess]     = useState(false);
   const [testingPrinter,     setTestingPrinter]     = useState<'receipt' | 'kitchen' | null>(null);
 
-  // ── Receipt customization state ────────────────────────────────────────────
+  // â”€â”€ Receipt customization state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [receiptHeaderLine1,   setReceiptHeaderLine1]   = useState('');
   const [receiptHeaderLine2,   setReceiptHeaderLine2]   = useState('');
   const [receiptFooterLine1,   setReceiptFooterLine1]   = useState('Thank you for dining with us!');
-  const [receiptFooterLine2,   setReceiptFooterLine2]   = useState('Please come again 🙏');
+  const [receiptFooterLine2,   setReceiptFooterLine2]   = useState('Please come again ðŸ™');
   const [receiptShowOrderNo,   setReceiptShowOrderNo]   = useState(true);
   const [receiptShowUnitPrice, setReceiptShowUnitPrice] = useState(true);
   const [receiptSaving,        setReceiptSaving]        = useState(false);
@@ -189,13 +189,13 @@ export function SettingsPage() {
       setReceiptHeaderLine1(r.receiptHeaderLine1 ?? '');
       setReceiptHeaderLine2(r.receiptHeaderLine2 ?? '');
       setReceiptFooterLine1(r.receiptFooterLine1 ?? 'Thank you for dining with us!');
-      setReceiptFooterLine2(r.receiptFooterLine2 ?? 'Please come again 🙏');
+      setReceiptFooterLine2(r.receiptFooterLine2 ?? 'Please come again ðŸ™');
       setReceiptShowOrderNo(r.receiptShowOrderNo !== false);
       setReceiptShowUnitPrice(r.receiptShowUnitPrice !== false);
     });
   }, []);
 
-  // ── Logo handlers ──────────────────────────────────────────────────────────
+  // â”€â”€ Logo handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!restaurant || !e.target.files?.[0]) return;
     setLogoUploading(true);
@@ -217,7 +217,7 @@ export function SettingsPage() {
     setRestaurant(updated);
   }
 
-  // ── Save functions (all existing, untouched logic) ─────────────────────────
+  // â”€â”€ Save functions (all existing, untouched logic) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function saveTheme(hex: string) {
     if (!restaurant) return;
     setThemeColor(hex);
@@ -485,7 +485,7 @@ export function SettingsPage() {
   const previewTax = (100 + previewSC) * (parseFloat(taxPct) || 0) / 100;
   const previewTotal = 100 + previewSC + previewTax;
 
-  // ── Sticky save bar handler per active tab ─────────────────────────────────
+  // â”€â”€ Sticky save bar handler per active tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handleStickyBarSave() {
     if (activeTab === 'account') {
       document.getElementById('account-form-submit')?.click();
@@ -498,7 +498,7 @@ export function SettingsPage() {
     }
   }
 
-  // ── Tab content renderers ──────────────────────────────────────────────────
+  // â”€â”€ Tab content renderers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function renderAccountTab() {
     return (
@@ -613,7 +613,7 @@ export function SettingsPage() {
               style={{ backgroundColor: themeColor }}
             >
               {loading && <Loader2 size={15} className="animate-spin" />}
-              {loading ? 'Saving…' : 'Save Account Changes'}
+              {loading ? 'Savingâ€¦' : 'Save Account Changes'}
             </button>
           </form>
         </div>
@@ -622,7 +622,7 @@ export function SettingsPage() {
   }
 
   function renderRestaurantTab() {
-    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loadingâ€¦</div>;
     return (
       <div className="space-y-4 max-w-2xl">
 
@@ -634,7 +634,7 @@ export function SettingsPage() {
             </div>
             <div>
               <h2 className="font-semibold text-gray-800">Billing</h2>
-              <p className="text-xs text-gray-400">Service charge: dine-in only · Tax: all orders</p>
+              <p className="text-xs text-gray-400">Service charge: dine-in only Â· Tax: all orders</p>
             </div>
           </div>
 
@@ -689,7 +689,7 @@ export function SettingsPage() {
                 className={input}
               >
                 {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>{c.symbol} — {c.name} ({c.code})</option>
+                  <option key={c.code} value={c.code}>{c.symbol} â€” {c.name} ({c.code})</option>
                 ))}
               </select>
             </Field>
@@ -697,7 +697,7 @@ export function SettingsPage() {
             {/* Live preview */}
             <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
               <div className="px-4 py-2.5 bg-gray-100/60 border-b border-gray-100">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Preview · {sym}100 subtotal</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Preview Â· {sym}100 subtotal</p>
               </div>
               <div className="px-4 py-3 space-y-1.5 text-sm">
                 <div className="flex justify-between text-gray-600">
@@ -778,7 +778,7 @@ export function SettingsPage() {
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Header (below restaurant name)</p>
               <div className="space-y-2">
-                <Field label="Line 1 — address or tagline">
+                <Field label="Line 1 â€” address or tagline">
                   <input
                     type="text" maxLength={100}
                     value={receiptHeaderLine1}
@@ -787,12 +787,12 @@ export function SettingsPage() {
                     className={input}
                   />
                 </Field>
-                <Field label="Line 2 — phone / website">
+                <Field label="Line 2 â€” phone / website">
                   <input
                     type="text" maxLength={100}
                     value={receiptHeaderLine2}
                     onChange={(e) => { setReceiptHeaderLine2(e.target.value); markDirty('restaurant'); }}
-                    placeholder="e.g. Tel: +44 20 1234 5678 · www.myrest.com"
+                    placeholder="e.g. Tel: +44 20 1234 5678 Â· www.myrest.com"
                     className={input}
                   />
                 </Field>
@@ -817,7 +817,7 @@ export function SettingsPage() {
                     type="text" maxLength={100}
                     value={receiptFooterLine2}
                     onChange={(e) => { setReceiptFooterLine2(e.target.value); markDirty('restaurant'); }}
-                    placeholder="Please come again 🙏"
+                    placeholder="Please come again ðŸ™"
                     className={input}
                   />
                 </Field>
@@ -830,7 +830,7 @@ export function SettingsPage() {
               <div className="space-y-2">
                 {[
                   { label: 'Show order number', sub: 'Prints the ORD-XXXX reference on the receipt', value: receiptShowOrderNo, set: setReceiptShowOrderNo },
-                  { label: 'Show unit price per line', sub: 'Prints "× $12.00 each" below each item', value: receiptShowUnitPrice, set: setReceiptShowUnitPrice },
+                  { label: 'Show unit price per line', sub: 'Prints "Ã— $12.00 each" below each item', value: receiptShowUnitPrice, set: setReceiptShowUnitPrice },
                 ].map(({ label, sub, value, set }) => (
                   <label key={label} className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${value ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200'}`}>
                     <div
@@ -861,9 +861,9 @@ export function SettingsPage() {
                   <p className="text-center font-bold text-xs">{restaurant?.name ?? 'RESTAURANT'}</p>
                   {receiptHeaderLine1 && <p className="text-center text-gray-500 text-[9px]">{receiptHeaderLine1}</p>}
                   {receiptHeaderLine2 && <p className="text-center text-gray-500 text-[9px]">{receiptHeaderLine2}</p>}
-                  <p className="text-center text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                  <p className="text-center text-gray-400 my-0.5">{'â”€'.repeat(26)}</p>
                   <p className="text-center font-bold text-[9px]">DINING BILL</p>
-                  <p className="text-center text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                  <p className="text-center text-gray-400 my-0.5">{'â”€'.repeat(26)}</p>
                   {receiptShowOrderNo && (
                     <div className="flex justify-between font-bold text-[9px]"><span>Order No:</span><span>ORD001</span></div>
                   )}
@@ -871,10 +871,10 @@ export function SettingsPage() {
                   {receiptShowUnitPrice && <div className="pl-2 text-gray-400 text-[9px]">$12.00 each</div>}
                   <div className="flex justify-between text-[9px]"><span>1x Garden Salad</span><span>$8.00</span></div>
                   {receiptShowUnitPrice && <div className="pl-2 text-gray-400 text-[9px]">$8.00 each</div>}
-                  <p className="text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                  <p className="text-gray-400 my-0.5">{'â”€'.repeat(26)}</p>
                   <div className="flex justify-between text-[9px]"><span>Subtotal</span><span>$20.00</span></div>
                   <div className="flex justify-between font-bold text-[9px] mt-0.5"><span>TOTAL</span><span>$20.00</span></div>
-                  <p className="text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                  <p className="text-gray-400 my-0.5">{'â”€'.repeat(26)}</p>
                   <p className="text-center text-[9px]">{receiptFooterLine1 || 'Thank you for dining with us!'}</p>
                   {receiptFooterLine2 && <p className="text-center text-gray-400 text-[8px]">{receiptFooterLine2}</p>}
                 </div>
@@ -888,7 +888,7 @@ export function SettingsPage() {
                 className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-60"
               >
                 {receiptSaving ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
-                {receiptSaving ? 'Saving…' : 'Save receipt layout'}
+                {receiptSaving ? 'Savingâ€¦' : 'Save receipt layout'}
               </button>
             </div>
           </div>
@@ -953,7 +953,7 @@ export function SettingsPage() {
   }
 
   function renderOperationsTab() {
-    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loadingâ€¦</div>;
     return (
       <div className="space-y-4 max-w-2xl">
 
@@ -1097,7 +1097,7 @@ export function SettingsPage() {
             {rsEnabled && rsOpen && rsClose && (
               <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 text-sm text-orange-600 flex items-center gap-2">
                 <Clock size={14} />
-                Room service available {rsOpen} – {rsClose}
+                Room service available {rsOpen} â€“ {rsClose}
                 {rsOpen > rsClose ? ' (wraps midnight)' : ''}
               </div>
             )}
@@ -1108,7 +1108,7 @@ export function SettingsPage() {
               className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
             >
               {rsSaving && <Loader2 size={15} className="animate-spin" />}
-              {rsSaving ? 'Saving…' : 'Save Room Service Hours'}
+              {rsSaving ? 'Savingâ€¦' : 'Save Room Service Hours'}
             </button>
           </div>
         </div>
@@ -1118,7 +1118,7 @@ export function SettingsPage() {
   }
 
   function renderContentTab() {
-    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loadingâ€¦</div>;
 
     const socialFields: { label: string; placeholder: string; value: string; set: (v: string) => void; type?: string }[] = [
       { label: 'Facebook URL',  placeholder: 'https://facebook.com/yourpage',   value: facebookUrl,  set: setFacebookUrl },
@@ -1131,7 +1131,7 @@ export function SettingsPage() {
 
     return (
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
-        {/* ── Form column ── */}
+        {/* â”€â”€ Form column â”€â”€ */}
         <div className="space-y-4 max-w-2xl">
           {/* Welcome screen content */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1165,7 +1165,7 @@ export function SettingsPage() {
                     <div className="flex gap-2">
                       <label className="flex items-center gap-1.5 cursor-pointer bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors">
                         {heroUploading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-                        {heroUploading ? 'Uploading…' : 'Upload image'}
+                        {heroUploading ? 'Uploadingâ€¦' : 'Upload image'}
                         <input type="file" accept="image/*" className="hidden" onChange={handleHeroUpload} disabled={heroUploading} />
                       </label>
                       {welcomeImageUrl && (
@@ -1181,7 +1181,7 @@ export function SettingsPage() {
                     <input
                       className={input}
                       type="url"
-                      placeholder="…or paste an image URL (leave blank for default)"
+                      placeholder="â€¦or paste an image URL (leave blank for default)"
                       value={welcomeImageUrl}
                       onChange={(e) => { setWelcomeImageUrl(e.target.value); markDirty('content'); }}
                     />
@@ -1207,7 +1207,7 @@ export function SettingsPage() {
                   className={input}
                   type="text"
                   maxLength={200}
-                  placeholder="e.g. Scan, browse & order — right from your table"
+                  placeholder="e.g. Scan, browse & order â€” right from your table"
                   value={welcomeTagline}
                   onChange={(e) => { setWelcomeTagline(e.target.value); markDirty('content'); }}
                 />
@@ -1223,7 +1223,7 @@ export function SettingsPage() {
               </div>
               <div className="flex-1">
                 <h2 className="font-semibold text-gray-800">Social Media Links</h2>
-                <p className="text-xs text-gray-400">Icons shown on the welcome screen — leave blank to hide</p>
+                <p className="text-xs text-gray-400">Icons shown on the welcome screen â€” leave blank to hide</p>
               </div>
             </div>
             <div className="p-5 space-y-4">
@@ -1241,7 +1241,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          {/* ── Login Page branding ── */}
+          {/* â”€â”€ Login Page branding â”€â”€ */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
               <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
@@ -1278,7 +1278,7 @@ export function SettingsPage() {
                   </label>
                 </div>
                 {loginMedia.length === 0 ? (
-                  <p className="text-xs text-gray-400">No images yet — add a few photos for an auto-rotating slider.</p>
+                  <p className="text-xs text-gray-400">No images yet â€” add a few photos for an auto-rotating slider.</p>
                 ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {loginMedia.map((url) => (
@@ -1304,7 +1304,7 @@ export function SettingsPage() {
                 <input
                   type="text"
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-                  placeholder="https://…/video.mp4"
+                  placeholder="https://â€¦/video.mp4"
                   value={loginVideoUrl}
                   onChange={(e) => { setLoginVideoUrl(e.target.value); markDirty('content'); }}
                 />
@@ -1323,7 +1323,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        {/* ── Live preview column ── */}
+        {/* â”€â”€ Live preview column â”€â”€ */}
         <div className="xl:sticky xl:top-4">
           <div className="flex items-center gap-2 mb-2 px-1">
             <Eye size={14} className="text-gray-400" />
@@ -1336,7 +1336,7 @@ export function SettingsPage() {
               themeColor={themeColor}
               heroUrl={welcomeImageUrl || null}
               heading={welcomeHeading}
-              tagline={welcomeTagline || 'Scan, browse & order — right from your table'}
+              tagline={welcomeTagline || 'Scan, browse & order â€” right from your table'}
               subtitle="Table 5"
               social={{
                 facebookUrl, instagramUrl, tiktokUrl,
@@ -1488,11 +1488,11 @@ export function SettingsPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
 
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0 flex flex-col">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0 flex flex-col">
         <AdminHeader title="Settings" subtitle="Manage your restaurant configuration" />
         <div className="w-full px-4 sm:px-6 py-6 space-y-4 flex-1">
 
-          {/* ── Hero profile card ──────────────────────────────────────────── */}
+          {/* â”€â”€ Hero profile card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
             <div className="flex items-center gap-5">
               {/* Logo / avatar */}
@@ -1540,7 +1540,7 @@ export function SettingsPage() {
             )}
           </div>
 
-          {/* ── Tab bar ───────────────────────────────────────────────────── */}
+          {/* â”€â”€ Tab bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none border-b border-gray-100 mb-6">
             {TABS.map((tab) => {
               const active = activeTab === tab.id;
@@ -1561,10 +1561,10 @@ export function SettingsPage() {
             })}
           </div>
 
-          {/* ── Tab content ───────────────────────────────────────────────── */}
+          {/* â”€â”€ Tab content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           {tabContentMap[activeTab]()}
 
-          {/* ── Footer links (always visible below tab content) ───────────── */}
+          {/* â”€â”€ Footer links (always visible below tab content) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="pt-4 space-y-3">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
               <Link
@@ -1595,7 +1595,7 @@ export function SettingsPage() {
 
         </div>
 
-        {/* ── Sticky save bar ───────────────────────────────────────────── */}
+        {/* â”€â”€ Sticky save bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {isDirty[activeTab] && activeTab !== 'operations' && (
           <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between shadow-md">
             <p className="text-sm text-gray-500">You have unsaved changes</p>

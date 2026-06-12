@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { Session } from '../../services/sessionService';
 import { sessionService } from '../../services/sessionService';
@@ -27,7 +27,7 @@ export function SessionReceiptPage() {
   }, [sessionId]);
 
   if (error) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Session not found.</p>;
-  if (!session) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loading…</p>;
+  if (!session) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loadingâ€¦</p>;
 
   const billItems   = session.billItems ?? [];
   const totalAmount = session.totalAmount ?? 0;
@@ -105,7 +105,7 @@ export function SessionReceiptPage() {
 
       <div className="no-print" style={{ textAlign: 'center', paddingTop: 16 }}>
         <button className="print-btn" onClick={() => window.print()}>
-          🖨️ Print Bill
+          ðŸ–¨ï¸ Print Bill
         </button>
       </div>
 
@@ -187,7 +187,7 @@ export function SessionReceiptPage() {
         <Line />
 
         <p className="center" style={{ marginTop: 8 }}>Thank you for dining with us!</p>
-        <p className="center small" style={{ marginTop: 4 }}>Please come again 🙏</p>
+        <p className="center small" style={{ marginTop: 4 }}>Please come again ðŸ™</p>
         <Line char=" " />
         <Line char=" " />
       </div>

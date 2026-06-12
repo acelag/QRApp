@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
 import { SoundAlertToggle } from '../../components/SoundAlertToggle';
@@ -113,7 +113,7 @@ export function OrdersPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title={t('orders.title')} backTo="/admin">
         <SoundAlertToggle />
         <button onClick={fetch} className="text-gray-400 hover:text-gray-600 shrink-0" title="Refresh">

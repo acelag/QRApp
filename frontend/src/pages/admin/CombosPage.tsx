@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import {
   Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   Package, Minus, ImagePlus, Loader2,
@@ -161,7 +161,7 @@ export function CombosPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Combo Deals" subtitle={`${combos.length} combo${combos.length !== 1 ? 's' : ''}`} backTo="/admin">
         <button
           onClick={openCreate}
@@ -204,7 +204,7 @@ export function CombosPage() {
                     <div className="flex flex-wrap gap-1 mb-3">
                       {combo.items.map((item) => (
                         <span key={item.id} className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">
-                          {item.quantity > 1 ? `${item.quantity}× ` : ''}{item.menuItemName}
+                          {item.quantity > 1 ? `${item.quantity}Ã— ` : ''}{item.menuItemName}
                         </span>
                       ))}
                     </div>
@@ -236,7 +236,7 @@ export function CombosPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">{editing ? 'Edit Combo' : 'New Combo'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">âœ•</button>
             </div>
             <div className="px-6 py-4 space-y-4">
               {/* Name */}
@@ -319,7 +319,7 @@ export function CombosPage() {
                         Remove photo
                       </button>
                     )}
-                    <p className="text-xs text-gray-400">JPG, PNG, WebP · max 5 MB</p>
+                    <p className="text-xs text-gray-400">JPG, PNG, WebP Â· max 5 MB</p>
                   </div>
                 </div>
               </div>
@@ -344,9 +344,9 @@ export function CombosPage() {
                       const mi = menuItems.find((m) => m.id === entry.menuItemId);
                       return (
                         <span key={entry.menuItemId} className="flex items-center gap-1 text-xs bg-orange-50 text-orange-700 border border-orange-200 px-2 py-1 rounded-full">
-                          {entry.quantity > 1 && <span className="font-bold">{entry.quantity}×</span>}
+                          {entry.quantity > 1 && <span className="font-bold">{entry.quantity}Ã—</span>}
                           {mi?.name ?? entry.menuItemId}
-                          <button onClick={() => setQty(entry.menuItemId, 0)} className="ml-0.5 text-orange-400 hover:text-red-500">✕</button>
+                          <button onClick={() => setQty(entry.menuItemId, 0)} className="ml-0.5 text-orange-400 hover:text-red-500">âœ•</button>
                         </span>
                       );
                     })}
@@ -356,7 +356,7 @@ export function CombosPage() {
                   type="text"
                   value={itemSearch}
                   onChange={(e) => setItemSearch(e.target.value)}
-                  placeholder="Search menu items…"
+                  placeholder="Search menu itemsâ€¦"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300 mb-2"
                 />
                 <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
@@ -402,7 +402,7 @@ export function CombosPage() {
                 disabled={saving}
                 className="px-5 py-2 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 disabled:opacity-60 transition-colors"
               >
-                {saving ? 'Saving…' : editing ? 'Update Combo' : 'Create Combo'}
+                {saving ? 'Savingâ€¦' : editing ? 'Update Combo' : 'Create Combo'}
               </button>
             </div>
           </div>

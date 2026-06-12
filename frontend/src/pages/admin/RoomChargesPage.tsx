@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { BedDouble, CheckCircle2, RefreshCw } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -52,7 +52,7 @@ export function RoomChargesPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Room Charges" backTo="/admin">
         <button onClick={fetchOrders} className="text-gray-400 hover:text-gray-600">
           <RefreshCw size={18} />
@@ -103,7 +103,7 @@ export function RoomChargesPage() {
                           <ul className="mt-1 space-y-0.5">
                             {order.items.map((item, i) => (
                               <li key={i} className="text-xs text-gray-500">
-                                {item.quantity}× {item.name}
+                                {item.quantity}Ã— {item.name}
                               </li>
                             ))}
                           </ul>
@@ -150,8 +150,8 @@ export function RoomChargesPage() {
       {/* Settle modal for a single order */}
       {settling && (
         <PaymentMethodModal
-          title={`Settle — ${settling.orderNumber ?? settling.id.slice(0, 8)}`}
-          subtitle={`Room ${settling.roomNumber} · ${fmt(settling.totalAmount)}`}
+          title={`Settle â€” ${settling.orderNumber ?? settling.id.slice(0, 8)}`}
+          subtitle={`Room ${settling.roomNumber} Â· ${fmt(settling.totalAmount)}`}
           onConfirm={(method: PaymentMethod) => handleSettle(settling, method)}
           onClose={() => setSettling(null)}
         />

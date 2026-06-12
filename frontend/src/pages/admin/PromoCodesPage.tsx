@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Plus, Trash2, ToggleLeft, ToggleRight, Tag, Loader2, Percent, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { promoCodeService, type PromoCode } from '../../services/promoCodeService';
@@ -95,7 +95,7 @@ export function PromoCodesPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Promo Codes" backTo="/admin" icon={Tag}>
         <button
           onClick={() => { setShowForm((v) => !v); setForm(EMPTY_FORM); }}
@@ -106,7 +106,7 @@ export function PromoCodesPage() {
       </AdminHeader>
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5 max-w-3xl">
-        {/* ── Create form ── */}
+        {/* â”€â”€ Create form â”€â”€ */}
         {showForm && (
           <div className="bg-white rounded-2xl border border-orange-200 shadow-sm p-5">
             <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -215,7 +215,7 @@ export function PromoCodesPage() {
                   className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white py-2.5 rounded-2xl text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60"
                 >
                   {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                  {saving ? 'Creating…' : 'Create Code'}
+                  {saving ? 'Creatingâ€¦' : 'Create Code'}
                 </button>
               </div>
             </form>

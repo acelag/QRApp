@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { RefreshCw, Users, Clock, CheckCircle2, AlertTriangle, Coffee, Circle } from 'lucide-react';
 import { tableService, type TableStatusEntry, type TableOccupancyStatus } from '../../services/tableService';
@@ -9,7 +9,7 @@ import { AdminHeader } from '../../components/AdminHeader';
 
 const POLL_MS = 10_000;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function elapsed(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   const m  = Math.floor(ms / 60_000);
@@ -27,7 +27,7 @@ function ago(iso: string): string {
   return `${h}h ago`;
 }
 
-// ── Status config ─────────────────────────────────────────────────────────────
+// â”€â”€ Status config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const STATUS_CONFIG: Record<TableOccupancyStatus, {
   label: string;
   cardCls: string;
@@ -70,7 +70,7 @@ const STATUS_CONFIG: Record<TableOccupancyStatus, {
   },
 };
 
-// ── Table card ────────────────────────────────────────────────────────────────
+// â”€â”€ Table card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TableCard({ t, fmt }: { t: TableStatusEntry; fmt: (n: number) => string }) {
   const cfg  = STATUS_CONFIG[t.status];
   const Icon = cfg.icon;
@@ -108,7 +108,7 @@ function TableCard({ t, fmt }: { t: TableStatusEntry; fmt: (n: number) => string
 
           {t.status === 'waiting' ? (
             <p className="text-xs text-sky-600 font-medium flex items-center gap-1">
-              <Coffee size={11} /> Seated — no orders yet
+              <Coffee size={11} /> Seated â€” no orders yet
             </p>
           ) : (
             <>
@@ -142,7 +142,7 @@ function TableCard({ t, fmt }: { t: TableStatusEntry; fmt: (n: number) => string
 
               {t.status === 'stale' && (
                 <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
-                  <AlertTriangle size={11} /> No activity — check table
+                  <AlertTriangle size={11} /> No activity â€” check table
                 </p>
               )}
             </>
@@ -153,7 +153,7 @@ function TableCard({ t, fmt }: { t: TableStatusEntry; fmt: (n: number) => string
   );
 }
 
-// ── Summary pill ──────────────────────────────────────────────────────────────
+// â”€â”€ Summary pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SummaryPill({ count, label, dotCls }: { count: number; label: string; dotCls: string }) {
   return (
     <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
@@ -164,7 +164,7 @@ function SummaryPill({ count, label, dotCls }: { count: number; label: string; d
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function TableStatusPage() {
   const { fmt } = useCurrency();
   const [tables, setTables]     = useState<TableStatusEntry[]>([]);
@@ -190,7 +190,7 @@ export function TableStatusPage() {
     return () => clearInterval(id);
   }, [load]);
 
-  // ── Counts ────────────────────────────────────────────────────────────────
+  // â”€â”€ Counts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const counts = {
     free:    tables.filter((t) => t.status === 'free').length,
     waiting: tables.filter((t) => t.status === 'waiting').length,
@@ -212,11 +212,11 @@ export function TableStatusPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       {/* Header */}
       <AdminHeader
         title="Table Status"
-        subtitle={lastSync ? `Live · updated ${ago(lastSync.toISOString())}` : undefined}
+        subtitle={lastSync ? `Live Â· updated ${ago(lastSync.toISOString())}` : undefined}
         backTo="/admin"
       >
         <button
@@ -278,7 +278,7 @@ export function TableStatusPage() {
             <p>{filter === 'all' ? 'No active tables found' : `No ${filter} tables`}</p>
             {filter === 'all' && (
               <Link to="/admin/tables" className="text-sm text-orange-500 hover:underline">
-                Manage Tables →
+                Manage Tables â†’
               </Link>
             )}
           </div>

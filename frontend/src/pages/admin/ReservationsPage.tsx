@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+﻿import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Plus, Loader2, X, Phone, Users, Pencil, Trash2,
   CalendarDays, MapPin, BedDouble, List, ChevronLeft, ChevronRight,
@@ -134,7 +134,7 @@ export function ReservationsPage() {
   }
 
   const locationLabel = (r: Reservation) => r.type === 'room'
-    ? `Room ${r.roomNumber ?? '?'}${r.roomName ? ` · ${r.roomName}` : ''}` : `Table ${r.tableNumber ?? '?'}`;
+    ? `Room ${r.roomNumber ?? '?'}${r.roomName ? ` Â· ${r.roomName}` : ''}` : `Table ${r.tableNumber ?? '?'}`;
   const timeStr = (iso: string) => new Date(iso).toLocaleTimeString([], { timeZone: tz, hour: '2-digit', minute: '2-digit' });
   const input = 'w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors';
   const todayKey = ymd(new Date());
@@ -177,7 +177,7 @@ export function ReservationsPage() {
                       key={r.id}
                       onClick={() => openEdit(r)}
                       className={`w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-md truncate flex items-center gap-1 ${STATUS_META[r.status].cls} ${r.status === 'cancelled' ? 'line-through opacity-70' : ''}`}
-                      title={`${timeStr(r.reservedAt)} · ${r.customerName} · ${locationLabel(r)}`}
+                      title={`${timeStr(r.reservedAt)} Â· ${r.customerName} Â· ${locationLabel(r)}`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_META[r.status].dot}`} />
                       <span className="font-semibold tabular-nums">{timeStr(r.reservedAt)}</span>
@@ -199,7 +199,7 @@ export function ReservationsPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
         <AdminHeader title="Reservations" backTo="/admin">
           {/* View toggle */}
           <div className="flex items-center bg-gray-100 rounded-xl p-0.5">
@@ -255,7 +255,7 @@ export function ReservationsPage() {
           </div>
         </div>
 
-        {/* ── Calendar view ── */}
+        {/* â”€â”€ Calendar view â”€â”€ */}
         {view === 'calendar' && (
           <div className="p-3 sm:p-4 lg:p-6">
             {loading ? (
@@ -272,7 +272,7 @@ export function ReservationsPage() {
           </div>
         )}
 
-        {/* ── List view ── */}
+        {/* â”€â”€ List view â”€â”€ */}
         {view === 'list' && (
           <div className="px-3 sm:px-4 lg:px-6 py-4 max-w-3xl">
             {loading ? (
@@ -300,7 +300,7 @@ export function ReservationsPage() {
                           <span className="flex items-center gap-1"><Users size={12} /> {r.partySize}</span>
                           {r.customerPhone && <a href={`tel:${r.customerPhone}`} className="flex items-center gap-1 text-gray-500 hover:text-orange-600"><Phone size={12} /> {r.customerPhone}</a>}
                         </div>
-                        {r.notes && <p className="text-xs text-gray-400 italic mt-1">“{r.notes}”</p>}
+                        {r.notes && <p className="text-xs text-gray-400 italic mt-1">â€œ{r.notes}â€</p>}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => openEdit(r)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Pencil size={15} /></button>
@@ -341,7 +341,7 @@ export function ReservationsPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Table *</label>
                   <select className={`${input} bg-white`} value={form.tableId} onChange={(e) => setForm((f) => ({ ...f, tableId: e.target.value }))}>
-                    <option value="">Select a table…</option>
+                    <option value="">Select a tableâ€¦</option>
                     {tables.map((t) => <option key={t.id} value={t.id}>Table {t.number} ({t.seats} seats)</option>)}
                   </select>
                 </div>
@@ -349,8 +349,8 @@ export function ReservationsPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Room *</label>
                   <select className={`${input} bg-white`} value={form.roomId} onChange={(e) => setForm((f) => ({ ...f, roomId: e.target.value }))}>
-                    <option value="">Select a room…</option>
-                    {rooms.map((r) => <option key={r.id} value={r.id}>Room {r.number}{r.name ? ` · ${r.name}` : ''}</option>)}
+                    <option value="">Select a roomâ€¦</option>
+                    {rooms.map((r) => <option key={r.id} value={r.id}>Room {r.number}{r.name ? ` Â· ${r.name}` : ''}</option>)}
                   </select>
                 </div>
               )}
@@ -361,7 +361,7 @@ export function ReservationsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Phone</label>
-                  <input className={input} value={form.customerPhone} onChange={(e) => setForm((f) => ({ ...f, customerPhone: e.target.value }))} placeholder="+94…" />
+                  <input className={input} value={form.customerPhone} onChange={(e) => setForm((f) => ({ ...f, customerPhone: e.target.value }))} placeholder="+94â€¦" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Party size</label>

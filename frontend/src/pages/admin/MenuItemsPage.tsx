@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List, FlaskConical } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
@@ -170,7 +170,7 @@ export function MenuItemsPage() {
       );
       const { created, updated, errors } = res.data;
       if (errors.length) {
-        toast.error(`${created} created, ${updated} updated — ${errors.length} row error(s)`);
+        toast.error(`${created} created, ${updated} updated â€” ${errors.length} row error(s)`);
       } else {
         toast.success(`Import done: ${created} created, ${updated} updated`);
       }
@@ -338,7 +338,7 @@ export function MenuItemsPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Menu Items" backTo="/admin">
         {user?.restaurantId && (
           <a
@@ -373,7 +373,7 @@ export function MenuItemsPage() {
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
-        {/* ── Search & filter bar ──────────────────────────────────────────── */}
+        {/* â”€â”€ Search & filter bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 flex flex-wrap gap-2 items-center">
           {/* Text search */}
           <div className="relative flex-1 min-w-[160px]">
@@ -382,7 +382,7 @@ export function MenuItemsPage() {
               type="text"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="Search by name or category…"
+              placeholder="Search by name or categoryâ€¦"
               className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-300"
             />
             {searchQ && (
@@ -448,7 +448,7 @@ export function MenuItemsPage() {
         </div>
 
 
-        {/* ── Reorder mode: categorised sortable list ─────────────────────── */}
+        {/* â”€â”€ Reorder mode: categorised sortable list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {reorderMode && (
           <div className="space-y-4">
             <p className="text-xs text-gray-500 text-center">Drag <GripVertical size={12} className="inline" /> to reorder items within each category. Changes save automatically.</p>
@@ -502,7 +502,7 @@ export function MenuItemsPage() {
           </div>
         )}
 
-        {/* ── Normal grid view ────────────────────────────────────────────── */}
+        {/* â”€â”€ Normal grid view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {!reorderMode && filteredItems.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
             <Search size={32} className="text-gray-200" />
@@ -518,11 +518,11 @@ export function MenuItemsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
           {filteredItems.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-              {/* Tile top — image */}
+              {/* Tile top â€” image */}
               <div className="relative">
                 {item.image
                   ? <img src={item.image} alt={item.name} className="w-full h-32 object-cover" />
-                  : <div className="w-full h-32 bg-orange-50 flex items-center justify-center text-4xl">🍽️</div>}
+                  : <div className="w-full h-32 bg-orange-50 flex items-center justify-center text-4xl">ðŸ½ï¸</div>}
                 {item.discountPct > 0 && (
                   <span className="absolute top-2 left-2 text-xs bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full">
                     {item.discountPct}% OFF
@@ -566,7 +566,7 @@ export function MenuItemsPage() {
                   const sch = schedules.find((s) => s.id === item.scheduleId);
                   return sch ? (
                     <span className="inline-flex items-center gap-0.5 text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium mb-1">
-                      ⏰ {sch.name}
+                      â° {sch.name}
                     </span>
                   ) : null;
                 })()}
@@ -596,7 +596,7 @@ export function MenuItemsPage() {
                   )}
                   {item.largePrice != null && item.largePrice > 0 && (
                     <span className="text-gray-400">
-                      · L {(item.largeDiscountPct ?? 0) > 0
+                      Â· L {(item.largeDiscountPct ?? 0) > 0
                         ? <><span className="line-through">{fmt(item.largePrice)}</span>{' '}<span className="text-green-600">{fmt(item.largePrice * (1 - (item.largeDiscountPct ?? 0) / 100))}</span></>
                         : fmt(item.largePrice)}
                     </span>
@@ -751,7 +751,7 @@ export function MenuItemsPage() {
         </div>
         )}
 
-        {/* ── List / table view ───────────────────────────────────────────── */}
+        {/* â”€â”€ List / table view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {!reorderMode && filteredItems.length > 0 && viewMode === 'list' && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
@@ -776,7 +776,7 @@ export function MenuItemsPage() {
                     <td className="px-4 py-2.5">
                       {item.image
                         ? <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />
-                        : <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-lg">🍽️</div>}
+                        : <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-lg">ðŸ½ï¸</div>}
                     </td>
                     {/* Name + tags */}
                     <td className="px-4 py-2.5">
@@ -787,7 +787,7 @@ export function MenuItemsPage() {
                         )}
                         {item.scheduleId && (() => {
                           const sch = schedules.find((s) => s.id === item.scheduleId);
-                          return sch ? <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">⏰ {sch.name}</span> : null;
+                          return sch ? <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">â° {sch.name}</span> : null;
                         })()}
                       </div>
                       {(item.tags ?? []).length > 0 && (
@@ -823,7 +823,7 @@ export function MenuItemsPage() {
                     {/* Stock */}
                     <td className="px-4 py-2.5 hidden lg:table-cell">
                       {!item.trackStock ? (
-                        <span className="text-xs text-gray-300">—</span>
+                        <span className="text-xs text-gray-300">â€”</span>
                       ) : editingStock?.id === item.id ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -854,7 +854,7 @@ export function MenuItemsPage() {
                     <td className="px-4 py-2.5 text-center">
                       <button
                         onClick={() => toggleAvailable(item)}
-                        title={item.available ? 'Available — click to disable' : 'Unavailable — click to enable'}
+                        title={item.available ? 'Available â€” click to disable' : 'Unavailable â€” click to enable'}
                         className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full transition-colors ${
                           item.available ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         }`}
@@ -894,7 +894,7 @@ export function MenuItemsPage() {
             className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl max-h-[94vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* ── Sticky header ── */}
+            {/* â”€â”€ Sticky header â”€â”€ */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">{editing ? 'Edit Item' : 'New Item'}</h2>
@@ -905,12 +905,12 @@ export function MenuItemsPage() {
               </button>
             </div>
 
-            {/* ── Scrollable body ── */}
+            {/* â”€â”€ Scrollable body â”€â”€ */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
               {/* Section: Photo + basic details */}
               <section className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
-                {/* Image picker — spans both columns */}
+                {/* Image picker â€” spans both columns */}
                 <div className="md:col-span-2">
                   <label className={labelCls}>Photo</label>
                   <div className="flex items-center gap-4">
@@ -920,7 +920,7 @@ export function MenuItemsPage() {
                       ) : preview ? (
                         <img src={preview} alt="preview" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-3xl">🍽️</span>
+                        <span className="text-3xl">ðŸ½ï¸</span>
                       )}
                     </div>
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -943,12 +943,12 @@ export function MenuItemsPage() {
                           Remove photo
                         </button>
                       )}
-                      <p className="text-xs text-gray-400">JPG, PNG, WebP · max 5 MB</p>
+                      <p className="text-xs text-gray-400">JPG, PNG, WebP Â· max 5 MB</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Name — full width */}
+                {/* Name â€” full width */}
                 <div className="md:col-span-2">
                   <label className={labelCls}>Name *</label>
                   <input
@@ -960,7 +960,7 @@ export function MenuItemsPage() {
                   />
                 </div>
 
-                {/* Description — full width */}
+                {/* Description â€” full width */}
                 <div className="md:col-span-2">
                   <label className={labelCls}>Description</label>
                   <textarea
@@ -1039,7 +1039,7 @@ export function MenuItemsPage() {
                     </div>
                   </div>
 
-                  {/* Large discount — only when large price set */}
+                  {/* Large discount â€” only when large price set */}
                   {form.largePrice != null && form.largePrice > 0 && (
                     <div>
                       <label className={labelCls}>Large Discount % <span className="text-gray-400 normal-case font-normal">(0 = none)</span></label>
@@ -1124,7 +1124,7 @@ export function MenuItemsPage() {
 
               {/* Section: Nutritional Info */}
               <section>
-                <h3 className="text-sm font-bold text-gray-800 mb-3">Nutritional Info <span className="text-xs font-normal text-gray-400">(optional — shown on menu)</span></h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-3">Nutritional Info <span className="text-xs font-normal text-gray-400">(optional â€” shown on menu)</span></h3>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className={labelCls}>Calories (kcal)</label>
@@ -1153,12 +1153,12 @@ export function MenuItemsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className={labelCls}>Spice level (0–5)</label>
+                    <label className={labelCls}>Spice level (0â€“5)</label>
                     <input
                       type="number" min="0" max="5" step="1"
                       value={form.spiceLevel ?? ''}
                       onChange={(e) => setForm((f) => ({ ...f, spiceLevel: e.target.value !== '' ? Math.min(5, Math.max(0, parseInt(e.target.value, 10))) : null }))}
-                      placeholder="0–5"
+                      placeholder="0â€“5"
                       className={inputCls}
                     />
                   </div>
@@ -1169,7 +1169,7 @@ export function MenuItemsPage() {
               <section>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-gray-800">Visibility</h3>
-                  <Link to="/admin/menu-schedules" className="text-xs text-orange-500 hover:underline">Manage schedules →</Link>
+                  <Link to="/admin/menu-schedules" className="text-xs text-orange-500 hover:underline">Manage schedules â†’</Link>
                 </div>
                 <select
                   value={form.scheduleId ?? ''}
@@ -1178,11 +1178,11 @@ export function MenuItemsPage() {
                 >
                   <option value="">Always visible (no schedule)</option>
                   {schedules.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} — {s.startTime}–{s.endTime}</option>
+                    <option key={s.id} value={s.id}>{s.name} â€” {s.startTime}â€“{s.endTime}</option>
                   ))}
                 </select>
                 {form.scheduleId && (
-                  <p className="text-xs text-amber-600 mt-1.5">⏰ This item will only appear on the customer menu during the assigned time window.</p>
+                  <p className="text-xs text-amber-600 mt-1.5">â° This item will only appear on the customer menu during the assigned time window.</p>
                 )}
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer mt-4">
                   <input
@@ -1203,7 +1203,7 @@ export function MenuItemsPage() {
                     {(['label', 'dietary', 'allergen'] as TagCategory[]).map((cat) => {
                       const catTags = tags.filter((t) => t.category === cat);
                       if (catTags.length === 0) return null;
-                      const catLabel = cat === 'dietary' ? '🥦 Dietary' : cat === 'allergen' ? '⚠️ Allergens' : '🏷️ Labels';
+                      const catLabel = cat === 'dietary' ? 'ðŸ¥¦ Dietary' : cat === 'allergen' ? 'âš ï¸ Allergens' : 'ðŸ·ï¸ Labels';
                       return (
                         <div key={cat}>
                           <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${cat === 'dietary' ? 'text-green-600' : cat === 'allergen' ? 'text-amber-600' : 'text-gray-400'}`}>
@@ -1243,7 +1243,7 @@ export function MenuItemsPage() {
               )}
             </div>
 
-            {/* ── Sticky footer ── */}
+            {/* â”€â”€ Sticky footer â”€â”€ */}
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 shrink-0 bg-white">
               <button
                 onClick={() => setShowForm(false)}
@@ -1268,7 +1268,7 @@ export function MenuItemsPage() {
   );
 }
 
-// ── Sortable row for reorder mode ─────────────────────────────────────────────
+// â”€â”€ Sortable row for reorder mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SortableItemRow({ item, fmt }: { item: MenuItem; fmt: (n: number) => string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
@@ -1297,7 +1297,7 @@ function SortableItemRow({ item, fmt }: { item: MenuItem; fmt: (n: number) => st
 
       {/* Thumbnail */}
       <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center text-lg">
-        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : '🍽️'}
+        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : 'ðŸ½ï¸'}
       </div>
 
       {/* Name */}

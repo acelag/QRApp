@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Check, Loader2, CreditCard } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
@@ -42,12 +42,12 @@ export function BillingPage() {
     }
   }
 
-  const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+  const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }) : 'â€”';
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
         <AdminHeader title="Subscription & Billing" backTo="/admin" />
 
         <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-5xl">
@@ -76,13 +76,13 @@ export function BillingPage() {
                   <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm">
                     <span className="text-2xl font-extrabold text-gray-900">{sub.planName}</span>
                     {sub.status === 'trialing' && sub.trialEndsAt && (
-                      <span className="text-blue-600 font-medium">Trial ends in {daysUntil(sub.trialEndsAt)} day(s) · {fmtDate(sub.trialEndsAt)}</span>
+                      <span className="text-blue-600 font-medium">Trial ends in {daysUntil(sub.trialEndsAt)} day(s) Â· {fmtDate(sub.trialEndsAt)}</span>
                     )}
                     {sub.status === 'active' && sub.currentPeriodEnd && (
                       <span className="text-gray-500">Renews {fmtDate(sub.currentPeriodEnd)}</span>
                     )}
-                    {sub.status === 'past_due' && <span className="text-amber-600 font-medium">Payment failed — please update billing.</span>}
-                    {sub.status === 'canceled' && <span className="text-red-500 font-medium">Subscription canceled — choose a plan to reactivate.</span>}
+                    {sub.status === 'past_due' && <span className="text-amber-600 font-medium">Payment failed â€” please update billing.</span>}
+                    {sub.status === 'canceled' && <span className="text-red-500 font-medium">Subscription canceled â€” choose a plan to reactivate.</span>}
                   </div>
                 ) : (
                   <p className="text-sm text-gray-400">No subscription info.</p>
@@ -109,9 +109,9 @@ export function BillingPage() {
                         {p.priceUsd === 0 && p.priceLkr === 0 ? (
                           <span className="text-2xl font-extrabold">Free</span>
                         ) : interval === 'year' ? (
-                          <><span className="text-2xl font-extrabold">${p.priceUsdYear.toLocaleString()}</span><span className="text-gray-400 text-sm">/yr · Rs.{p.priceLkrYear.toLocaleString()}</span></>
+                          <><span className="text-2xl font-extrabold">${p.priceUsdYear.toLocaleString()}</span><span className="text-gray-400 text-sm">/yr Â· Rs.{p.priceLkrYear.toLocaleString()}</span></>
                         ) : (
-                          <><span className="text-2xl font-extrabold">${p.priceUsd}</span><span className="text-gray-400 text-sm">/mo · Rs.{p.priceLkr.toLocaleString()}</span></>
+                          <><span className="text-2xl font-extrabold">${p.priceUsd}</span><span className="text-gray-400 text-sm">/mo Â· Rs.{p.priceLkr.toLocaleString()}</span></>
                         )}
                       </div>
                       {isCurrent ? (

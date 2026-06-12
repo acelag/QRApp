@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import {
   Plus, Trash2, QrCode, Printer,
   BedDouble, Table2, ShoppingBag, Download, Copy, Check,
@@ -14,7 +14,7 @@ import { AdminHeader } from '../../components/AdminHeader';
 
 type Tab = 'tables' | 'rooms';
 
-// ── Shared print helpers ──────────────────────────────────────────────────────
+// â”€â”€ Shared print helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PRINT_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -52,7 +52,7 @@ function openPrintWindow(html: string, title = 'QR Codes') {
   setTimeout(() => { try { win.focus(); win.print(); } catch { /* already printed */ } }, 400);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function LocationsPage() {
   const { user } = useAuth();
@@ -61,20 +61,20 @@ export function LocationsPage() {
     () => (localStorage.getItem('locations-tab') as Tab) ?? 'tables',
   );
 
-  // ── Tables state ──────────────────────────────────────────────────────────
+  // â”€â”€ Tables state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [tables, setTables]         = useState<Table[]>([]);
   const [tableNum, setTableNum]     = useState('');
   const [tableSeats, setTableSeats] = useState('4');
   const [tableQrPreview, setTableQrPreview] = useState<Table | null>(null);
   const [takeawayQrOpen, setTakeawayQrOpen] = useState(false);
 
-  // ── Rooms state ───────────────────────────────────────────────────────────
+  // â”€â”€ Rooms state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [rooms, setRooms]         = useState<Room[]>([]);
   const [roomNum, setRoomNum]     = useState('');
   const [roomName, setRoomName]   = useState('');
   const [roomQrPreview, setRoomQrPreview] = useState<Room | null>(null);
 
-  // ── Refs for hidden QR renders ────────────────────────────────────────────
+  // â”€â”€ Refs for hidden QR renders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const tableQrRefs         = useRef<Map<string, HTMLDivElement>>(new Map());
   const roomQrRefs          = useRef<Map<string, HTMLDivElement>>(new Map());
   const takeawayQrRef       = useRef<HTMLDivElement>(null);
@@ -96,12 +96,12 @@ export function LocationsPage() {
   useEffect(() => { tableService.getTables().then(setTables).catch(() => {}); }, []);
   useEffect(() => { roomService.getRooms().then(setRooms).catch(() => {}); }, []);
 
-  // ── SVG getters ───────────────────────────────────────────────────────────
+  // â”€â”€ SVG getters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const getTableSvg    = (id: string) => tableQrRefs.current.get(id)?.querySelector('svg')?.outerHTML ?? '';
   const getRoomSvg     = (id: string) => roomQrRefs.current.get(id)?.querySelector('svg')?.outerHTML ?? '';
   const getTakeawaySvg = ()           => takeawayQrRef.current?.querySelector('svg')?.outerHTML ?? '';
 
-  // ── PNG download helpers ──────────────────────────────────────────────────
+  // â”€â”€ PNG download helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function downloadPng(containerRef: HTMLDivElement | null | undefined, filename: string) {
     const canvas = containerRef?.querySelector('canvas') as HTMLCanvasElement | null;
     if (!canvas) { toast.error('QR not ready, try again'); return; }
@@ -114,14 +114,14 @@ export function LocationsPage() {
   function downloadRoomQr(room: Room)     { downloadPng(roomCanvasRefs.current.get(room.id),   `room-${room.number}-qr.png`); }
   function downloadTakeawayQr()           { downloadPng(takeawayCanvasRef.current,              'takeaway-qr.png'); }
 
-  // ── Copy URL helper ───────────────────────────────────────────────────────
+  // â”€â”€ Copy URL helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function copyUrl(url: string) {
     navigator.clipboard.writeText(url)
       .then(() => { setCopiedUrl(url); setTimeout(() => setCopiedUrl(null), 2000); toast.success('URL copied!'); })
       .catch(() => toast.error('Copy failed'));
   }
 
-  // ── Table actions ─────────────────────────────────────────────────────────
+  // â”€â”€ Table actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function addTable() {
     const n = parseInt(tableNum), s = parseInt(tableSeats);
     if (!n || !s) return toast.error('Enter valid number and seats');
@@ -163,7 +163,7 @@ export function LocationsPage() {
     openPrintWindow(takeawayCardHtml(takeawayUrl, svg), 'Takeaway QR');
   }
 
-  // ── Room actions ──────────────────────────────────────────────────────────
+  // â”€â”€ Room actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function addRoom() {
     const n = parseInt(roomNum);
     if (!n) return toast.error('Enter a valid room number');
@@ -199,17 +199,17 @@ export function LocationsPage() {
     );
   }
 
-  // ── Shared input style ────────────────────────────────────────────────────
+  // â”€â”€ Shared input style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const inp = (focus: string) =>
     `border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 ${focus} bg-white`;
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
 
-      {/* Hidden QR renders — SVG for print, Canvas for PNG download */}
+      {/* Hidden QR renders â€” SVG for print, Canvas for PNG download */}
       <div className="hidden" aria-hidden>
         {tables.map((t) => (
           <div key={t.id}>
@@ -239,7 +239,7 @@ export function LocationsPage() {
         ))}
       </div>
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AdminHeader title="Locations & QR Codes" backTo="/admin">
         <button
           onClick={activeTab === 'tables' ? printAllTables : printAllRooms}
@@ -285,7 +285,7 @@ export function LocationsPage() {
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
-        {/* ════════════════ TABLES TAB ════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TABLES TAB â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {activeTab === 'tables' && (
           <>
             {/* Takeaway QR card */}
@@ -294,7 +294,7 @@ export function LocationsPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <ShoppingBag size={16} className="text-purple-500" />
                   <h2 className="font-semibold text-gray-700 text-sm">Takeaway QR Code</h2>
-                  <span className="ml-auto text-xs text-gray-400">One QR — many customers</span>
+                  <span className="ml-auto text-xs text-gray-400">One QR â€” many customers</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="cursor-pointer flex-shrink-0" onClick={() => setTakeawayQrOpen(true)}>
@@ -371,7 +371,7 @@ export function LocationsPage() {
           </>
         )}
 
-        {/* ════════════════ ROOMS TAB ════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ROOMS TAB â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {activeTab === 'rooms' && (
           <>
             {/* Add room */}
@@ -429,7 +429,7 @@ export function LocationsPage() {
         )}
       </div>
 
-      {/* ── Takeaway QR modal ──────────────────────────────────────────── */}
+      {/* â”€â”€ Takeaway QR modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {takeawayQrOpen && takeawayUrl && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setTakeawayQrOpen(false)}>
           <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
@@ -460,7 +460,7 @@ export function LocationsPage() {
         </div>
       )}
 
-      {/* ── Table QR modal ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Table QR modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tableQrPreview && (() => {
         const tableUrl = `${origin}/welcome/${tableQrPreview.id}`;
         return (
@@ -493,7 +493,7 @@ export function LocationsPage() {
         );
       })()}
 
-      {/* ── Room QR modal ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Room QR modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {roomQrPreview && (() => {
         const roomUrl = `${origin}/room/${roomQrPreview.id}`;
         return (

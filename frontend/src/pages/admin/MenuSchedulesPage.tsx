@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus, Clock, Pencil, Trash2, X, Check,
@@ -12,11 +12,11 @@ import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const DAY_PRESETS = [
   { label: 'Every day', value: 'daily' },
-  { label: 'Mon – Fri', value: 'weekdays' },
+  { label: 'Mon â€“ Fri', value: 'weekdays' },
   { label: 'Sat & Sun', value: 'weekends' },
 ] as const;
 
@@ -47,7 +47,7 @@ const EMPTY: ScheduleInput = {
   active:    true,
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function MenuSchedulesPage() {
   const [schedules, setSchedules] = useState<MenuSchedule[]>([]);
@@ -165,8 +165,8 @@ export function MenuSchedulesPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AdminHeader title="Menu Schedules" subtitle="Control when items appear on the customer menu" backTo="/admin/menu">
         <button
           onClick={openAdd}
@@ -178,18 +178,18 @@ export function MenuSchedulesPage() {
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
-        {/* ── Info banner ───────────────────────────────────────────────── */}
+        {/* â”€â”€ Info banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 text-sm text-blue-700">
           <Info size={15} className="shrink-0 mt-0.5" />
           <p>
             Items <strong>without a schedule</strong> are always visible. Assign a schedule to an item
             from the <Link to="/admin/menu" className="underline hover:text-blue-900">Menu Items</Link> page
             to limit when it appears to customers.
-            Categories can also have a schedule — all items in that category inherit it.
+            Categories can also have a schedule â€” all items in that category inherit it.
           </p>
         </div>
 
-        {/* ── Schedule list ─────────────────────────────────────────────── */}
+        {/* â”€â”€ Schedule list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 size={28} className="animate-spin text-orange-400" />
@@ -240,12 +240,12 @@ export function MenuSchedulesPage() {
                     <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
                       <span className="flex items-center gap-1">
                         <Clock size={12} />
-                        {s.startTime} – {s.endTime}
+                        {s.startTime} â€“ {s.endTime}
                         <span className="text-gray-400 text-xs">({dur})</span>
                       </span>
-                      <span className="text-gray-300">·</span>
+                      <span className="text-gray-300">Â·</span>
                       <span>{formatDays(s.days)}</span>
-                      <span className="text-gray-300">·</span>
+                      <span className="text-gray-300">Â·</span>
                       <span className="text-xs text-gray-400">{s.itemCount} item{s.itemCount !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
@@ -286,7 +286,7 @@ export function MenuSchedulesPage() {
         )}
       </div>
 
-      {/* ── Add / Edit Modal ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Add / Edit Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 space-y-5 max-h-[92vh] overflow-y-auto">
@@ -388,7 +388,7 @@ export function MenuSchedulesPage() {
             {form.startTime && form.endTime && (
               <p className="text-xs text-gray-400 -mt-3 text-center">
                 Window: <span className="font-semibold text-gray-600">
-                  {form.startTime} – {form.endTime} ({duration(form.startTime, form.endTime)})
+                  {form.startTime} â€“ {form.endTime} ({duration(form.startTime, form.endTime)})
                 </span>
                 {form.startTime > form.endTime && (
                   <span className="ml-1.5 text-amber-600">(spans midnight)</span>
@@ -405,7 +405,7 @@ export function MenuSchedulesPage() {
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.active ? 'translate-x-5' : 'translate-x-1'}`} />
               </div>
               <span className="text-sm text-gray-700">
-                {form.active ? 'Active — items follow this schedule' : 'Inactive — items show at all times'}
+                {form.active ? 'Active â€” items follow this schedule' : 'Inactive â€” items show at all times'}
               </span>
             </label>
 

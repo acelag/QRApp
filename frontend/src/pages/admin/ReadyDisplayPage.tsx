@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Bell } from 'lucide-react';
 import type { Order } from '../../types';
@@ -52,14 +52,14 @@ export function ReadyDisplayPage() {
       <div className="flex-1 px-4 sm:px-8 py-6">
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full pt-24 text-gray-600 select-none">
-            <div className="text-8xl mb-6">🍽️</div>
+            <div className="text-8xl mb-6">ðŸ½ï¸</div>
             <p className="text-2xl font-semibold tracking-wide">No orders ready yet</p>
             <p className="text-gray-500 mt-2 text-sm">This screen updates automatically</p>
           </div>
         ) : (
           <div className="space-y-8">
 
-            {/* ── Takeaway ready ── */}
+            {/* â”€â”€ Takeaway ready â”€â”€ */}
             {takeaway.length > 0 && (
               <section>
                 <div className="flex items-center gap-3 mb-4">
@@ -87,7 +87,7 @@ export function ReadyDisplayPage() {
               </section>
             )}
 
-            {/* ── Dine-in ready ── */}
+            {/* â”€â”€ Dine-in ready â”€â”€ */}
             {dineIn.length > 0 && (
               <section>
                 <div className="flex items-center gap-3 mb-4">

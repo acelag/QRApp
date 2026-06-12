@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2, Clock, Loader2, Receipt, RefreshCw,
   Printer, ShoppingBag, Table2, Users, GitMerge, Unlink, RotateCcw,
@@ -98,7 +98,7 @@ export function BillsPage() {
       try {
         const updated = await sessionService.markAsPaid(session.id, method);
         setSessions((prev) => prev.map((s) => (s.id === session.id ? updated : s)));
-        toast.success(`Table ${session.tableNumber} — paid by ${method}`);
+        toast.success(`Table ${session.tableNumber} â€” paid by ${method}`);
       } catch (err) {
         toast.error(getApiError(err));
       } finally {
@@ -189,7 +189,7 @@ export function BillsPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Bills" backTo="/admin">
         <button
           onClick={() => { load(); if (canRefund) loadRefunds(); }}
@@ -240,7 +240,7 @@ export function BillsPage() {
           </div>
         ) : tab === 'table' ? (
           <>
-            {/* ── Open table sessions ── */}
+            {/* â”€â”€ Open table sessions â”€â”€ */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
@@ -317,7 +317,7 @@ export function BillsPage() {
                               <li key={i} className="text-sm">
                                 <div className="flex justify-between">
                                   <span className="text-gray-700 flex items-center gap-1.5">
-                                    <span className="font-medium text-gray-900">{item.quantity}×</span> {item.name}
+                                    <span className="font-medium text-gray-900">{item.quantity}Ã—</span> {item.name}
                                     {item.size && (
                                       <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                                         {item.size === 'large' ? 'L' : 'R'}
@@ -400,7 +400,7 @@ export function BillsPage() {
                           className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
                         >
                           {paying === session.id ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-                          {paying === session.id ? 'Processing…' : 'Mark as Paid'}
+                          {paying === session.id ? 'Processingâ€¦' : 'Mark as Paid'}
                         </button>
                         {(session.billItems ?? []).length === 0 && (
                           <p className="text-center text-xs text-gray-400">No orders placed yet</p>
@@ -412,7 +412,7 @@ export function BillsPage() {
               )}
             </section>
 
-            {/* ── Paid today ── */}
+            {/* â”€â”€ Paid today â”€â”€ */}
             {paidToday.length > 0 && (
               <section className="space-y-3">
                 <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
@@ -445,7 +445,7 @@ export function BillsPage() {
                                   </span>
                                 )}
                                 {refundedAmt > 0
-                                  ? <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full">↩ {fmt(refundedAmt)}</span>
+                                  ? <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full">â†© {fmt(refundedAmt)}</span>
                                   : <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
                                 }
                               </div>
@@ -481,7 +481,7 @@ export function BillsPage() {
           </>
         ) : tab === 'takeaway' ? (
           <>
-            {/* ── Active takeaway orders ── */}
+            {/* â”€â”€ Active takeaway orders â”€â”€ */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
@@ -530,7 +530,7 @@ export function BillsPage() {
                           {order.items.map((item, i) => (
                             <li key={i} className="text-sm flex justify-between">
                               <span className="text-gray-700 flex items-center gap-1.5">
-                                <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums shrink-0">{item.quantity}×</span> {item.name}
+                                <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums shrink-0">{item.quantity}Ã—</span> {item.name}
                                 {item.size && (
                                   <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                                     {item.size === 'large' ? 'L' : 'R'}
@@ -573,7 +573,7 @@ export function BillsPage() {
                           className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 active:scale-[0.98] disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-all whitespace-nowrap"
                         >
                           {payingOrder === order.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                          {payingOrder === order.id ? 'Processing…' : 'Mark Paid'}
+                          {payingOrder === order.id ? 'Processingâ€¦' : 'Mark Paid'}
                         </button>
                       </div>
                     </div>
@@ -582,7 +582,7 @@ export function BillsPage() {
               )}
             </section>
 
-            {/* ── Paid today takeaway ── */}
+            {/* â”€â”€ Paid today takeaway â”€â”€ */}
             {paidTodayTakeaway.length > 0 && (
               <section className="space-y-3">
                 <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
@@ -618,7 +618,7 @@ export function BillsPage() {
                                   </span>
                                 )}
                                 {refundedAmt > 0
-                                  ? <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full">↩ {fmt(refundedAmt)}</span>
+                                  ? <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full">â†© {fmt(refundedAmt)}</span>
                                   : <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
                                 }
                               </div>
@@ -653,7 +653,7 @@ export function BillsPage() {
             )}
           </>
         ) : (
-          /* ── Refunds tab ── */
+          /* â”€â”€ Refunds tab â”€â”€ */
           <section className="space-y-4">
             {todayRefunds.length > 0 && (
               <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 flex items-center justify-between">
@@ -699,7 +699,7 @@ export function BillsPage() {
                         </div>
                         <p className="text-sm text-gray-600 mt-0.5 truncate">{r.reason}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {r.createdByName} · {new Date(r.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                          {r.createdByName} Â· {new Date(r.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                         </p>
                       </div>
                     </li>
@@ -724,8 +724,8 @@ export function BillsPage() {
           title="How was this paid?"
           subtitle={
             paymentTarget.type === 'session'
-              ? `Table ${paymentTarget.session.tableNumber} — ${fmt(paymentTarget.session.totalAmount ?? 0)}`
-              : `${paymentTarget.order.orderNumber ?? 'Takeaway'} — ${fmt(paymentTarget.order.totalAmount)}`
+              ? `Table ${paymentTarget.session.tableNumber} â€” ${fmt(paymentTarget.session.totalAmount ?? 0)}`
+              : `${paymentTarget.order.orderNumber ?? 'Takeaway'} â€” ${fmt(paymentTarget.order.totalAmount)}`
           }
           onConfirm={confirmPayment}
           onClose={() => setPaymentTarget(null)}

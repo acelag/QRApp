@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import {
   Printer, RefreshCw, AlertTriangle,
   TrendingUp, ShoppingBag, UtensilsCrossed, BedDouble,
@@ -11,7 +11,7 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 
 const PAYMENT_ICONS: Record<string, string> = {
-  cash: '💵', card: '💳', qr: '📱', bank_transfer: '🏦', other: '📋', unpaid: '⏳',
+  cash: 'ðŸ’µ', card: 'ðŸ’³', qr: 'ðŸ“±', bank_transfer: 'ðŸ¦', other: 'ðŸ“‹', unpaid: 'â³',
 };
 
 function fmt_time(iso: string) {
@@ -23,7 +23,7 @@ function fmt_datetime(iso: string) {
   });
 }
 
-// Core component — no sidebar, no <main> wrapper
+// Core component â€” no sidebar, no <main> wrapper
 export function ShiftCloseReport() {
   const { fmt } = useCurrency();
   const today = new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD
@@ -56,7 +56,7 @@ export function ShiftCloseReport() {
 
   return (
     <>
-      {/* Header — hidden on print */}
+      {/* Header â€” hidden on print */}
       <div className="print:hidden">
         <AdminHeader title="Shift Close Report" backTo="/admin">
           <input
@@ -81,7 +81,7 @@ export function ShiftCloseReport() {
       {loading ? (
         <div className="flex flex-col items-center justify-center pt-24 gap-3">
           <Loader2 size={32} className="animate-spin text-orange-500" />
-          <p className="text-gray-400 text-sm">Generating report…</p>
+          <p className="text-gray-400 text-sm">Generating reportâ€¦</p>
         </div>
       ) : error ? (
         <div className="flex justify-center pt-24">
@@ -90,18 +90,18 @@ export function ShiftCloseReport() {
       ) : report && s ? (
         <div ref={printRef} className="px-3 sm:px-4 lg:px-6 py-6 space-y-6">
 
-          {/* ── Print header ─────────────────────────────── */}
+          {/* â”€â”€ Print header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="hidden print:block mb-6 border-b border-gray-300 pb-4">
             <h1 className="text-2xl font-bold text-gray-900">End-of-Day Report</h1>
             <p className="text-gray-600 mt-0.5">
               {new Date(report.date + 'T12:00:00').toLocaleDateString([], {
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
               })}
-              &nbsp;·&nbsp;Generated at {fmt_time(report.generatedAt)}
+              &nbsp;Â·&nbsp;Generated at {fmt_time(report.generatedAt)}
             </p>
           </div>
 
-          {/* ── Date badge (screen only) ─────────────────── */}
+          {/* â”€â”€ Date badge (screen only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="print:hidden flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">
@@ -121,7 +121,7 @@ export function ShiftCloseReport() {
             )}
           </div>
 
-          {/* ── Revenue summary cards ─────────────────────── */}
+          {/* â”€â”€ Revenue summary cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <section>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Revenue Summary</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -133,7 +133,7 @@ export function ShiftCloseReport() {
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                 <p className="text-xs text-gray-400 mb-1">Refunds</p>
                 <p className={`text-xl font-bold ${s.totalRefunds > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                  {s.totalRefunds > 0 ? `− ${fmt(s.totalRefunds)}` : '—'}
+                  {s.totalRefunds > 0 ? `âˆ’ ${fmt(s.totalRefunds)}` : 'â€”'}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">{report.refunds.length} issued</p>
               </div>
@@ -145,14 +145,14 @@ export function ShiftCloseReport() {
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                 <p className="text-xs text-gray-400 mb-1">Discounts</p>
                 <p className={`text-xl font-bold ${s.totalDiscounts > 0 ? 'text-purple-600' : 'text-gray-400'}`}>
-                  {s.totalDiscounts > 0 ? `− ${fmt(s.totalDiscounts)}` : '—'}
+                  {s.totalDiscounts > 0 ? `âˆ’ ${fmt(s.totalDiscounts)}` : 'â€”'}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">Promo savings</p>
               </div>
             </div>
           </section>
 
-          {/* ── Order type breakdown ──────────────────────── */}
+          {/* â”€â”€ Order type breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <section>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Orders by Type</h2>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -177,7 +177,7 @@ export function ShiftCloseReport() {
             </div>
           </section>
 
-          {/* ── Payment methods ───────────────────────────── */}
+          {/* â”€â”€ Payment methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <section>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Payment Methods</h2>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -185,7 +185,7 @@ export function ShiftCloseReport() {
                 <p className="px-5 py-4 text-sm text-gray-400">No payments recorded</p>
               ) : report.paymentMethods.map((pm, i) => (
                 <div key={pm.method} className={`flex items-center px-5 py-3.5 ${i > 0 ? 'border-t border-gray-50' : ''}`}>
-                  <span className="text-base mr-3">{PAYMENT_ICONS[pm.method] ?? '💰'}</span>
+                  <span className="text-base mr-3">{PAYMENT_ICONS[pm.method] ?? 'ðŸ’°'}</span>
                   <span className="text-sm text-gray-700 font-medium capitalize flex-1">
                     {pm.method === 'unpaid' ? 'Unpaid / Pending' : pm.method.replace('_', ' ')}
                   </span>
@@ -196,7 +196,7 @@ export function ShiftCloseReport() {
             </div>
           </section>
 
-          {/* ── Open sessions warning ─────────────────────── */}
+          {/* â”€â”€ Open sessions warning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           {report.openSessions.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold text-amber-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
@@ -214,7 +214,7 @@ export function ShiftCloseReport() {
             </section>
           )}
 
-          {/* ── Top items ─────────────────────────────────── */}
+          {/* â”€â”€ Top items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           {report.topItems.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Top Items</h2>
@@ -227,7 +227,7 @@ export function ShiftCloseReport() {
                       <div className="flex items-center">
                         <span className="text-xs text-gray-400 w-5 shrink-0">{i + 1}</span>
                         <span className="text-sm text-gray-700 font-medium flex-1 ml-2">{item.name}</span>
-                        <span className="text-xs text-gray-500 mr-4">×{item.quantity}</span>
+                        <span className="text-xs text-gray-500 mr-4">Ã—{item.quantity}</span>
                         <span className="text-sm font-semibold text-gray-800 w-20 text-right">{fmt(item.revenue)}</span>
                       </div>
                       <div className="mt-1.5 ml-7 h-1 bg-gray-100 rounded-full overflow-hidden">
@@ -240,7 +240,7 @@ export function ShiftCloseReport() {
             </section>
           )}
 
-          {/* ── Refunds log ───────────────────────────────── */}
+          {/* â”€â”€ Refunds log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <section>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
               <RotateCcw size={13} /> Refunds Issued
@@ -258,22 +258,22 @@ export function ShiftCloseReport() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-700 truncate">{r.reason}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {fmt_time(r.createdAt)} · {r.issuedBy} · via {refundMethodLabel(r.method)}
+                          {fmt_time(r.createdAt)} Â· {r.issuedBy} Â· via {refundMethodLabel(r.method)}
                         </p>
                       </div>
-                      <span className="ml-4 text-sm font-semibold text-red-600 shrink-0">− {fmt(r.amount)}</span>
+                      <span className="ml-4 text-sm font-semibold text-red-600 shrink-0">âˆ’ {fmt(r.amount)}</span>
                     </div>
                   </div>
                 ))}
                 <div className="flex items-center px-5 py-3 border-t border-gray-100 bg-red-50">
                   <span className="text-sm font-semibold text-red-700 flex-1">Total Refunded</span>
-                  <span className="text-sm font-bold text-red-700">− {fmt(s.totalRefunds)}</span>
+                  <span className="text-sm font-bold text-red-700">âˆ’ {fmt(s.totalRefunds)}</span>
                 </div>
               </div>
             )}
           </section>
 
-          {/* ── Footer ────────────────────────────────────── */}
+          {/* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="text-center text-xs text-gray-300 py-4 print:block">
             Report generated {fmt_datetime(report.generatedAt)}
           </div>
@@ -293,12 +293,12 @@ export function ShiftCloseReport() {
   );
 }
 
-// Layout wrapper — keeps /admin/shift-close route working
+// Layout wrapper â€” keeps /admin/shift-close route working
 export function ShiftCloseReportPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
         <ShiftCloseReport />
       </main>
     </div>

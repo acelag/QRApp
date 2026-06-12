@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import {
   Plus, Package, ArrowDownCircle, ArrowUpCircle, Pencil, Trash2,
   AlertTriangle,X, History, Search,
@@ -12,7 +12,7 @@ import {
 } from '../../services/stockService';
 import { useCurrency } from '../../context/CurrencyContext';
 
-// ── helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const input = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors';
 const btn   = (cls: string) => `px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95 ${cls}`;
 
@@ -22,7 +22,7 @@ function fmtDate(iso: string) {
     ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// ── sub-components ───────────────────────────────────────────────────────────
+// â”€â”€ sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Badge({ label, color }: { label: string; color: string }) {
   return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color}`}>{label}</span>;
@@ -91,7 +91,7 @@ function ItemForm({ initial, onSave, onCancel, saving, isEdit }: ItemFormProps) 
       <div className="flex gap-3 justify-end pt-2">
         <button type="button" onClick={onCancel} className={btn('border border-gray-200 text-gray-600 hover:bg-gray-50')}>Cancel</button>
         <button type="submit" disabled={saving} className={btn('bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50')}>
-          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Item'}
+          {saving ? 'Savingâ€¦' : isEdit ? 'Save Changes' : 'Add Item'}
         </button>
       </div>
     </form>
@@ -138,7 +138,7 @@ function MovementModal({ item, defaultType = 'in', onClose, onDone }: MovementMo
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="font-bold text-gray-900">Log Stock Movement</h3>
-            <p className="text-sm text-gray-500">{item.name} · current: {item.quantity} {item.unit}</p>
+            <p className="text-sm text-gray-500">{item.name} Â· current: {item.quantity} {item.unit}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
         </div>
@@ -179,7 +179,7 @@ function MovementModal({ item, defaultType = 'in', onClose, onDone }: MovementMo
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Reason</label>
             <select className={input} value={reason} onChange={e => setReason(e.target.value)}>
-              <option value="">Select reason…</option>
+              <option value="">Select reasonâ€¦</option>
               {reasons.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
@@ -202,7 +202,7 @@ function MovementModal({ item, defaultType = 'in', onClose, onDone }: MovementMo
                 ? 'bg-green-500 text-white hover:bg-green-600 disabled:opacity-50'
                 : 'bg-red-500 text-white hover:bg-red-600 disabled:opacity-50')}
             >
-              {saving ? 'Saving…' : type === 'in' ? 'Add to Stock' : 'Remove from Stock'}
+              {saving ? 'Savingâ€¦' : type === 'in' ? 'Add to Stock' : 'Remove from Stock'}
             </button>
           </div>
         </form>
@@ -276,7 +276,7 @@ function HistoryDrawer({ item, onClose }: HistoryDrawerProps) {
   );
 }
 
-// ── Main page ────────────────────────────────────────────────────────────────
+// â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function StockPage() {
   const { fmt } = useCurrency();
   const [items,   setItems]   = useState<StockItem[]>([]);
@@ -371,7 +371,7 @@ export function StockPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
 
         {/* Header */}
         <AdminHeader title="Stock Management" subtitle="Track ingredients and supplies" backTo="/admin" icon={Package}>
@@ -410,7 +410,7 @@ export function StockPage() {
                 <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-amber-800">
-                    {lowStockCount} item{lowStockCount > 1 ? 's' : ''} running low — restock soon
+                    {lowStockCount} item{lowStockCount > 1 ? 's' : ''} running low â€” restock soon
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {items
@@ -430,7 +430,7 @@ export function StockPage() {
                                 : 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200'
                             }`}
                           >
-                            {isOut ? '✕' : '⚠'} {i.name}
+                            {isOut ? 'âœ•' : 'âš '} {i.name}
                             <span className="opacity-60">({i.quantity} {i.unit})</span>
                           </button>
                         );
@@ -461,7 +461,7 @@ export function StockPage() {
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-300 bg-white"
-                placeholder="Search items or category…"
+                placeholder="Search items or categoryâ€¦"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -473,7 +473,7 @@ export function StockPage() {
                   onClick={() => setFilter(f)}
                   className={`px-4 py-2 font-medium transition-colors ${filter === f ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
                 >
-                  {f === 'all' ? 'All' : `⚠ Low Stock${lowStockCount > 0 ? ` (${lowStockCount})` : ''}`}
+                  {f === 'all' ? 'All' : `âš  Low Stock${lowStockCount > 0 ? ` (${lowStockCount})` : ''}`}
                 </button>
               ))}
             </div>
@@ -490,7 +490,7 @@ export function StockPage() {
               <p className="text-gray-400 font-medium">{items.length === 0 ? 'No stock items yet' : 'No items match your search'}</p>
               {items.length === 0 && (
                 <button onClick={() => setShowAdd(true)} className="mt-4 text-sm text-orange-500 font-semibold hover:underline">
-                  Add your first item →
+                  Add your first item â†’
                 </button>
               )}
             </div>
@@ -582,7 +582,7 @@ export function StockPage() {
         </div>
       </main>
 
-      {/* ── Add item modal ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ Add item modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
@@ -597,7 +597,7 @@ export function StockPage() {
         </div>
       )}
 
-      {/* ── Edit item modal ────────────────────────────────────────────────── */}
+      {/* â”€â”€ Edit item modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {editItem && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
@@ -612,7 +612,7 @@ export function StockPage() {
         </div>
       )}
 
-      {/* ── Movement modal ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ Movement modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {movementItem && (
         <MovementModal
           item={movementItem.item}
@@ -622,7 +622,7 @@ export function StockPage() {
         />
       )}
 
-      {/* ── History drawer ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ History drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {historyItem && (
         <HistoryDrawer item={historyItem} onClose={() => setHistoryItem(null)} />
       )}

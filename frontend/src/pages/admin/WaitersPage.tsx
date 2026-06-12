@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Plus, Trash2, UserCheck, Loader2, X } from 'lucide-react';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import toast from 'react-hot-toast';
@@ -50,7 +50,7 @@ export function WaitersPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Waiters" backTo="/admin">
         <button
           onClick={() => { setShowForm(true); setName(''); }}

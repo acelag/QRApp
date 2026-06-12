@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+﻿import { useEffect, useState, useMemo } from 'react';
 import {
   ChevronLeft, ChevronRight, Plus, X, Trash2,
   Users, Calendar, CheckCircle2, Loader2,
@@ -12,7 +12,7 @@ import axios from 'axios';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 
-// ── Date helpers ──────────────────────────────────────────────────────────────
+// â”€â”€ Date helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getMonday(d: Date): Date {
   const date = new Date(d);
@@ -58,7 +58,7 @@ const EMPTY: ShiftInput = {
 
 const STATUS_CYCLE: ShiftStatus[] = ['scheduled', 'confirmed', 'absent'];
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function RosterPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => getMonday(new Date()));
@@ -75,12 +75,12 @@ export function RosterPage() {
   const fromStr    = toDateStr(weekStart);
   const toStr      = toDateStr(addDays(weekStart, 6));
 
-  // Week label: "12 – 18 May 2025"
-  const weekLabel = `${weekStart.getDate()} – ${addDays(weekStart, 6).toLocaleDateString('en-US', {
+  // Week label: "12 â€“ 18 May 2025"
+  const weekLabel = `${weekStart.getDate()} â€“ ${addDays(weekStart, 6).toLocaleDateString('en-US', {
     day: 'numeric', month: 'short', year: 'numeric',
   })}`;
 
-  // ── Data loading ──────────────────────────────────────────────────────────
+  // â”€â”€ Data loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     setLoading(true);
     rosterService.getShifts(fromStr, toStr)
@@ -95,12 +95,12 @@ export function RosterPage() {
       .catch(() => {});
   }, []);
 
-  // ── Stats ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const totalShifts  = shifts.length;
   const uniqueStaff  = new Set(shifts.map((s) => s.staffName)).size;
   const todayCount   = shifts.filter((s) => s.date === todayStr).length;
 
-  // ── Modal helpers ─────────────────────────────────────────────────────────
+  // â”€â”€ Modal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function openAdd(date: string) {
     setEditing(null);
     setForm({ ...EMPTY, date });
@@ -128,7 +128,7 @@ export function RosterPage() {
     if (u) setForm((f) => ({ ...f, userId: u.id, staffName: u.name, staffRole: u.role }));
   }
 
-  // ── CRUD ──────────────────────────────────────────────────────────────────
+  // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function save() {
     if (!form.staffName.trim())        return toast.error('Staff name is required');
     if (!form.date)                    return toast.error('Date is required');
@@ -175,12 +175,12 @@ export function RosterPage() {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AdminHeader title="Staff Roster" backTo="/admin">
         {/* Week navigation */}
         <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
@@ -217,7 +217,7 @@ export function RosterPage() {
 
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
-        {/* ── Stats bar ─────────────────────────────────────────────────── */}
+        {/* â”€â”€ Stats bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: 'Shifts this week', value: totalShifts, icon: Calendar,      color: 'bg-blue-50   text-blue-600'   },
@@ -236,7 +236,7 @@ export function RosterPage() {
           ))}
         </div>
 
-        {/* ── Weekly grid ───────────────────────────────────────────────── */}
+        {/* â”€â”€ Weekly grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center h-48">
@@ -267,7 +267,7 @@ export function RosterPage() {
                           {day.getDate()}
                         </span>
                         <span className={`text-[10px] font-medium ${isToday ? 'text-orange-100' : 'text-gray-400'}`}>
-                          {dayShifts.length > 0 ? `${dayShifts.length} shift${dayShifts.length !== 1 ? 's' : ''}` : '—'}
+                          {dayShifts.length > 0 ? `${dayShifts.length} shift${dayShifts.length !== 1 ? 's' : ''}` : 'â€”'}
                         </span>
                       </div>
 
@@ -288,7 +288,7 @@ export function RosterPage() {
                               <div className="flex items-center gap-1 mb-0.5">
                                 <button
                                   onClick={(e) => cycleStatus(e, shift)}
-                                  title={`${sc.label} — click to cycle`}
+                                  title={`${sc.label} â€” click to cycle`}
                                   className={`w-2 h-2 rounded-full shrink-0 ${sc.dot} hover:scale-150 transition-transform`}
                                 />
                                 <span className={`text-[11px] font-bold truncate ${rc.text}`}>
@@ -297,7 +297,7 @@ export function RosterPage() {
                               </div>
                               {/* Time */}
                               <p className="text-[10px] text-gray-500 leading-snug">
-                                {shift.startTime}–{shift.endTime}
+                                {shift.startTime}â€“{shift.endTime}
                                 {dur && <span className="text-gray-400 ml-1">({dur})</span>}
                               </p>
                               {/* Role chip */}
@@ -324,7 +324,7 @@ export function RosterPage() {
           )}
         </div>
 
-        {/* ── Legend ────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Legend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Roles</span>
           {SHIFT_ROLES.map((role) => {
@@ -344,7 +344,7 @@ export function RosterPage() {
           ))}
         </div>
 
-        {/* ── Scheduled staff list (current week) ──────────────────────── */}
+        {/* â”€â”€ Scheduled staff list (current week) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {shifts.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
@@ -388,7 +388,7 @@ export function RosterPage() {
         )}
       </div>
 
-      {/* ── Add / Edit Modal ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Add / Edit Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 space-y-4 max-h-[92vh] overflow-y-auto">
@@ -421,7 +421,7 @@ export function RosterPage() {
                   onChange={(e) => handleUserSelect(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-white"
                 >
-                  <option value="">— enter name manually —</option>
+                  <option value="">â€” enter name manually â€”</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                   ))}
@@ -526,7 +526,7 @@ export function RosterPage() {
                 type="text"
                 value={form.notes ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value || null }))}
-                placeholder="Optional notes…"
+                placeholder="Optional notesâ€¦"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
               />
             </div>

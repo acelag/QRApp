@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import {
   Star, Users, ChevronDown, ChevronRight, Plus, Minus,
   Check, X, Loader2, Search,
@@ -8,7 +8,7 @@ import type { LoyaltyConfig, LoyaltyAccount, LoyaltyTransaction } from '../../se
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 
-// ─── Config panel ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Config panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ConfigPanel() {
   const [cfg, setCfg] = useState<LoyaltyConfig | null>(null);
@@ -108,10 +108,10 @@ function ConfigPanel() {
 
       {/* Summary row */}
       <div className="bg-amber-50 rounded-xl px-3 py-2.5 text-xs text-amber-700 space-y-0.5">
-        <p>• Customers earn <strong>{draft.pointsPerUnit} pt(s)</strong> per 1 currency unit spent.</p>
-        <p>• <strong>{draft.redeemRate} pts</strong> = 1 currency unit discount.</p>
-        <p>• Minimum <strong>{draft.minRedeemPoints} pts</strong> required before redemption.</p>
-        <p>• Points can cover up to <strong>{draft.maxRedeemPct}%</strong> of an order total.</p>
+        <p>â€¢ Customers earn <strong>{draft.pointsPerUnit} pt(s)</strong> per 1 currency unit spent.</p>
+        <p>â€¢ <strong>{draft.redeemRate} pts</strong> = 1 currency unit discount.</p>
+        <p>â€¢ Minimum <strong>{draft.minRedeemPoints} pts</strong> required before redemption.</p>
+        <p>â€¢ Points can cover up to <strong>{draft.maxRedeemPct}%</strong> of an order total.</p>
       </div>
 
       <button
@@ -149,7 +149,7 @@ function Field({
   );
 }
 
-// ─── Members panel ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Members panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function MembersPanel() {
   const { fmt } = useCurrency();
@@ -236,7 +236,7 @@ function MembersPanel() {
             type="text"
             value={search}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search by phone or name…"
+            placeholder="Search by phone or nameâ€¦"
             className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-200 w-56"
           />
         </div>
@@ -338,7 +338,7 @@ function MembersPanel() {
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Transaction History</p>
                     {txnLoading === acc.phone ? (
                       <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-                        <Loader2 size={12} className="animate-spin" /> Loading…
+                        <Loader2 size={12} className="animate-spin" /> Loadingâ€¦
                       </div>
                     ) : (txns[acc.phone] ?? []).length === 0 ? (
                       <p className="text-xs text-gray-400">No transactions yet.</p>
@@ -350,7 +350,7 @@ function MembersPanel() {
                               tx.type === 'earn' ? 'text-green-600' :
                               tx.type === 'redeem' ? 'text-red-500' : 'text-blue-500'
                             }`}>
-                              {tx.type === 'earn' ? '+' : tx.type === 'redeem' ? '−' : ''}
+                              {tx.type === 'earn' ? '+' : tx.type === 'redeem' ? 'âˆ’' : ''}
                               {Math.abs(tx.points)} pts
                             </span>
                             <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${
@@ -360,7 +360,7 @@ function MembersPanel() {
                               {tx.type}
                             </span>
                             <span className="text-gray-500 truncate flex-1">
-                              {tx.description ?? (tx.orderId ? `Order #${tx.orderId.slice(-6).toUpperCase()}` : '—')}
+                              {tx.description ?? (tx.orderId ? `Order #${tx.orderId.slice(-6).toUpperCase()}` : 'â€”')}
                             </span>
                             <span className="text-gray-300 shrink-0">
                               {new Date(tx.createdAt).toLocaleDateString()}
@@ -397,7 +397,7 @@ function MembersPanel() {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function LoyaltyPage() {
   return (

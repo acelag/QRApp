@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShoppingBag, TrendingUp, TrendingDown, XCircle, Banknote,
@@ -26,7 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function relativeTime(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -44,7 +44,7 @@ const STATUS_CFG: Record<string, { label: string; dot: string }> = {
   cancelled: { label: 'Cancelled',  dot: 'bg-red-400' },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -86,7 +86,7 @@ export function DashboardPage() {
     }).catch(() => {});
   }, []);
 
-  // ── derived values ──────────────────────────────────────────────────────────
+  // â”€â”€ derived values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const todayStr      = new Date().toLocaleDateString('en-CA');
   const todayOrders   = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
   const activeOrders  = orders.filter((o) => o.status !== 'cancelled');
@@ -154,7 +154,7 @@ export function DashboardPage() {
     )
     .slice(0, 5);
 
-  // ── stat card data ──────────────────────────────────────────────────────────
+  // â”€â”€ stat card data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const stats = [
     {
       label:   'Total Orders',
@@ -208,12 +208,12 @@ export function DashboardPage() {
     },
   ];
 
-  // ── render ──────────────────────────────────────────────────────────────────
+  // â”€â”€ render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="flex h-screen overflow-hidden bg-[#f5f5f7]">
       <AdminSidebar />
 
-      <div className="flex-1 overflow-y-auto pt-14 md:pt-0 flex flex-col">
+      <div className="flex-1 overflow-y-auto mt-14 md:mt-0 flex flex-col">
 
         {/* Header */}
         <AdminHeader title="Overview" subtitle={`${greeting}, ${user?.name ?? 'Restaurant Admin'}`}>
@@ -231,7 +231,7 @@ export function DashboardPage() {
 
           <TrialBanner />
 
-          {/* ── Stat Cards ─────────────────────────────────────────────────── */}
+          {/* â”€â”€ Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((s) => (
               <div
@@ -263,10 +263,10 @@ export function DashboardPage() {
             ))}
           </div>
 
-          {/* ── 3-column grid ──────────────────────────────────────────────── */}
+          {/* â”€â”€ 3-column grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-            {/* ── LEFT: Revenue chart + Recent orders ────────────────────── */}
+            {/* â”€â”€ LEFT: Revenue chart + Recent orders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="lg:col-span-5 space-y-5">
 
               {/* Revenue Trend */}
@@ -322,7 +322,7 @@ export function DashboardPage() {
                     <input
                       value={orderSearch}
                       onChange={(e) => setOrderSearch(e.target.value)}
-                      placeholder="Search by order # or table…"
+                      placeholder="Search by order # or tableâ€¦"
                       className="bg-transparent flex-1 text-xs text-gray-600 outline-none placeholder-gray-400"
                     />
                   </div>
@@ -351,7 +351,7 @@ export function DashboardPage() {
                               {firstItem?.name ?? 'Order'}{(o.items?.length ?? 0) > 1 ? ` +${(o.items?.length ?? 1) - 1}` : ''}
                             </p>
                             <p className="text-xs text-gray-400 mt-0.5">
-                              {loc} · {relativeTime(o.createdAt)}
+                              {loc} Â· {relativeTime(o.createdAt)}
                             </p>
                           </div>
                           <div className="text-right flex-shrink-0">
@@ -369,7 +369,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* ── MIDDLE: Categories + Order types ───────────────────────── */}
+            {/* â”€â”€ MIDDLE: Categories + Order types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="lg:col-span-4 space-y-5">
 
               {/* Top Categories */}
@@ -413,7 +413,7 @@ export function DashboardPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-sm font-bold text-gray-900">Order Status</p>
-                    <p className="text-xs text-gray-400">Today · {todayOrders.length} total</p>
+                    <p className="text-xs text-gray-400">Today Â· {todayOrders.length} total</p>
                   </div>
                   <Link to="/admin/orders" className="w-7 h-7 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors">
                     <ArrowUpRight size={13} className="text-gray-400" />
@@ -475,7 +475,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* ── RIGHT: Trending item + POS stats ───────────────────────── */}
+            {/* â”€â”€ RIGHT: Trending item + POS stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="lg:col-span-3 space-y-5">
 
               {/* Trending Menu Item */}
@@ -507,7 +507,7 @@ export function DashboardPage() {
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-lg font-bold text-gray-900">{fmt(trendingItem.price)}</span>
-                        <Link to="/admin/menu" className="text-xs text-orange-500 font-semibold hover:underline">View →</Link>
+                        <Link to="/admin/menu" className="text-xs text-orange-500 font-semibold hover:underline">View â†’</Link>
                       </div>
                     </div>
                   </>
@@ -543,7 +543,7 @@ export function DashboardPage() {
                   {[
                     { label: 'Total Bills', value: todayOrders.length, icon: Receipt,  color: 'text-orange-500', bg: 'bg-orange-50' },
                     { label: 'Avg Value',   value: fmt(avgOrderValue),  icon: Banknote, color: 'text-blue-500',   bg: 'bg-blue-50'   },
-                    { label: 'Peak Hour',   value: peakHour?.hour ?? '–', icon: Clock, color: 'text-purple-500', bg: 'bg-purple-50' },
+                    { label: 'Peak Hour',   value: peakHour?.hour ?? 'â€“', icon: Clock, color: 'text-purple-500', bg: 'bg-purple-50' },
                   ].map((m) => (
                     <div key={m.label} className={`${m.bg} rounded-xl p-2.5 flex flex-col items-center gap-1`}>
                       <m.icon size={14} className={m.color} />
@@ -562,7 +562,7 @@ export function DashboardPage() {
                     <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-amber-700">{lowStock.length} low-stock alert{lowStock.length > 1 ? 's' : ''}</p>
-                      <p className="text-[10px] text-amber-500">Tap to restock →</p>
+                      <p className="text-[10px] text-amber-500">Tap to restock â†’</p>
                     </div>
                   </Link>
                 )}

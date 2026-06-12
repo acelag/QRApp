@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Package, Warehouse, AlertTriangle, Banknote,
@@ -10,13 +10,13 @@ import { stockService, type StockReport } from '../../services/stockService';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 
-// ── CSV helpers ──────────────────────────────────────────────────────────────
+// â”€â”€ CSV helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function csvCell(v: string | number): string {
   return `"${String(v).replace(/"/g, '""')}"`;
 }
 function downloadCsv(filename: string, rows: (string | number)[][]) {
   const text = rows.map((r) => r.map(csvCell).join(',')).join('\r\n');
-  const blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['ï»¿' + text], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -110,7 +110,7 @@ export function StockReportPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
 
         {/* Header */}
         <AdminHeader title="Stock Report" backTo="/admin" icon={Warehouse} />
@@ -190,9 +190,9 @@ export function StockReportPage() {
                   <AlertTriangle size={16} className="text-amber-500 shrink-0" />
                   <p className="text-sm text-amber-700 font-medium">
                     {s.lowStockItems} item{s.lowStockItems !== 1 ? 's' : ''} low on stock
-                    {s.outOfStockItems > 0 && <> · <span className="text-red-600 font-bold">{s.outOfStockItems} out of stock</span></>}
+                    {s.outOfStockItems > 0 && <> Â· <span className="text-red-600 font-bold">{s.outOfStockItems} out of stock</span></>}
                   </p>
-                  <Link to="/admin/stock" className="ml-auto text-xs text-orange-500 font-semibold hover:underline shrink-0">Manage →</Link>
+                  <Link to="/admin/stock" className="ml-auto text-xs text-orange-500 font-semibold hover:underline shrink-0">Manage â†’</Link>
                 </div>
               )}
 
@@ -202,7 +202,7 @@ export function StockReportPage() {
                   <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-300 bg-white"
-                    placeholder="Search items or category…"
+                    placeholder="Search items or categoryâ€¦"
                     value={search} onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
@@ -218,7 +218,7 @@ export function StockReportPage() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-5 py-3 border-b border-gray-100">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                    Stock Levels &amp; Movement ({from} → {to})
+                    Stock Levels &amp; Movement ({from} â†’ {to})
                   </p>
                 </div>
                 {displayedItems.length === 0 ? (
@@ -256,8 +256,8 @@ export function StockReportPage() {
                               <span className={`font-bold ${i.isLow ? 'text-amber-600' : 'text-gray-900'}`}>{i.quantity}</span>
                               <span className="text-gray-400 text-xs ml-1">{i.unit}</span>
                             </td>
-                            <td className="px-4 py-3 text-right font-semibold text-green-600">{i.totalIn > 0 ? `+${i.totalIn}` : '—'}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-red-500">{i.totalOut > 0 ? `-${i.totalOut}` : '—'}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-green-600">{i.totalIn > 0 ? `+${i.totalIn}` : 'â€”'}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-red-500">{i.totalOut > 0 ? `-${i.totalOut}` : 'â€”'}</td>
                             <td className="px-4 py-3 text-right font-semibold text-gray-700 hidden sm:table-cell">{fmt(i.stockValue)}</td>
                           </tr>
                         ))}
@@ -302,8 +302,8 @@ export function StockReportPage() {
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             {m.reason && <span className="text-xs text-gray-500">{m.reason}</span>}
-                            {m.createdByName && <span className="text-xs text-gray-400">· {m.createdByName}</span>}
-                            <span className="text-xs text-gray-400">· {fmtDateTime(m.createdAt)}</span>
+                            {m.createdByName && <span className="text-xs text-gray-400">Â· {m.createdByName}</span>}
+                            <span className="text-xs text-gray-400">Â· {fmtDateTime(m.createdAt)}</span>
                           </div>
                           {m.notes && <p className="text-xs text-gray-400 italic mt-0.5">"{m.notes}"</p>}
                         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -36,7 +36,7 @@ export function ReceiptPage() {
   }
 
   if (!order) {
-    return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loading…</p>;
+    return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loadingâ€¦</p>;
   }
 
   const now = new Date(order.createdAt);
@@ -62,7 +62,7 @@ export function ReceiptPage() {
 
   return (
     <>
-      {/* Thermal print styles — injected inline so they work in the new window */}
+      {/* Thermal print styles â€” injected inline so they work in the new window */}
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #fff; }
@@ -120,10 +120,10 @@ export function ReceiptPage() {
         }
       `}</style>
 
-      {/* On-screen print button — hidden when printing */}
+      {/* On-screen print button â€” hidden when printing */}
       <div className="no-print" style={{ textAlign: 'center', paddingTop: 16 }}>
         <button className="print-btn" onClick={() => window.print()}>
-          🖨️ Print Receipt
+          ðŸ–¨ï¸ Print Receipt
         </button>
       </div>
 
@@ -239,9 +239,9 @@ export function ReceiptPage() {
         <p className="center" style={{ marginTop: 8 }}>
           {settings?.receiptFooterLine1 ?? 'Thank you for dining with us!'}
         </p>
-        {(settings?.receiptFooterLine2 ?? 'Please come again 🙏') && (
+        {(settings?.receiptFooterLine2 ?? 'Please come again ðŸ™') && (
           <p className="center small" style={{ marginTop: 4 }}>
-            {settings?.receiptFooterLine2 ?? 'Please come again 🙏'}
+            {settings?.receiptFooterLine2 ?? 'Please come again ðŸ™'}
           </p>
         )}
         <Line char=" " />

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, LogOut, UtensilsCrossed, ClipboardList, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -35,14 +35,14 @@ export function KitchenPage() {
   const [toggling, setToggling]       = useState<Set<string>>(new Set());
   const [itemsLoaded, setItemsLoaded] = useState(false);
 
-  // Prep-time countdown clock — ticks every 15 s so badges stay fresh
+  // Prep-time countdown clock â€” ticks every 15 s so badges stay fresh
   const [clockMs, setClockMs] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setClockMs(Date.now()), 15_000);
     return () => clearInterval(id);
   }, []);
 
-  // prepTimeMap: item name → prep minutes (built from menu items)
+  // prepTimeMap: item name â†’ prep minutes (built from menu items)
   const prepTimeMap: Record<string, number> = {};
   for (const mi of menuItems) {
     if (mi.prepTimeMins) prepTimeMap[mi.name] = mi.prepTimeMins;
@@ -50,7 +50,7 @@ export function KitchenPage() {
 
   function handleLogout() { logout(); navigate('/', { replace: true }); } // temp: back to demo launcher
 
-  // ── Orders polling ────────────────────────────────────────────────────────
+  // â”€â”€ Orders polling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchOrders = useCallback(() =>
     orderService
       .getOrders()
@@ -93,7 +93,7 @@ export function KitchenPage() {
     }
   }
 
-  // ── Load items eagerly on mount (needed for prepTimeMap in Orders tab) ───
+  // â”€â”€ Load items eagerly on mount (needed for prepTimeMap in Orders tab) â”€â”€â”€
   useEffect(() => {
     if (itemsLoaded) return;
     Promise.all([menuService.getCategories(), menuService.getItems()])
@@ -102,7 +102,7 @@ export function KitchenPage() {
         setMenuItems(items.sort((a, b) => a.name.localeCompare(b.name)));
         setItemsLoaded(true);
       })
-      .catch(() => {});   // silently ignore — countdown just won't show
+      .catch(() => {});   // silently ignore â€” countdown just won't show
   }, [itemsLoaded]);
 
   async function handleStatusChange(id: string, status: OrderStatus) {
@@ -237,12 +237,12 @@ export function KitchenPage() {
         </button>
       </div>
 
-      {/* ── Orders tab ─────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Orders tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === 'orders' && (
         <main className="px-3 sm:px-4 lg:px-6 py-4">
           {orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center pt-24 text-gray-500">
-              <p className="text-2xl">👨‍🍳</p>
+              <p className="text-2xl">ðŸ‘¨â€ðŸ³</p>
               <p className="mt-2">{t('kitchen.noActiveOrders')}</p>
             </div>
           ) : (
@@ -267,7 +267,7 @@ export function KitchenPage() {
         </main>
       )}
 
-      {/* ── Items tab ──────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Items tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === 'items' && (
         <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-6">
           {!itemsLoaded ? (
@@ -338,7 +338,7 @@ export function KitchenPage() {
   );
 }
 
-// ── Item toggle card ──────────────────────────────────────────────────────────
+// â”€â”€ Item toggle card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ItemToggleCardProps {
   item: MenuItem;
