@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Plus, Minus, Flame, ShoppingCart, UtensilsCrossed, ZoomIn } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 import type { MenuItem } from '../types/MenuItem';
+import type { SelectedTopping } from '../types/Order';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -11,9 +12,10 @@ import { tagPillCls } from '../services/tagService';
 interface Props {
   item: MenuItem;
   onClose: () => void;
+  onAdd?: (toppings: SelectedTopping[], size: 'regular' | 'large' | undefined, notes: string, qty: number) => void;
 }
 
-export function ProductDetailModal({ item, onClose }: Props) {
+export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Props) {
   const { addItem } = useCart();
   const { fmt } = useCurrency();
   const { tags: allTags } = useTags();
@@ -47,13 +49,13 @@ export function ProductDetailModal({ item, onClose }: Props) {
 
   function handleAdd() {
     if (!item.available) return;
-    for (let i = 0; i < qty; i++) {
-      addItem(
-        item,
-        activeSize,
-        i === 0 ? (notes.trim() || undefined) : undefined,
-        selToppings.map((t) => ({ id: t.id, name: t.name, price: t.price })),
-      );
+    const toppings = selToppings.map((t) => ({ id: t.id, name: t.name, price: t.price }));
+    if (onAddOverride) {
+      onAddOverride(toppings, activeSize, notes.trim(), qty);
+    } else {
+      for (let i = 0; i < qty; i++) {
+        addItem(item, activeSize, i === 0 ? (notes.trim() || undefined) : undefined, toppings);
+      }
     }
     onClose();
   }

@@ -16,6 +16,7 @@ import type { MenuItem } from '../../types';
 import { offlineQueue } from '../../services/offlineQueue';
 import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
+import { saveActiveOrder } from '../../components/ActiveOrderBanner';
 
 const cartKey = (menuItemId: string, size?: 'regular' | 'large', toppingIds?: string[]) =>
   `${menuItemId}|${size ?? 'regular'}|${(toppingIds ?? []).sort().join(',')}`;
@@ -151,6 +152,7 @@ export function CartPage() {
       } else {
         if (!tableId || !tableNumber) return;
         const order = await orderService.placeOrder(tableId, tableNumber, items, sessionId ?? undefined, restaurantId ?? undefined, undefined, customerPhone.trim() || undefined, redeemablePoints > 0 ? redeemablePoints : undefined);
+        saveActiveOrder(order.id, order.orderNumber, restaurantId ?? '');
         clearCart();
         navigate(`/order-success/${order.id}`);
       }

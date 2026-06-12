@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogOut, ChevronDown, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, LogOut, ChevronDown, Sun, Moon, House } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 import { SoundAlertToggle } from './SoundAlertToggle';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useNavMode } from '../context/NavModeContext';
 
 interface AdminHeaderProps {
   title: string;
@@ -17,6 +18,7 @@ interface AdminHeaderProps {
 export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: AdminHeaderProps) {
   const { user, logout } = useAuth();
   const { dark, toggleDark } = useTheme();
+  const { navMode } = useNavMode();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -42,6 +44,11 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
   return (
     <header className="bg-white shadow-sm sticky top-0 z-30">
       <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
+        {navMode === 'launcher' && (
+          <Link to="/admin/launcher" className="text-gray-500 hover:text-orange-500 transition-colors shrink-0" title="Home">
+            <House size={20} />
+          </Link>
+        )}
         {backTo && (
           <Link to={backTo} className="text-gray-600 hover:text-gray-900 shrink-0">
             <ArrowLeft size={20} />

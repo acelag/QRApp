@@ -10,6 +10,7 @@ import { CartProvider } from './context/CartContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { TagsProvider } from './context/TagsContext';
+import { NavModeProvider, useNavMode } from './context/NavModeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InstallPrompt } from './components/InstallPrompt';
 import { OfflineBanner } from './components/OfflineBanner';
@@ -159,6 +160,12 @@ function RootRedirect() {
   return <Navigate to="/admin" replace />;
 }
 
+function AdminHome() {
+  const { navMode } = useNavMode();
+  if (navMode === 'launcher') return <Navigate to="/admin/launcher" replace />;
+  return <DashboardPage />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -166,6 +173,7 @@ export default function App() {
         <SubscriptionConfigProvider>
         <CurrencyProvider>
         <ThemeProvider>
+        <NavModeProvider>
         <TagsProvider>
         <CartProvider>
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
@@ -195,7 +203,8 @@ export default function App() {
             <Route path="/room/:roomId" element={<RoomMenuPage />} />
 
             {/* Admin routes */}
-            <Route path="/admin" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><DashboardPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><AdminHome /></ProtectedRoute>} />
+            <Route path="/admin/dashboard" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><DashboardPage /></ProtectedRoute>} />
             <Route path="/admin/launcher" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><LauncherPage /></ProtectedRoute>} />
             <Route path="/admin/orders" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="orders"><OrdersPage /></ProtectedRoute>} />
             <Route path="/admin/menu" element={<ProtectedRoute roles={['admin','manager']} permission="menu"><MenuItemsPage /></ProtectedRoute>} />
@@ -235,6 +244,7 @@ export default function App() {
           </Routes>
         </CartProvider>
         </TagsProvider>
+        </NavModeProvider>
         </ThemeProvider>
         </CurrencyProvider>
         </SubscriptionConfigProvider>

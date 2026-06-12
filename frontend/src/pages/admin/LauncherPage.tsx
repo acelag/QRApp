@@ -14,7 +14,7 @@ type NavGroup = { label: string; icon: React.ElementType; color: string; childre
 type NavEntry = ({ type: 'item' } & NavLeaf) | ({ type: 'group' } & NavGroup);
 
 const TOP_NAV: NavEntry[] = [
-  { type: 'item',  label: 'Dashboard', icon: LayoutDashboard, to: '/admin',         color: 'bg-blue-50   text-blue-600'   },
+  { type: 'item',  label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard', color: 'bg-blue-50   text-blue-600'   },
   { type: 'item',  label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders',  color: 'bg-orange-50 text-orange-600' },
   {
     type: 'group', label: 'Menu', icon: UtensilsCrossed, color: 'bg-green-50 text-green-600',

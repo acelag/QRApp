@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from 'react';
 import type { CartItem, SelectedTopping } from '../types';
 import type { MenuItem } from '../types';
 import { effectivePrice } from '../types/MenuItem';
@@ -11,12 +11,45 @@ const toppingKey = (toppings?: SelectedTopping[]) =>
 const itemKey = (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) =>
   `${menuItemId}|${size ?? 'regular'}|${toppingKey(toppings)}`;
 
+// ── Persistence ──────────────────────────────────────────────────────────────
+
+const CART_KEY_PREFIX = 'qra-saved-cart-';
+const CART_MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+export interface SavedCart {
+  items: CartItem[];
+  tableId: string;
+  tableNumber: number;
+  restaurantId: string | null;
+  total: number;
+  savedAt: number;
+}
+
+function readSavedCart(tableId: string): SavedCart | null {
+  try {
+    const raw = localStorage.getItem(CART_KEY_PREFIX + tableId);
+    if (!raw) return null;
+    const cart: SavedCart = JSON.parse(raw);
+    if (!cart.items?.length) return null;
+    if (Date.now() - cart.savedAt > CART_MAX_AGE_MS) {
+      localStorage.removeItem(CART_KEY_PREFIX + tableId);
+      return null;
+    }
+    return cart;
+  } catch {
+    return null;
+  }
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+
 interface CartState {
   items: CartItem[];
   tableId: string | null;
   tableNumber: number | null;
   sessionId: string | null;
   restaurantId: string | null;
+  pendingSavedCart: SavedCart | null;
 }
 
 type CartAction =
@@ -29,6 +62,9 @@ type CartAction =
   | { type: 'SET_TABLE'; payload: { tableId: string; tableNumber: number } }
   | { type: 'SET_SESSION'; payload: { sessionId: string } }
   | { type: 'SET_RESTAURANT'; payload: { restaurantId: string } }
+  | { type: 'SET_PENDING_SAVED'; payload: SavedCart | null }
+  | { type: 'RESTORE_SAVED' }
+  | { type: 'DISCARD_SAVED' }
   | { type: 'CLEAR' };
 
 interface CartContextValue extends CartState {
@@ -41,12 +77,20 @@ interface CartContextValue extends CartState {
   setTable: (tableId: string, tableNumber: number) => void;
   setSession: (sessionId: string) => void;
   setRestaurant: (restaurantId: string) => void;
+  checkForSavedCart: (tableId: string) => void;
+  restoreCart: () => void;
+  discardCart: () => void;
   clearCart: () => void;
   total: number;
   itemCount: number;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
+
+const INITIAL_STATE: CartState = {
+  items: [], tableId: null, tableNumber: null,
+  sessionId: null, restaurantId: null, pendingSavedCart: null,
+};
 
 function reducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
@@ -132,21 +176,54 @@ function reducer(state: CartState, action: CartAction): CartState {
       return { ...state, sessionId: action.payload.sessionId };
     case 'SET_RESTAURANT':
       return { ...state, restaurantId: action.payload.restaurantId };
+    case 'SET_PENDING_SAVED':
+      return { ...state, pendingSavedCart: action.payload };
+    case 'RESTORE_SAVED':
+      if (!state.pendingSavedCart) return state;
+      return { ...state, items: state.pendingSavedCart.items, pendingSavedCart: null };
+    case 'DISCARD_SAVED':
+      return { ...state, pendingSavedCart: null };
     case 'CLEAR':
-      return { ...state, items: [] };
+      return { ...state, items: [], pendingSavedCart: null };
     default:
       return state;
   }
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { items: [], tableId: null, tableNumber: null, sessionId: null, restaurantId: null });
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
   const total = state.items.reduce((sum, i) => {
     const toppingsTotal = (i.toppings ?? []).reduce((t, tp) => t + tp.price, 0);
     return sum + (i.price + toppingsTotal) * i.quantity;
   }, 0);
   const itemCount = state.items.reduce((sum, i) => sum + i.quantity, 0);
+
+  // Tracks whether the customer has actually interacted with the cart this session.
+  // Prevents the persistence effect from wiping localStorage on the initial empty render.
+  const hasInteractedRef = useRef(false);
+
+  // Persist cart to localStorage whenever items or tableId change
+  useEffect(() => {
+    if (!state.tableId) return;
+    if (state.items.length === 0) {
+      // Only clear if the user actively emptied the cart (not just initial page load)
+      if (hasInteractedRef.current) {
+        localStorage.removeItem(CART_KEY_PREFIX + state.tableId);
+      }
+      return;
+    }
+    hasInteractedRef.current = true;
+    const snapshot: SavedCart = {
+      items: state.items,
+      tableId: state.tableId,
+      tableNumber: state.tableNumber!,
+      restaurantId: state.restaurantId,
+      total,
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(CART_KEY_PREFIX + state.tableId, JSON.stringify(snapshot));
+  }, [state.items, state.tableId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <CartContext.Provider
@@ -172,7 +249,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'SET_SESSION', payload: { sessionId } }),
         setRestaurant: (restaurantId) =>
           dispatch({ type: 'SET_RESTAURANT', payload: { restaurantId } }),
-        clearCart: () => dispatch({ type: 'CLEAR' }),
+        checkForSavedCart: (tableId) => {
+          const saved = readSavedCart(tableId);
+          dispatch({ type: 'SET_PENDING_SAVED', payload: saved });
+        },
+        restoreCart: () => dispatch({ type: 'RESTORE_SAVED' }),
+        discardCart: () => {
+          if (state.tableId) localStorage.removeItem(CART_KEY_PREFIX + state.tableId);
+          dispatch({ type: 'DISCARD_SAVED' });
+        },
+        clearCart: () => {
+          if (state.tableId) localStorage.removeItem(CART_KEY_PREFIX + state.tableId);
+          dispatch({ type: 'CLEAR' });
+        },
       }}
     >
       {children}

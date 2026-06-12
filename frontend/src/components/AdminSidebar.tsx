@@ -12,6 +12,7 @@ import type { RestaurantFeatures } from '../context/AuthContext';
 import type { PermissionKey } from '../lib/permissions';
 import { useSubscriptionConfig } from '../context/SubscriptionConfigContext';
 import { useTheme } from '../context/ThemeContext';
+import { useNavMode } from '../context/NavModeContext';
 import { orderService } from '../services/orderService';
 import { stockService } from '../services/stockService';
 
@@ -131,6 +132,7 @@ function groupHasActiveChild(group: NavGroup, pathname: string) {
 }
 
 export function AdminSidebar() {
+  const { navMode } = useNavMode();
   const { user, features, hasPermission } = useAuth();
   const location = useLocation();
   const { enabled: subsEnabled } = useSubscriptionConfig();
@@ -384,6 +386,8 @@ export function AdminSidebar() {
     // Expanded desktop nav (same as mobile NavContent structure)
     return <NavContent />;
   }
+
+  if (navMode === 'launcher') return null;
 
   return (
     <>

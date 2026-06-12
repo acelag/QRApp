@@ -1,7 +1,12 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown, UtensilsCrossed, Tag, CheckCircle, X, Clock, RefreshCw, Search, Package, AlertTriangle } from 'lucide-react';
+import {
+  BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown,
+  UtensilsCrossed, Tag, CheckCircle, X, Clock, RefreshCw, Search,
+  Package, AlertTriangle, LayoutGrid, List, Heart, Flame,
+} from 'lucide-react';
+import { ProductDetailModal } from '../../components/ProductDetailModal';
 import type { Category, MenuItem } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
 import type { CartItem } from '../../types/Order';
@@ -13,13 +18,13 @@ import { roomService } from '../../services/roomService';
 import { comboService, type Combo } from '../../services/comboService';
 import { promoCodeService, type ValidateResult } from '../../services/promoCodeService';
 import { CategoryTabs } from '../../components/CategoryTabs';
-import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
-import { tagPillCls } from '../../services/tagService';
+import { useFavourites } from '../../hooks/useFavourites';
 import toast from 'react-hot-toast';
+import { ActiveOrderBanner, saveActiveOrder } from '../../components/ActiveOrderBanner';
 
 type Size = 'regular' | 'large';
 
@@ -66,6 +71,144 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
   }
 }
 
+/* ── Item card (grid) ─────────────────────────────────────────────────── */
+function GridCard({ item, fmt, totalInCart, onOpen, onAdd, isFavourite, onToggleFavourite }: {
+  item: MenuItem; fmt: (n: number) => string; totalInCart: number;
+  onOpen: (item: MenuItem) => void; onAdd: (item: MenuItem) => void;
+  isFavourite: boolean; onToggleFavourite: (id: string) => void;
+}) {
+  const hasLarge    = (item.largePrice ?? 0) > 0;
+  const hasToppings = (item.toppings ?? []).some((t) => t.available);
+  const regPrice    = effectivePrice(item, 'regular');
+  const lrgPrice    = hasLarge ? effectivePrice(item, 'large') : 0;
+  const regDisc     = item.discountPct > 0;
+  const lrgDisc     = (item.largeDiscountPct ?? 0) > 0;
+  const isLowStock  = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= 5;
+
+  return (
+    <div
+      onClick={() => onOpen(item)}
+      className={`bg-white rounded-3xl shadow-md overflow-hidden flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${totalInCart > 0 ? 'ring-2 ring-orange-400' : ''}`}
+    >
+      <div className="relative flex-none">
+        {item.image
+          ? <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
+          : <div className="w-full h-48 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center"><UtensilsCrossed size={48} className="text-orange-200" /></div>}
+        {(regDisc || lrgDisc) && (
+          <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+            {regDisc ? item.discountPct : item.largeDiscountPct}% OFF
+          </span>
+        )}
+        {isLowStock && (
+          <span className={`absolute ${regDisc || lrgDisc ? 'top-10 mt-1' : 'top-3'} left-3 flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full shadow-sm ${item.stock! <= 2 ? 'bg-red-500 text-white' : 'bg-amber-400 text-white'}`}>
+            <Flame size={10} /> {item.stock} left
+          </span>
+        )}
+        <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFavourite(item.id); }}
+            className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow transition-colors hover:bg-white"
+          >
+            <Heart size={13} className={isFavourite ? 'fill-red-500 text-red-500' : 'text-gray-400'} />
+          </button>
+          {(hasToppings || hasLarge) && (
+            <span className="bg-orange-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              {hasToppings ? '+ Extras' : 'R / L'}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="p-3.5 flex flex-col flex-1">
+        <h3 className="font-bold text-gray-900 text-base leading-tight">{item.name}</h3>
+        {(item.calories || item.proteinG != null || item.spiceLevel != null) && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {item.calories ? <span className="flex items-center gap-0.5 text-[11px] bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full border border-orange-100">🔥 {item.calories} kcal</span> : null}
+            {item.proteinG != null ? <span className="flex items-center gap-0.5 text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">💪 {item.proteinG}g</span> : null}
+            {item.spiceLevel != null ? <span className="flex items-center gap-0.5 text-[11px] bg-red-50 text-red-700 px-2 py-0.5 rounded-full border border-red-100">🌶 {item.spiceLevel}/5</span> : null}
+          </div>
+        )}
+        <div className="mt-auto pt-3 flex items-center justify-between">
+          <div>
+            {regDisc && <span className="block text-xs text-gray-400 line-through leading-none">{fmt(item.price)}</span>}
+            <span className={`text-xl font-bold ${regDisc ? 'text-green-600' : 'text-orange-600'}`}>{fmt(regPrice)}</span>
+            {hasLarge && <span className="text-xs text-gray-400 ml-1">/ L {fmt(lrgPrice)}</span>}
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onAdd(item); }}
+            disabled={!item.available}
+            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-md transition-all active:scale-95 ${
+              !item.available ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+              : totalInCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+              : 'bg-orange-500 text-white hover:bg-orange-600'
+            }`}
+          >
+            {totalInCart > 0 ? <span className="text-sm font-bold">{totalInCart}</span> : <Plus size={20} />}
+          </button>
+        </div>
+        {!item.available && <p className="text-xs text-red-400 mt-1">Unavailable</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ── Item card (list) ─────────────────────────────────────────────────── */
+function ListCard({ item, fmt, totalInCart, onOpen, onAdd, isFavourite, onToggleFavourite }: {
+  item: MenuItem; fmt: (n: number) => string; totalInCart: number;
+  onOpen: (item: MenuItem) => void; onAdd: (item: MenuItem) => void;
+  isFavourite: boolean; onToggleFavourite: (id: string) => void;
+}) {
+  const hasLarge = (item.largePrice ?? 0) > 0;
+  const regPrice = effectivePrice(item, 'regular');
+  const lrgPrice = hasLarge ? effectivePrice(item, 'large') : 0;
+  const regDisc  = item.discountPct > 0;
+  const lrgDisc  = (item.largeDiscountPct ?? 0) > 0;
+
+  return (
+    <div
+      onClick={() => onOpen(item)}
+      className={`bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:border-orange-200 hover:shadow-md transition-all ${!item.available ? 'opacity-60' : ''}`}
+    >
+      <div className="relative shrink-0">
+        {item.image
+          ? <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-2xl" />
+          : <div className="w-16 h-16 bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl flex items-center justify-center"><UtensilsCrossed size={22} className="text-orange-300" /></div>}
+        {(regDisc || lrgDisc) && (
+          <span className="absolute -top-1 -left-1 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-full leading-none">
+            {regDisc ? item.discountPct : item.largeDiscountPct}%
+          </span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="font-semibold text-gray-900 text-sm leading-tight block">{item.name}</span>
+        <div className="flex items-baseline gap-1 mt-1">
+          {regDisc && <span className="text-[11px] text-gray-400 line-through">{fmt(item.price)}</span>}
+          <span className={`text-sm font-bold ${regDisc ? 'text-green-600' : 'text-orange-600'}`}>{fmt(regPrice)}</span>
+          {hasLarge && <span className="text-[11px] text-gray-400">/ L {fmt(lrgPrice)}</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleFavourite(item.id); }}
+          className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-red-50"
+        >
+          <Heart size={15} className={isFavourite ? 'fill-red-500 text-red-500' : 'text-gray-300'} />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onAdd(item); }}
+          disabled={!item.available}
+          className={`w-9 h-9 rounded-full flex items-center justify-center font-bold transition-colors ${
+            !item.available ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : totalInCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+            : 'bg-orange-500 text-white hover:bg-orange-600'
+          }`}
+        >
+          {totalInCart > 0 ? <span className="text-xs font-bold">{totalInCart}</span> : <Plus size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function RoomMenuPage() {
   const { t } = useTranslation();
   const { roomId } = useParams<{ roomId: string }>();
@@ -75,7 +218,6 @@ export function RoomMenuPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems]           = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [activeTag, setActiveTag]   = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading]       = useState(true);
   const [loadError, setLoadError]   = useState(false);
@@ -84,16 +226,22 @@ export function RoomMenuPage() {
   const [waitTimeMin, setWaitTimeMin]       = useState<number | null>(null);
   const [welcomeInfo, setWelcomeInfo]       = useState<RestaurantInfo | null>(null);
   const [showWelcome, setShowWelcome]       = useState(() => !sessionStorage.getItem(`welcome-seen-room-${roomId}`));
+  const [view, setView] = useState<'grid' | 'list'>(() =>
+    (localStorage.getItem('qra_menu_view') as 'grid' | 'list' | null) ?? 'grid'
+  );
+  const [combosOpen, setCombosOpen] = useState(false);
+  const [showFavourites, setShowFavourites] = useState(false);
+  const { isFavourite, toggle: toggleFavourite, favourites } = useFavourites(roomInfo?.restaurantId ?? '');
 
   const [cart, dispatch]            = useReducer(cartReducer, []);
   const [guestName, setGuestName]   = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [chargeToRoom, setChargeToRoom] = useState(false);
   const [cartOpen, setCartOpen]     = useState(false);
-  const [rsOpen, setRsOpen]   = useState<string | null>(null);
-  const [rsClose, setRsClose] = useState<string | null>(null);
+  const [rsOpen, setRsOpen]         = useState<string | null>(null);
+  const [rsClose, setRsClose]       = useState<string | null>(null);
   const [placing, setPlacing]       = useState(false);
-  const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
+  const [detailModal, setDetailModal] = useState<MenuItem | null>(null);
   const [editingNotesKey, setEditingNotesKey] = useState<string | null>(null);
   const [promoInput, setPromoInput]   = useState('');
   const [promoResult, setPromoResult] = useState<ValidateResult | null>(null);
@@ -142,16 +290,11 @@ export function RoomMenuPage() {
 
   const q = searchQuery.trim().toLowerCase();
   const catFiltered = activeCategory === 'all' ? items : items.filter((i) => i.category === activeCategory);
-  const tagFiltered = activeTag ? catFiltered.filter((i) => (i.tags ?? []).includes(activeTag)) : catFiltered;
-  const filtered = q
-    ? items
-        .filter((i) => i.name.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q))
-        .filter((i) => (activeTag ? (i.tags ?? []).includes(activeTag) : true))
-    : tagFiltered;
-  const presentSlugs = new Set(items.flatMap((i) => i.tags ?? []));
-  const visibleTags = allTags.filter((t) => presentSlugs.has(t.slug));
+  const baseFiltered = q
+    ? items.filter((i) => i.name.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q))
+    : catFiltered;
+  const filtered = showFavourites ? baseFiltered.filter((i) => isFavourite(i.id)) : baseFiltered;
 
-  // Unique allergens across cart items — for the checkout warning
   const cartAllergens = (() => {
     if (!cart.length) return [];
     const menuMap = new Map(items.map(i => [i.id, i]));
@@ -167,7 +310,6 @@ export function RoomMenuPage() {
   const subtotal   = cart.reduce((s, c) => s + (c.price + (c.toppings ?? []).reduce((t, tp) => t + tp.price, 0)) * c.quantity, 0);
   const discount   = promoResult?.valid ? (promoResult.discountAmount ?? 0) : 0;
   const taxBase    = Math.max(0, subtotal - discount);
-  // Room service: no service charge; tax applies
   const charges    = computeCharges(taxBase, { serviceChargePct: 0, taxPct: welcomeInfo?.taxPct ?? 0 });
   const total      = charges.grandTotal;
 
@@ -185,7 +327,7 @@ export function RoomMenuPage() {
   function handleAdd(item: MenuItem) {
     const hasLarge = (item.largePrice ?? 0) > 0;
     const hasToppings = (item.toppings ?? []).some((t) => t.available);
-    if (hasLarge || hasToppings) setToppingModal({ item });
+    if (hasLarge || hasToppings) setDetailModal(item);
     else dispatch({ type: 'ADD', item });
   }
 
@@ -204,10 +346,7 @@ export function RoomMenuPage() {
     }
   }
 
-  function removePromo() {
-    setPromoResult(null);
-    setPromoInput('');
-  }
+  function removePromo() { setPromoResult(null); setPromoInput(''); }
 
   async function placeOrder() {
     if (cart.length === 0 || !roomInfo) return;
@@ -222,9 +361,8 @@ export function RoomMenuPage() {
         chargeToRoom ? 'room-charge' : undefined,
       );
       dispatch({ type: 'CLEAR' });
-      setPromoResult(null);
-      setPromoInput('');
-      setCartOpen(false);
+      setPromoResult(null); setPromoInput(''); setCartOpen(false);
+      saveActiveOrder(order.id, order.orderNumber, roomInfo.restaurantId);
       navigate(`/order-success/${order.id}`);
     } catch {
       toast.error(t('customer.failedOrder'));
@@ -233,107 +371,89 @@ export function RoomMenuPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" />
+    </div>
+  );
 
-  if (loadError) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <BedDouble size={40} className="text-gray-300" />
-        <p className="text-gray-500 font-medium">Could not load the menu</p>
-        <p className="text-sm text-gray-400">Check your connection and try again</p>
-        <button
-          onClick={loadMenu}
-          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-700 transition-colors"
-        >
-          <RefreshCw size={15} /> Try Again
-        </button>
-      </div>
-    );
-  }
+  if (loadError) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <BedDouble size={40} className="text-gray-300" />
+      <p className="text-gray-500 font-medium">Could not load the menu</p>
+      <p className="text-sm text-gray-400">Check your connection and try again</p>
+      <button onClick={loadMenu} className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors">
+        <RefreshCw size={15} /> Try Again
+      </button>
+    </div>
+  );
 
-  if (showWelcome && welcomeInfo) {
-    return (
-      <WelcomeScreen
-        restaurantName={welcomeInfo.name}
-        logo={welcomeInfo.logo}
-        themeColor={welcomeInfo.themeColor ?? '#3b82f6'}
-        heroUrl={welcomeInfo.welcomeImageUrl}
-        heading={welcomeInfo.welcomeHeading}
-        tagline={welcomeInfo.welcomeTagline || t('customer.scanEnjoy')}
-        subtitle={roomInfo ? `${t('customer.room', { number: roomInfo.number })}${roomInfo.name ? ` — ${roomInfo.name}` : ''}` : null}
-        waitTimeMin={welcomeInfo.waitTimeMin}
-        waitTimeLabel={welcomeInfo.waitTimeMin != null ? t('customer.waitTime', { n: welcomeInfo.waitTimeMin }) : undefined}
-        social={welcomeInfo}
-        followUsLabel={t('customer.followUs')}
-        ctaLabel={t('customer.viewMenu')}
-        poweredByLabel={t('customer.poweredBy')}
-        onEnter={() => {
-          sessionStorage.setItem(`welcome-seen-room-${roomId}`, '1');
-          setShowWelcome(false);
-        }}
-      />
-    );
-  }
+  if (showWelcome && welcomeInfo) return (
+    <WelcomeScreen
+      restaurantName={welcomeInfo.name}
+      logo={welcomeInfo.logo}
+      themeColor={welcomeInfo.themeColor ?? '#f97316'}
+      heroUrl={welcomeInfo.welcomeImageUrl}
+      heading={welcomeInfo.welcomeHeading}
+      tagline={welcomeInfo.welcomeTagline || t('customer.scanEnjoy')}
+      subtitle={roomInfo ? `${t('customer.room', { number: roomInfo.number })}${roomInfo.name ? ` — ${roomInfo.name}` : ''}` : null}
+      waitTimeMin={welcomeInfo.waitTimeMin}
+      waitTimeLabel={welcomeInfo.waitTimeMin != null ? t('customer.waitTime', { n: welcomeInfo.waitTimeMin }) : undefined}
+      social={welcomeInfo}
+      followUsLabel={t('customer.followUs')}
+      ctaLabel={t('customer.viewMenu')}
+      poweredByLabel={t('customer.poweredBy')}
+      onEnter={() => { sessionStorage.setItem(`welcome-seen-room-${roomId}`, '1'); setShowWelcome(false); }}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
-      {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-2 mb-1">
-            <BedDouble size={20} className="text-blue-500" />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 leading-tight">
-                {restaurantName || t('customer.roomService')}
-              </h1>
-              <p className="text-sm text-blue-600 font-medium">
-                {t('customer.room', { number: roomInfo?.number })}{roomInfo?.name ? ` — ${roomInfo.name}` : ''}
-              </p>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <BedDouble size={20} className="text-orange-500" />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 leading-tight">{restaurantName || t('customer.roomService')}</h1>
+                <p className="text-xs text-gray-500">
+                  {t('customer.room', { number: roomInfo?.number })}{roomInfo?.name ? ` — ${roomInfo.name}` : ''}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+                <button
+                  onClick={() => { setView('grid'); localStorage.setItem('qra_menu_view', 'grid'); }}
+                  className={`p-1.5 rounded-full transition-colors ${view === 'grid' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+                  title={t('customer.gridView')}
+                ><LayoutGrid size={14} /></button>
+                <button
+                  onClick={() => { setView('list'); localStorage.setItem('qra_menu_view', 'list'); }}
+                  className={`p-1.5 rounded-full transition-colors ${view === 'list' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+                  title={t('customer.listView')}
+                ><List size={14} /></button>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <p className="text-xs text-gray-400">{t('customer.searchMenu')}</p>
-            {waitTimeMin && (
-              <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
-                <Clock size={11} /> {t('customer.waitTime', { n: waitTimeMin })}
-              </span>
-            )}
-          </div>
+          {waitTimeMin && (
+            <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full w-fit mt-1">
+              <Clock size={11} /> {t('customer.waitTime', { n: waitTimeMin })}
+            </span>
+          )}
         </div>
         <div className="max-w-5xl mx-auto px-4 pb-3">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
-        {visibleTags.length > 0 && (
-          <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
-            {visibleTags.map((tag) => (
-              <button
-                key={tag.slug}
-                onClick={() => setActiveTag(activeTag === tag.slug ? null : tag.slug)}
-                className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                  activeTag === tag.slug ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {tag.emoji} {tag.label}
-              </button>
-            ))}
-          </div>
-        )}
-        {/* Search bar */}
-        <div className="max-w-5xl mx-auto px-4 pb-3">
-          <div className="relative">
+        <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 items-center">
+          <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('common.search')}
-              className="w-full bg-gray-100 rounded-full pl-9 pr-9 py-2 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-300 transition-all placeholder:text-gray-400"
+              placeholder={t('customer.searchMenu')}
+              className="w-full bg-gray-100 rounded-full pl-9 pr-9 py-2 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-300 transition-all placeholder:text-gray-400"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -341,6 +461,15 @@ export function RoomMenuPage() {
               </button>
             )}
           </div>
+          <button
+            onClick={() => setShowFavourites((s) => !s)}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all ${
+              showFavourites ? 'bg-red-500 text-white shadow-sm shadow-red-200' : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
+            }`}
+          >
+            <Heart size={13} className={showFavourites ? 'fill-white' : ''} />
+            {favourites.size > 0 && <span>{favourites.size}</span>}
+          </button>
         </div>
       </header>
 
@@ -351,120 +480,102 @@ export function RoomMenuPage() {
             <Clock size={18} className="text-red-500 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-red-700 text-sm">Room service is currently closed</p>
-              {rsOpen && rsClose && (
-                <p className="text-xs text-red-500 mt-0.5">Available {rsOpen} – {rsClose}</p>
-              )}
+              {rsOpen && rsClose && <p className="text-xs text-red-500 mt-0.5">Available {rsOpen} – {rsClose}</p>}
               <p className="text-xs text-red-400 mt-1">You can still browse the menu, but orders cannot be placed right now.</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Menu grid */}
       <main className="max-w-5xl mx-auto px-4 pt-4">
-        {/* Combos & Deals strip */}
+        {/* Combos & Deals — collapsible */}
         {combos.length > 0 && (
           <section className="mb-5">
-            <h2 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              <Package size={14} /> {t('customer.combosAndDeals')}
-            </h2>
-            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-              {combos.map((combo) => (
-                <div key={combo.id} className="shrink-0 w-52 bg-white rounded-2xl shadow-sm border border-blue-100 overflow-hidden">
-                  {combo.image
-                    ? <img src={combo.image} alt={combo.name} className="w-full h-28 object-cover" />
-                    : <div className="w-full h-28 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center"><Package size={32} className="text-blue-300" /></div>}
-                  <div className="p-3">
-                    <p className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{combo.name}</p>
-                    {combo.description && <p className="text-xs text-gray-400 line-clamp-1 mb-1">{combo.description}</p>}
-                    {combo.items.length > 0 && (
-                      <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                        {combo.items.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.menuItemName}`).join(' · ')}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-600 font-bold text-base">{fmt(combo.price)}</span>
-                      <button
-                        onClick={() => dispatch({ type: 'ADD_COMBO', comboId: combo.id, name: combo.name, price: combo.price, comboItems: combo.items.map((i) => i.menuItemName) })}
-                        className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-blue-700 active:scale-95 transition-all"
-                      >
-                        {t('customer.addToCart')}
-                      </button>
+            <button
+              onClick={() => setCombosOpen((o) => !o)}
+              className="w-full flex items-center justify-between py-2 px-0 group"
+            >
+              <span className="text-sm font-bold text-orange-600 uppercase tracking-wide flex items-center gap-1.5">
+                <Package size={14} /> {t('customer.combosAndDeals')}
+                <span className="ml-1.5 text-xs font-semibold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full normal-case tracking-normal">
+                  {combos.length}
+                </span>
+              </span>
+              <ChevronDown size={16} className={`text-orange-400 transition-transform duration-200 ${combosOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <div className={`overflow-hidden transition-all duration-300 ${combosOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="flex gap-3 overflow-x-auto pb-1 pt-1 -mx-1 px-1">
+                {combos.map((combo) => (
+                  <div key={combo.id} className="shrink-0 w-52 bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden">
+                    {combo.image
+                      ? <img src={combo.image} alt={combo.name} className="w-full h-28 object-cover" />
+                      : <div className="w-full h-28 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center"><Package size={32} className="text-orange-300" /></div>}
+                    <div className="p-3">
+                      <p className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{combo.name}</p>
+                      {combo.description && <p className="text-xs text-gray-400 line-clamp-1 mb-1">{combo.description}</p>}
+                      {combo.items.length > 0 && (
+                        <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+                          {combo.items.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.menuItemName}`).join(' · ')}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-orange-600 font-bold text-base">{fmt(combo.price)}</span>
+                        <button
+                          onClick={() => dispatch({ type: 'ADD_COMBO', comboId: combo.id, name: combo.name, price: combo.price, comboItems: combo.items.map((i) => i.menuItemName) })}
+                          className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-orange-600 active:scale-95 transition-all"
+                        >
+                          {t('customer.addToCart')}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         )}
 
         {filtered.length === 0 ? (
-          <p className="text-center text-gray-400 mt-12">
-            {q ? `No items match "${searchQuery}"` : t('customer.allCategories')}
-          </p>
+          <div className="text-center mt-12">
+            {showFavourites && favourites.size === 0 ? (
+              <>
+                <Heart size={36} className="mx-auto text-gray-200 mb-3" />
+                <p className="text-gray-400 text-sm">No favourites yet</p>
+                <p className="text-gray-300 text-xs mt-1">Tap the ♡ on any item to save it here</p>
+              </>
+            ) : (
+              <p className="text-gray-400">{q ? t('customer.noItemsMatch', { query: searchQuery }) : t('customer.noItemsCategory')}</p>
+            )}
+          </div>
+        ) : view === 'list' ? (
+          <div className="flex flex-col gap-2">
+            {filtered.map((item) => (
+              <ListCard
+                key={item.id}
+                item={item}
+                fmt={fmt}
+                totalInCart={cart.filter((c) => c.menuItemId === item.id).reduce((s, c) => s + c.quantity, 0)}
+                onOpen={setDetailModal}
+                onAdd={handleAdd}
+                isFavourite={isFavourite(item.id)}
+                onToggleFavourite={toggleFavourite}
+              />
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map((item) => {
-              const hasLarge = item.largePrice != null && item.largePrice > 0;
-              const hasToppings = (item.toppings ?? []).some((t) => t.available);
-              const regPrice = effectivePrice(item, 'regular');
-              const lrgPrice = hasLarge ? effectivePrice(item, 'large') : 0;
-              const regDisc  = item.discountPct > 0;
-              const totalInCart = cart.filter((c) => c.menuItemId === item.id).reduce((s, c) => s + c.quantity, 0);
-
-              return (
-                <div key={item.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col transition-colors ${totalInCart > 0 ? 'border-blue-200' : 'border-gray-100'}`}>
-                  <div className="relative">
-                    {item.image
-                      ? <img src={item.image} alt={item.name} className="w-full h-36 object-cover" />
-                      : <div className="w-full h-36 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center"><UtensilsCrossed size={32} className="text-blue-300" /></div>}
-                    {regDisc && (
-                      <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{item.discountPct}% OFF</span>
-                    )}
-                    {(hasToppings || hasLarge) && (
-                      <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-                        {hasToppings ? `+ ${t('customer.extras')}` : 'R / L'}
-                      </span>
-                    )}
-                    {item.trackStock && item.stock != null && item.stock <= 5 && (
-                      <span className={`absolute bottom-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded-full ${item.stock <= 2 ? 'bg-red-500 text-white' : 'bg-amber-400 text-white'}`}>
-                        Only {item.stock} left
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-3 flex flex-col flex-1">
-                    <h3 className="font-semibold text-gray-900 text-sm leading-tight">{item.name}</h3>
-                    {(item.tags ?? []).some(slug => allTags.some(t => t.slug === slug && t.category === 'allergen')) && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {(item.tags ?? []).flatMap(slug => {
-                          const tag = allTags.find(t => t.slug === slug && t.category === 'allergen');
-                          return tag ? [tag] : [];
-                        }).map(tag => (
-                          <span key={tag.slug} className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${tagPillCls('allergen')}`}>
-                            {tag.emoji} {tag.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {item.description && <p className="text-xs text-gray-400 mt-1 line-clamp-2 flex-1">{item.description}</p>}
-                    <div className="mt-2">
-                      {regDisc
-                        ? <div><span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span><span className="ml-1.5 text-green-600 font-bold">{fmt(regPrice)}</span></div>
-                        : <span className="text-blue-600 font-bold">{fmt(regPrice)}</span>}
-                      {hasLarge && <span className="text-xs text-gray-400 ml-1">/ L {fmt(lrgPrice)}</span>}
-                      <div className="mt-2">
-                        <button
-                          onClick={() => handleAdd(item)}
-                          className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${totalInCart > 0 ? 'bg-blue-100 text-blue-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                        >
-                          <Plus size={14} /> {totalInCart > 0 ? `${t('customer.addToCart')} (${totalInCart})` : t('customer.addToCart')}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filtered.map((item) => (
+              <GridCard
+                key={item.id}
+                item={item}
+                fmt={fmt}
+                totalInCart={cart.filter((c) => c.menuItemId === item.id).reduce((s, c) => s + c.quantity, 0)}
+                onOpen={setDetailModal}
+                onAdd={handleAdd}
+                isFavourite={isFavourite(item.id)}
+                onToggleFavourite={toggleFavourite}
+              />
+            ))}
           </div>
         )}
       </main>
@@ -482,25 +593,24 @@ export function RoomMenuPage() {
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder={t('customer.notePlaceholder')}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-300 mb-1"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 mb-1"
                   />
                   <input
                     type="tel"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
                     placeholder={t('customer.phonePlaceholder')}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-300"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
                   />
-                  {/* Charge to Room toggle */}
-                  <label className={`flex items-center gap-3 mt-1 px-3 py-2.5 rounded-xl cursor-pointer border transition-colors ${chargeToRoom ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'}`}>
+                  <label className={`flex items-center gap-3 mt-1 px-3 py-2.5 rounded-xl cursor-pointer border transition-colors ${chargeToRoom ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 border-gray-200'}`}>
                     <div
                       onClick={() => setChargeToRoom((p) => !p)}
-                      className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${chargeToRoom ? 'bg-blue-600' : 'bg-gray-300'}`}
+                      className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${chargeToRoom ? 'bg-orange-500' : 'bg-gray-300'}`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${chargeToRoom ? 'translate-x-4' : ''}`} />
                     </div>
                     <div>
-                      <p className={`text-sm font-semibold ${chargeToRoom ? 'text-blue-700' : 'text-gray-600'}`}>Charge to Room</p>
+                      <p className={`text-sm font-semibold ${chargeToRoom ? 'text-orange-700' : 'text-gray-600'}`}>Charge to Room</p>
                       <p className="text-xs text-gray-400">Bill will be added to your room account</p>
                     </div>
                   </label>
@@ -515,12 +625,12 @@ export function RoomMenuPage() {
                           <div className="flex items-center gap-2 shrink-0">
                             <button onClick={() => dispatch({ type: 'DEC', key })} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"><Minus size={12} /></button>
                             <span className="w-5 text-center font-bold text-gray-900 text-sm">{c.quantity}</span>
-                            <button onClick={() => dispatch({ type: 'INC', key })} className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200"><Plus size={12} /></button>
+                            <button onClick={() => dispatch({ type: 'INC', key })} className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center hover:bg-orange-200"><Plus size={12} /></button>
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-sm text-gray-700 truncate block">{c.name}</span>
-                            {c.comboId && <span className="text-xs bg-blue-500 text-white font-semibold px-1.5 py-0.5 rounded-full">{t('customer.bundle')}</span>}
-                            {c.size && <span className="text-xs text-blue-500 capitalize">{c.size}</span>}
+                            {c.comboId && <span className="text-xs bg-orange-500 text-white font-semibold px-1.5 py-0.5 rounded-full">{t('customer.bundle')}</span>}
+                            {c.size && <span className="text-xs text-orange-500 capitalize">{c.size}</span>}
                           </div>
                           <span className="text-sm font-semibold text-gray-800 shrink-0">{fmt((c.price + toppingsTotal) * c.quantity)}</span>
                           <button onClick={() => dispatch({ type: 'REMOVE', key })} className="text-gray-300 hover:text-red-400 shrink-0"><Trash2 size={14} /></button>
@@ -532,7 +642,6 @@ export function RoomMenuPage() {
                             ))}
                           </ul>
                         )}
-                        {/* Inline notes */}
                         <div className="ml-16 mt-1">
                           {editingNotesKey === key ? (
                             <input
@@ -542,13 +651,10 @@ export function RoomMenuPage() {
                               onChange={(e) => dispatch({ type: 'SET_NOTES', key, notes: e.target.value })}
                               onBlur={() => setEditingNotesKey(null)}
                               placeholder={t('customer.noteHint')}
-                              className="w-full text-xs border border-blue-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-blue-300"
+                              className="w-full text-xs border border-orange-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-orange-300"
                             />
                           ) : (
-                            <button
-                              onClick={() => setEditingNotesKey(key)}
-                              className="text-xs text-blue-400 hover:text-blue-600"
-                            >
+                            <button onClick={() => setEditingNotesKey(key)} className="text-xs text-orange-400 hover:text-orange-600">
                               {c.notes ? `📝 ${c.notes}` : `+ ${t('customer.notePlaceholder')}`}
                             </button>
                           )}
@@ -557,8 +663,6 @@ export function RoomMenuPage() {
                     );
                   })}
                 </ul>
-
-                {/* Promo code */}
                 <div className="px-4 py-3 border-t border-gray-100">
                   {promoResult?.valid ? (
                     <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-3 py-2">
@@ -567,9 +671,7 @@ export function RoomMenuPage() {
                         <span className="text-sm font-semibold text-green-700">{promoResult.code}</span>
                         <span className="text-xs text-green-600">−{fmt(promoResult.discountAmount ?? 0)}</span>
                       </div>
-                      <button onClick={removePromo} className="text-gray-400 hover:text-gray-600">
-                        <X size={14} />
-                      </button>
+                      <button onClick={removePromo} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
                     </div>
                   ) : (
                     <div className="flex gap-2">
@@ -581,13 +683,13 @@ export function RoomMenuPage() {
                           onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
                           onKeyDown={(e) => e.key === 'Enter' && applyPromo()}
                           placeholder="Promo code"
-                          className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-300"
+                          className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-sm font-mono focus:outline-none focus:border-orange-300"
                         />
                       </div>
                       <button
                         onClick={applyPromo}
                         disabled={promoLoading || !promoInput.trim()}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-40"
+                        className="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-40"
                       >
                         {promoLoading ? '…' : 'Apply'}
                       </button>
@@ -596,19 +698,14 @@ export function RoomMenuPage() {
                   {(discount > 0 || charges.tax > 0) && (
                     <div className="mt-2 space-y-0.5 text-xs text-gray-500">
                       <div className="flex justify-between"><span>{t('customer.subtotal')}</span><span>{fmt(subtotal)}</span></div>
-                      {discount > 0 && (
-                        <div className="flex justify-between text-green-600 font-medium"><span>Discount</span><span>−{fmt(discount)}</span></div>
-                      )}
-                      {charges.tax > 0 && (
-                        <div className="flex justify-between"><span>{welcomeInfo?.taxName ?? 'Tax'} ({welcomeInfo?.taxPct}%)</span><span>+{fmt(charges.tax)}</span></div>
-                      )}
+                      {discount > 0 && <div className="flex justify-between text-green-600 font-medium"><span>Discount</span><span>−{fmt(discount)}</span></div>}
+                      {charges.tax > 0 && <div className="flex justify-between"><span>{welcomeInfo?.taxName ?? 'Tax'} ({welcomeInfo?.taxPct}%)</span><span>+{fmt(charges.tax)}</span></div>}
                       <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-100 pt-1"><span>{t('common.total')}</span><span>{fmt(total)}</span></div>
                     </div>
                   )}
                 </div>
               </div>
             )}
-            {/* Allergen warning — shown when cart is open */}
             {cartOpen && cartAllergens.length > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2 mb-2">
                 <AlertTriangle size={13} className="text-amber-500 mt-0.5 shrink-0" />
@@ -620,11 +717,10 @@ export function RoomMenuPage() {
                 </div>
               </div>
             )}
-
             <button
               onClick={() => cartOpen ? placeOrder() : setCartOpen(true)}
               disabled={placing || (cartOpen && !isRoomServiceOpen)}
-              className="w-full bg-blue-600 text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-lg hover:bg-blue-700 transition-colors disabled:opacity-60"
+              className="w-full bg-orange-500 text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-lg hover:bg-orange-600 transition-colors disabled:opacity-60"
             >
               <span className="bg-white/20 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">{itemCount}</span>
               <span className="font-semibold">
@@ -638,16 +734,19 @@ export function RoomMenuPage() {
         </div>
       )}
 
-      {toppingModal && (
-        <ToppingSelectionModal
-          item={toppingModal.item}
-          onConfirm={(toppings, size, notes) => {
-            dispatch({ type: 'ADD', item: toppingModal.item, size, toppings, notes });
-            setToppingModal(null);
+      {detailModal && (
+        <ProductDetailModal
+          item={detailModal}
+          onClose={() => setDetailModal(null)}
+          onAdd={(toppings, size, notes, qty) => {
+            for (let i = 0; i < qty; i++) {
+              dispatch({ type: 'ADD', item: detailModal, size, toppings, notes: i === 0 ? (notes || undefined) : undefined });
+            }
           }}
-          onClose={() => setToppingModal(null)}
         />
       )}
+
+      <ActiveOrderBanner restaurantId={roomInfo?.restaurantId ?? ''} hidden={cartOpen} />
     </div>
   );
 }

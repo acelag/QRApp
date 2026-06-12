@@ -17,13 +17,15 @@ import { useTags } from '../../context/TagsContext';
 import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
 import type { MenuSchedule } from '../../services/menuScheduleService';
 import { comboService, type Combo } from '../../services/comboService';
-import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown, Heart } from 'lucide-react';
+import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown, Heart, ShoppingCart, Trash2 } from 'lucide-react';
 import { useFavourites } from '../../hooks/useFavourites';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
+import { ActiveOrderBanner } from '../../components/ActiveOrderBanner';
 export function MenuPage() {
   const { t } = useTranslation();
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
-  const { setTable, setSession, setRestaurant, tableNumber, tableId, addCombo } = useCart();
+  const { setTable, setSession, setRestaurant, tableNumber, tableId, addCombo,
+          checkForSavedCart, restoreCart, discardCart, pendingSavedCart, items: cartItems } = useCart();
   const { loadCurrency, fmt } = useCurrency();
   const { loadTheme } = useTheme();
   const { loadTags } = useTags();
@@ -55,6 +57,7 @@ export function MenuPage() {
     if (cached) {
       menuPrefetchCache.clear(tableIdParam);
       setTable(cached.tableId, cached.tableNumber);
+      checkForSavedCart(cached.tableId);
       setRestaurant(cached.restaurantId);
       setRestaurantId(cached.restaurantId);
       loadCurrency(cached.restaurantId);
@@ -75,6 +78,7 @@ export function MenuPage() {
     // Fallback: fetch everything fresh (direct navigation / hard reload)
     tableService.getTable(tableIdParam).then((table) => {
       setTable(table.id, table.number);
+      checkForSavedCart(table.id);
       setRestaurant(table.restaurantId);
       setRestaurantId(table.restaurantId);
       loadCurrency(table.restaurantId);
@@ -232,6 +236,38 @@ export function MenuPage() {
         </div>
       </header>
 
+      {/* ── Continue your order? banner ───────────────────────────────────── */}
+      {pendingSavedCart && cartItems.length === 0 && (
+        <div className="max-w-5xl mx-auto px-4 pt-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+              <ShoppingCart size={18} className="text-orange-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-orange-800 leading-tight">Continue your order?</p>
+              <p className="text-xs text-orange-600 mt-0.5">
+                {pendingSavedCart.items.reduce((s, i) => s + i.quantity, 0)} item
+                {pendingSavedCart.items.reduce((s, i) => s + i.quantity, 0) !== 1 ? 's' : ''} saved
+                {' · '}{fmt(pendingSavedCart.total)}
+              </p>
+            </div>
+            <button
+              onClick={() => { restoreCart(); }}
+              className="shrink-0 bg-orange-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-orange-600 active:scale-95 transition-all"
+            >
+              Continue
+            </button>
+            <button
+              onClick={() => discardCart()}
+              className="shrink-0 text-orange-400 hover:text-orange-600 transition-colors"
+              title="Start fresh"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-5xl mx-auto px-4 pt-4">
         {/* Combos & Deals strip — collapsible */}
         {combos.length > 0 && (
@@ -328,6 +364,7 @@ export function MenuPage() {
       </main>
 
       <CartButton />
+      <ActiveOrderBanner restaurantId={restaurantId} />
     </div>
   );
 }
