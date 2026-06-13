@@ -30,6 +30,7 @@ export function OrdersPage() {
   const [tab, setTab] = useState<OrderStatus | 'all' | 'takeaway'>('all');
   const [loading, setLoading] = useState(true);
   const [addItemsOrder, setAddItemsOrder] = useState<Order | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useOrderSoundAlert(orders);
 
@@ -110,10 +111,19 @@ export function OrdersPage() {
     ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled')
     : orders.filter((o) => o.status === tab);
 
+  // Keep selected order valid when filter changes
+  useEffect(() => {
+    if (selectedOrderId && !filtered.find((o) => o.id === selectedOrderId)) {
+      setSelectedOrderId(filtered[0]?.id ?? null);
+    } else if (!selectedOrderId && filtered.length > 0) {
+      setSelectedOrderId(filtered[0].id);
+    }
+  }, [tab, filtered.length]);
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+      <main className="flex-1 overflow-y-auto md:overflow-hidden mt-14 md:mt-0 flex flex-col">
       <AdminHeader title={t('orders.title')} backTo="/admin">
         <button onClick={fetch} className="text-gray-400 hover:text-gray-600 shrink-0" title="Refresh">
           <RefreshCw size={18} />
@@ -145,8 +155,9 @@ export function OrdersPage() {
         </div>
       </div>
 
+      {/* Mobile layout: full card grid */}
       <PullToRefresh onRefresh={fetch}>
-      <div className="px-3 sm:px-4 lg:px-6 py-4">
+      <div className="md:hidden px-3 sm:px-4 py-4">
         {loading ? (
           <div className="flex justify-center pt-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
@@ -154,9 +165,9 @@ export function OrdersPage() {
         ) : filtered.length === 0 ? (
           <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
         ) : (
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
+          <div className="columns-1 sm:columns-2 gap-3">
             {filtered.map((order) => (
-              <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4">
+              <div key={order.id} className="break-inside-avoid mb-3">
                 <OrderCard
                   order={order}
                   onStatusChange={handleStatusChange}
@@ -174,6 +185,88 @@ export function OrdersPage() {
         )}
       </div>
       </PullToRefresh>
+
+      {/* Tablet+ split layout: compact list on left, detail on right */}
+      <div className="hidden md:flex flex-1 min-h-0">
+        {/* Compact order list */}
+        <div className="w-72 lg:w-80 shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
+          <div className="px-3 py-3">
+            {loading ? (
+              <div className="flex justify-center pt-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {filtered.map((order) => (
+                  <button
+                    key={order.id}
+                    onClick={() => setSelectedOrderId(order.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
+                      selectedOrderId === order.id
+                        ? 'bg-orange-50 border-orange-200'
+                        : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-gray-900 truncate">
+                        {order.orderNumber ?? `#${order.id.slice(0, 6)}`}
+                      </span>
+                      <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                        order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
+                        order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
+                        order.status === 'ready'     ? 'bg-green-100 text-green-700' :
+                        order.status === 'delivered' ? 'bg-gray-100 text-gray-500' :
+                        'bg-red-100 text-red-600'
+                      }`}>{order.status}</span>
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                      <span>
+                        {order.orderType === 'takeaway' ? 'Takeaway' :
+                         order.tableNumber ? `Table ${order.tableNumber}` :
+                         order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
+                      </span>
+                      {order.customerName && (
+                        <span className="truncate">{order.customerName}</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Detail panel */}
+        <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
+          {selectedOrderId ? (
+            (() => {
+              const order = filtered.find((o) => o.id === selectedOrderId);
+              if (!order) return <p className="text-gray-300 text-sm">Order not found</p>;
+              return (
+                <div className="max-w-lg">
+                  <OrderCard
+                    order={order}
+                    onStatusChange={handleStatusChange}
+                    onAssignWaiter={handleAssignWaiter}
+                    onAddItems={setAddItemsOrder}
+                    onCancel={handleCancel}
+                    onRemoveItem={handleRemoveItem}
+                    onUpdateItemQty={handleUpdateItemQty}
+                    waiters={waiters}
+                    showActions
+                  />
+                </div>
+              );
+            })()
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-300 text-sm">
+              {filtered.length > 0 ? 'Select an order to view details' : ''}
+            </div>
+          )}
+        </div>
+      </div>
       {addItemsOrder && (
         <AddItemsModal
           order={addItemsOrder}

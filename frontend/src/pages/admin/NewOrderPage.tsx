@@ -312,7 +312,7 @@ export function NewOrderPage() {
         )}
       </header>
 
-      <div className="px-3 sm:px-4 lg:px-6 py-4 flex flex-col lg:flex-row gap-4 items-start">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 flex flex-col md:flex-row gap-4 items-start">
         {/* â”€â”€ Menu grid â”€â”€ */}
         <div className="flex-1 min-w-0">
           {loading ? (
@@ -450,7 +450,7 @@ export function NewOrderPage() {
         </div>
 
         {/* â”€â”€ Sidebar â”€â”€ */}
-        <div className="w-full lg:w-80 lg:shrink-0 lg:sticky lg:top-40 space-y-3">
+        <div className="w-full md:w-72 lg:w-80 md:shrink-0 md:sticky md:top-40 space-y-3">
 
           {/* Table selector â€” dine-in only */}
           {mode === 'dine-in' && (

@@ -202,8 +202,8 @@ export function KitchenPage() {
         </button>
       </header>
 
-      {/* Tab bar */}
-      <div className="bg-gray-800 border-t border-gray-700 px-3 sm:px-4 lg:px-6 flex gap-1 sticky top-[64px] z-30">
+      {/* Tab bar — hidden on md+ where both panels show side-by-side */}
+      <div className="md:hidden bg-gray-800 border-t border-gray-700 px-3 sm:px-4 lg:px-6 flex gap-1 sticky top-[64px] z-30">
         <button
           onClick={() => setTab('orders')}
           className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
@@ -238,105 +238,95 @@ export function KitchenPage() {
         </button>
       </div>
 
-      {/* â”€â”€ Orders tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      {tab === 'orders' && (
-        <PullToRefresh onRefresh={fetchOrders}>
-        <main className="px-3 sm:px-4 lg:px-6 py-4">
-          {orders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center pt-24 text-gray-500">
-              <p className="text-2xl">ðŸ‘¨â€ðŸ³</p>
-              <p className="mt-2">{t('kitchen.noActiveOrders')}</p>
-            </div>
-          ) : (
-            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
-              {orders.map((order, idx) => (
-                <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4">
-                  <OrderCard
-                    order={order}
-                    onStatusChange={handleStatusChange}
-                    showActions
-                    showKitchenPrint
-                    isNext={idx === 0}
-                    priority={idx + 1}
-                    hidePrices
-                    prepTimeMap={prepTimeMap}
-                    clockMs={clockMs}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-        </PullToRefresh>
-      )}
+      {/* Split layout: side-by-side on md+, tabs on mobile */}
+      <div className="flex flex-col md:flex-row md:h-[calc(100vh-64px)] md:overflow-hidden">
 
-      {/* â”€â”€ Items tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      {tab === 'items' && (
-        <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-6">
-          {!itemsLoaded ? (
-            <div className="flex justify-center pt-16">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400" />
-            </div>
-          ) : menuItems.length === 0 ? (
-            <p className="text-center text-gray-500 pt-16">{t('kitchen.noMenuItems')}</p>
-          ) : (
-            <>
-              {/* Sold-out summary bar */}
-              {menuItems.filter((i) => !i.available).length > 0 && (
-                <div className="bg-red-900/40 border border-red-700/50 rounded-2xl px-4 py-3 flex items-center gap-3">
-                  <span className="text-red-400 font-bold text-sm">
-                    {t('kitchen.itemsSoldOut', { n: menuItems.filter((i) => !i.available).length })}
-                  </span>
-                  <span className="text-gray-400 text-xs flex-1">{t('kitchen.soldOutNote')}</span>
-                  <button
-                    onClick={async () => {
-                      const soldOut = menuItems.filter((i) => !i.available);
-                      await Promise.all(soldOut.map((i) => handleToggle(i)));
-                    }}
-                    className="text-xs bg-red-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-medium transition-colors"
-                  >
-                    {t('kitchen.markAllAvailable')}
-                  </button>
-                </div>
-              )}
-
-              {/* By category */}
-              {grouped.map(({ cat, items }) => (
-                <section key={cat.id}>
-                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{cat.name}</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                    {items.map((item) => (
-                      <ItemToggleCard
-                        key={item.id}
-                        item={item}
-                        loading={toggling.has(item.id)}
-                        onToggle={handleToggle}
-                      />
-                    ))}
+        {/* Orders panel */}
+        <div className={`md:flex-1 md:overflow-y-auto md:border-r md:border-gray-700 ${tab !== 'orders' ? 'hidden md:block' : ''}`}>
+          <PullToRefresh onRefresh={fetchOrders}>
+          <main className="px-3 sm:px-4 lg:px-6 py-4">
+            {orders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center pt-24 text-gray-500">
+                <p className="text-2xl">ðŸ‘¨â€ðŸ³</p>
+                <p className="mt-2">{t('kitchen.noActiveOrders')}</p>
+              </div>
+            ) : (
+              <div className="columns-1 sm:columns-2 xl:columns-3 2xl:columns-4 gap-3 lg:gap-4">
+                {orders.map((order, idx) => (
+                  <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4">
+                    <OrderCard
+                      order={order}
+                      onStatusChange={handleStatusChange}
+                      showActions
+                      showKitchenPrint
+                      isNext={idx === 0}
+                      priority={idx + 1}
+                      hidePrices
+                      prepTimeMap={prepTimeMap}
+                      clockMs={clockMs}
+                    />
                   </div>
-                </section>
-              ))}
+                ))}
+              </div>
+            )}
+          </main>
+          </PullToRefresh>
+        </div>
 
-              {/* Uncategorised */}
-              {uncategorised.length > 0 && (
-                <section>
-                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{t('kitchen.other')}</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                    {uncategorised.map((item) => (
-                      <ItemToggleCard
-                        key={item.id}
-                        item={item}
-                        loading={toggling.has(item.id)}
-                        onToggle={handleToggle}
-                      />
-                    ))}
+        {/* Availability panel */}
+        <div className={`md:w-80 lg:w-96 md:overflow-y-auto md:shrink-0 ${tab !== 'items' ? 'hidden md:block' : ''}`}>
+          <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-6">
+            {!itemsLoaded ? (
+              <div className="flex justify-center pt-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400" />
+              </div>
+            ) : menuItems.length === 0 ? (
+              <p className="text-center text-gray-500 pt-16">{t('kitchen.noMenuItems')}</p>
+            ) : (
+              <>
+                {menuItems.filter((i) => !i.available).length > 0 && (
+                  <div className="bg-red-900/40 border border-red-700/50 rounded-2xl px-4 py-3 flex items-center gap-3">
+                    <span className="text-red-400 font-bold text-sm">
+                      {t('kitchen.itemsSoldOut', { n: menuItems.filter((i) => !i.available).length })}
+                    </span>
+                    <span className="text-gray-400 text-xs flex-1">{t('kitchen.soldOutNote')}</span>
+                    <button
+                      onClick={async () => {
+                        const soldOut = menuItems.filter((i) => !i.available);
+                        await Promise.all(soldOut.map((i) => handleToggle(i)));
+                      }}
+                      className="text-xs bg-red-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-medium transition-colors"
+                    >
+                      {t('kitchen.markAllAvailable')}
+                    </button>
                   </div>
-                </section>
-              )}
-            </>
-          )}
-        </main>
-      )}
+                )}
+                {grouped.map(({ cat, items }) => (
+                  <section key={cat.id}>
+                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{cat.name}</h2>
+                    <div className="grid grid-cols-1 gap-2">
+                      {items.map((item) => (
+                        <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+                {uncategorised.length > 0 && (
+                  <section>
+                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{t('kitchen.other')}</h2>
+                    <div className="grid grid-cols-1 gap-2">
+                      {uncategorised.map((item) => (
+                        <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+          </main>
+        </div>
+
+      </div>
     </div>
   );
 }
