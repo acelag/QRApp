@@ -59,9 +59,9 @@ export function UsersPage() {
 
   useEffect(() => { load(); }, []);
 
-  function openNew() {
+  function openNew(role?: UserRole) {
     setEditing(null);
-    setForm(EMPTY);
+    setForm(role ? { ...EMPTY, role } : EMPTY);
     setFormError('');
     setShowPwd(false);
     setShowForm(true);
@@ -149,7 +149,7 @@ export function UsersPage() {
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Manage Users" backTo="/admin/settings">
         <button
-          onClick={openNew}
+          onClick={() => openNew()}
           className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
         >
           <Plus size={14} /> Add User
@@ -166,7 +166,7 @@ export function UsersPage() {
             {ROLE_CONFIG.map(({ role, sectionLabel, emptyLabel, Icon, iconCls }) => {
               const group = users.filter((u) => u.role === role);
               return (
-                <Section key={role} title={sectionLabel} icon={<Icon size={16} className={iconCls} />}>
+                <Section key={role} title={sectionLabel} icon={<Icon size={16} className={iconCls} />} onAdd={() => openNew(role)}>
                   {group.length === 0
                     ? <p className="text-sm text-gray-400 py-2 text-center">{emptyLabel}</p>
                     : group.map((u) => (
@@ -185,7 +185,9 @@ export function UsersPage() {
           <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
-                {editing ? `Edit: ${editing.name}` : 'New User'}
+                {editing
+                  ? `Edit: ${editing.name}`
+                  : `New ${ROLE_CONFIG.find((r) => r.role === form.role)?.label ?? 'User'}`}
               </h2>
               <button onClick={() => setShowForm(false)}><X size={20} className="text-gray-400" /></button>
             </div>
@@ -340,12 +342,18 @@ export function UsersPage() {
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, icon, onAdd, children }: { title: string; icon: React.ReactNode; onAdd: () => void; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
         {icon}
-        <span className="text-sm font-semibold text-gray-700">{title}</span>
+        <span className="text-sm font-semibold text-gray-700 flex-1">{title}</span>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-1 text-xs font-medium text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1 rounded-full transition-colors"
+        >
+          <Plus size={12} /> Add
+        </button>
       </div>
       <div className="divide-y divide-gray-100">{children}</div>
     </div>
