@@ -1,5 +1,8 @@
 ﻿import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { MenuSetupPanel } from './MenuSetupPage';
+import { CombosPanel } from './CombosPage';
+import { MenuSchedulesPanel } from './MenuSchedulesPage';
 import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List, FlaskConical } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping } from '../../types/MenuItem';
@@ -53,7 +56,17 @@ const EMPTY: Omit<MenuItem, 'id'> = {
   spiceLevel: null,
 };
 
+type MenuTab = 'items' | 'setup' | 'combos' | 'schedules';
+
+const MENU_TABS: { id: MenuTab; label: string }[] = [
+  { id: 'items',     label: 'Menu Items' },
+  { id: 'setup',     label: 'Categories & Tags' },
+  { id: 'combos',    label: 'Combos' },
+  { id: 'schedules', label: 'Schedules' },
+];
+
 export function MenuItemsPage() {
+  const [activeTab, setActiveTab] = useState<MenuTab>('items');
   const { fmt } = useCurrency();
   const { user } = useAuth();
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -339,39 +352,59 @@ export function MenuItemsPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Menu Items" backTo="/admin">
-        {user?.restaurantId && (
-          <a
-            href={`/takeaway/${user.restaurantId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Preview menu as customer"
-            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
+      <AdminHeader title="Menu" backTo="/admin">
+        {activeTab === 'items' && (<>
+          {user?.restaurantId && (
+            <a
+              href={`/takeaway/${user.restaurantId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Preview menu as customer"
+              className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
+            >
+              <ExternalLink size={17} />
+            </a>
+          )}
+          <button
+            onClick={() => setReorderMode((m) => !m)}
+            title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
+            className={`p-2 rounded-xl transition-colors ${reorderMode ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
           >
-            <ExternalLink size={17} />
-          </a>
-        )}
-        <button
-          onClick={() => setReorderMode((m) => !m)}
-          title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
-          className={`p-2 rounded-xl transition-colors ${reorderMode ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
-        >
-          <GripVertical size={17} />
-        </button>
-        <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
-          <Download size={17} />
-        </button>
-        <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
-          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors disabled:opacity-50">
-          {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
-        </button>
-        <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-        <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
-          <Plus size={14} /> Add Item
-        </button>
+            <GripVertical size={17} />
+          </button>
+          <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
+            <Download size={17} />
+          </button>
+          <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
+            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors disabled:opacity-50">
+            {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+          </button>
+          <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+          <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
+            <Plus size={14} /> Add Item
+          </button>
+        </>)}
       </AdminHeader>
 
-      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      {/* Tab bar */}
+      <div className="flex border-b border-gray-200 bg-white px-4 overflow-x-auto">
+        {MENU_TABS.map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'setup'     && <MenuSetupPanel />}
+      {activeTab === 'combos'    && <CombosPanel />}
+      {activeTab === 'schedules' && <MenuSchedulesPanel />}
+
+      {activeTab === 'items' && <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
         {/* â”€â”€ Search & filter bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 flex flex-wrap gap-2 items-center">
@@ -880,15 +913,13 @@ export function MenuItemsPage() {
           </div>
         </div>
         )}
-      </div>
+      </div>}
 
-      {/* Recipe modal */}
-      {recipeItem && (
+      {activeTab === 'items' && recipeItem && (
         <RecipeModal menuItem={recipeItem} onClose={() => setRecipeItem(null)} />
       )}
 
-      {/* Form modal */}
-      {showForm && (
+      {activeTab === 'items' && showForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setShowForm(false)}>
           <div
             className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl max-h-[94vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"

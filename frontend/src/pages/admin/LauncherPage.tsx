@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import {
-  Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag, Package,
-  Calendar, QrCode, MapPin, CalendarDays, LayoutGrid, MonitorPlay, ChefHat,
+  Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag,
+  QrCode, MapPin, CalendarDays, LayoutGrid, MonitorPlay, ChefHat,
   Receipt, CreditCard, Users, Warehouse, BarChart2,
   FileText, Settings, Star, ArrowLeft, Clock, Box,
 } from 'lucide-react';
@@ -39,15 +39,7 @@ type NavEntry = ({ type: 'item' } & NavLeaf) | ({ type: 'group' } & NavGroup);
 const TOP_NAV: NavEntry[] = [
   { type: 'item',  label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard', color: 'bg-blue-50   text-blue-600'   },
   { type: 'item',  label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders',  color: 'bg-orange-50 text-orange-600' },
-  {
-    type: 'group', label: 'Menu', icon: UtensilsCrossed, color: 'bg-green-50 text-green-600',
-    children: [
-      { label: 'Menu Items',       icon: UtensilsCrossed, to: '/admin/menu',           color: 'bg-green-50  text-green-600'  },
-      { label: 'Categories & Tags',icon: Tag,             to: '/admin/menu-setup',     color: 'bg-green-50  text-green-600'  },
-      { label: 'Combo Deals',      icon: Package,         to: '/admin/combos',         color: 'bg-green-50  text-green-600'  },
-      { label: 'Menu Schedules',   icon: Calendar,        to: '/admin/menu-schedules', color: 'bg-green-50  text-green-600'  },
-    ],
-  },
+  { type: 'item', label: 'Menu', icon: UtensilsCrossed, to: '/admin/menu', color: 'bg-green-50 text-green-600' },
   {
     type: 'group', label: 'Floor', icon: QrCode, color: 'bg-purple-50 text-purple-600',
     children: [

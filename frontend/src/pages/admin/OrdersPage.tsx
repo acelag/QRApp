@@ -6,7 +6,9 @@ import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
+import { BillPanel } from '../../components/BillPanel';
 import { AddItemsModal } from '../../components/AddItemsModal';
+import { restaurantService, type RestaurantSettings } from '../../services/restaurantService';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
@@ -27,6 +29,7 @@ export function OrdersPage() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [waiters, setWaiters] = useState<Waiter[]>([]);
+  const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [tab, setTab] = useState<OrderStatus | 'all' | 'takeaway'>('all');
   const [loading, setLoading] = useState(true);
   const [addItemsOrder, setAddItemsOrder] = useState<Order | null>(null);
@@ -46,6 +49,7 @@ export function OrdersPage() {
   useEffect(() => {
     fetch();
     waiterService.getWaiters().then(setWaiters).catch(() => {});
+    restaurantService.getMyRestaurant().then(setSettings).catch(() => {});
     const id = setInterval(fetch, 5000);
     return () => clearInterval(id);
   }, []);
@@ -244,18 +248,23 @@ export function OrdersPage() {
               const order = filtered.find((o) => o.id === selectedOrderId);
               if (!order) return <p className="text-gray-300 text-sm">Order not found</p>;
               return (
-                <div className="max-w-lg">
-                  <OrderCard
-                    order={order}
-                    onStatusChange={handleStatusChange}
-                    onAssignWaiter={handleAssignWaiter}
-                    onAddItems={setAddItemsOrder}
-                    onCancel={handleCancel}
-                    onRemoveItem={handleRemoveItem}
-                    onUpdateItemQty={handleUpdateItemQty}
-                    waiters={waiters}
-                    showActions
-                  />
+                <div className="flex flex-col xl:flex-row gap-4 xl:items-start">
+                  <div className="flex-1 max-w-lg">
+                    <OrderCard
+                      order={order}
+                      onStatusChange={handleStatusChange}
+                      onAssignWaiter={handleAssignWaiter}
+                      onAddItems={setAddItemsOrder}
+                      onCancel={handleCancel}
+                      onRemoveItem={handleRemoveItem}
+                      onUpdateItemQty={handleUpdateItemQty}
+                      waiters={waiters}
+                      showActions
+                    />
+                  </div>
+                  <div className="w-full xl:w-80 shrink-0">
+                    <BillPanel order={order} settings={settings} />
+                  </div>
                 </div>
               );
             })()
