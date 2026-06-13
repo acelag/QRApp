@@ -330,7 +330,7 @@ export function TakeawayMenuPage() {
       );
       dispatch({ type: 'CLEAR' });
       setPromoResult(null); setPromoInput(''); setCartOpen(false);
-      saveActiveOrder(order.id, order.orderNumber, restaurantId);
+      saveActiveOrder(order.id, order.orderNumber, restaurantId ?? '');
       navigate(`/order-success/${order.id}`);
     } catch {
       toast.error(t('customer.failedOrder'));
@@ -694,7 +694,7 @@ export function TakeawayMenuPage() {
         />
       )}
 
-      <ActiveOrderBanner restaurantId={restaurantId} hidden={cartOpen} />
+      <ActiveOrderBanner restaurantId={restaurantId ?? ''} hidden={cartOpen} />
     </div>
   );
 }
