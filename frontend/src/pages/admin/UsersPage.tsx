@@ -52,6 +52,7 @@ export function UsersPage() {
   const assignable = assignablePermissions(features);
   const assignableKeys = new Set<string>(assignable.map((p) => p.key));
   const [tab, setTab] = useState<StaffTab>('users');
+  const [filterRole, setFilterRole] = useState<UserRole | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -160,10 +161,10 @@ export function UsersPage() {
       <AdminHeader title="Manage Staff" backTo="/admin/settings">
         {tab === 'users' && (
           <button
-            onClick={() => openNew()}
+            onClick={() => openNew(filterRole ?? undefined)}
             className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
           >
-            <Plus size={14} /> Add User
+            <Plus size={14} /> Add {filterRole ? ROLE_CONFIG.find(r => r.role === filterRole)?.label : 'User'}
           </button>
         )}
       </AdminHeader>
@@ -197,22 +198,29 @@ export function UsersPage() {
           </div>
         ) : (
           <>
-            {/* Role summary cards */}
+            {/* Role filter cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {ROLE_CONFIG.map(({ role, sectionLabel, Icon, iconCls }) => {
                 const count = users.filter((u) => u.role === role).length;
+                const active = filterRole === role;
                 return (
                   <button
                     key={role}
-                    onClick={() => openNew(role)}
-                    className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-col gap-1.5 hover:shadow-md hover:border-gray-200 transition-all text-left group"
+                    onClick={() => setFilterRole(active ? null : role)}
+                    className={`rounded-2xl border shadow-sm px-4 py-3 flex flex-col gap-1.5 hover:shadow-md transition-all text-left group relative ${
+                      active
+                        ? 'bg-orange-50 border-orange-400 shadow-orange-100'
+                        : 'bg-white border-gray-100 hover:border-gray-200'
+                    }`}
                   >
                     <div className="flex items-center justify-between">
-                      <Icon size={18} className={iconCls} />
-                      <span className="text-xs font-bold text-gray-500">{count}</span>
+                      <Icon size={18} className={active ? 'text-orange-500' : iconCls} />
+                      <span className={`text-xs font-bold ${active ? 'text-orange-600' : 'text-gray-500'}`}>{count}</span>
                     </div>
-                    <p className="text-sm font-semibold text-gray-700">{sectionLabel}</p>
-                    <p className="text-xs text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity">+ Add</p>
+                    <p className={`text-sm font-semibold ${active ? 'text-orange-700' : 'text-gray-700'}`}>{sectionLabel}</p>
+                    <p className={`text-xs transition-opacity ${active ? 'text-orange-400 opacity-100' : 'text-orange-500 opacity-0 group-hover:opacity-100'}`}>
+                      {active ? '✕ Clear filter' : 'Click to filter'}
+                    </p>
                   </button>
                 );
               })}
@@ -223,22 +231,34 @@ export function UsersPage() {
               {/* Table header */}
               <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                 <span className="w-9" />
-                <span>Name / Username</span>
+                <span>
+                  Name / Username
+                  {filterRole && (
+                    <span className="ml-2 normal-case font-normal text-orange-500">
+                      — showing {ROLE_CONFIG.find(r => r.role === filterRole)?.sectionLabel} only
+                    </span>
+                  )}
+                </span>
                 <span className="text-center w-20">Role</span>
                 <span className="w-16 text-center">Actions</span>
               </div>
 
               {users.length === 0 ? (
                 <p className="text-sm text-gray-400 py-10 text-center">No users yet. Click a role card above to add one.</p>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {ROLE_CONFIG.flatMap(({ role }) =>
-                    users.filter((u) => u.role === role).map((u) => (
+              ) : (() => {
+                const visible = ROLE_CONFIG.flatMap(({ role }) =>
+                  users.filter((u) => (!filterRole || u.role === filterRole) && u.role === role)
+                );
+                return visible.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-10 text-center">No {ROLE_CONFIG.find(r => r.role === filterRole)?.sectionLabel} found.</p>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {visible.map((u) => (
                       <UserRow key={u.id} user={u} isMe={u.id === me?.id} onEdit={openEdit} onDelete={del} />
-                    ))
-                  )}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </>
         )}

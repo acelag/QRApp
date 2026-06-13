@@ -6,8 +6,31 @@ import {
   Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag, Package,
   Calendar, QrCode, MapPin, CalendarDays, LayoutGrid, MonitorPlay, ChefHat,
   Receipt, CreditCard, Users, UserCheck, Trophy, Warehouse, BarChart2,
-  FileText, Settings, Star, ArrowLeft,
+  FileText, Settings, Star, ArrowLeft, GitBranch, Clock, Box,
 } from 'lucide-react';
+
+// ── Deploy info helpers ──────────────────────────────────────────────────────
+const isProd = import.meta.env.PROD;
+
+function formatBuildTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const secs = Math.floor(diffMs / 1000);
+  if (secs < 60)  return 'just now';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60)  return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 type NavLeaf = { label: string; icon: React.ElementType; to: string; color: string };
 type NavGroup = { label: string; icon: React.ElementType; color: string; children: NavLeaf[] };
@@ -49,15 +72,7 @@ const TOP_NAV: NavEntry[] = [
       { label: 'Promo Codes',  icon: Tag,        to: '/admin/promo-codes',  color: 'bg-teal-50 text-teal-600' },
     ],
   },
-  {
-    type: 'group', label: 'Staff', icon: Users, color: 'bg-indigo-50 text-indigo-600',
-    children: [
-      { label: 'Staff',        icon: Users,       to: '/admin/users',             color: 'bg-indigo-50 text-indigo-600' },
-      { label: 'Waiters',      icon: UserCheck,   to: '/admin/waiters',           color: 'bg-indigo-50 text-indigo-600' },
-      { label: 'Performance',  icon: Trophy,      to: '/admin/staff-performance', color: 'bg-indigo-50 text-indigo-600' },
-      { label: 'Roster',       icon: CalendarDays,to: '/admin/roster',            color: 'bg-indigo-50 text-indigo-600' },
-    ],
-  },
+  { type: 'item', label: 'Staff', icon: Users, to: '/admin/users', color: 'bg-indigo-50 text-indigo-600' },
   {
     type: 'group', label: 'Inventory', icon: Warehouse, color: 'bg-amber-50 text-amber-600',
     children: [
@@ -111,7 +126,7 @@ export function LauncherPage() {
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <AdminHeader title="Launcher" icon={Rocket} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 flex flex-col">
 
           {activeGroup ? (
             <>
@@ -141,6 +156,18 @@ export function LauncherPage() {
               )}
             </div>
           )}
+
+          {/* Deploy info footer */}
+          <div className="mt-auto pt-10">
+            <div className="border-t border-gray-100 pt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400">
+              <span className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${isProd ? 'bg-green-400' : 'bg-amber-400'}`} />
+                {isProd ? 'Production' : 'Development'}
+              </span>
+              <span className="flex items-center gap-1"><Box size={11} /> v{__APP_VERSION__}</span>
+              <span className="flex items-center gap-1"><Clock size={11} /> Deployed {relativeTime(__BUILD_TIME__)} · {formatBuildTime(__BUILD_TIME__)}</span>
+            </div>
+          </div>
 
         </main>
       </div>
