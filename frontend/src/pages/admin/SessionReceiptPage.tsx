@@ -105,7 +105,7 @@ export function SessionReceiptPage() {
 
       <div className="no-print" style={{ textAlign: 'center', paddingTop: 16 }}>
         <button className="print-btn" onClick={() => window.print()}>
-          ðŸ–¨ï¸ Print Bill
+          🖨️ Print Bill
         </button>
       </div>
 
@@ -187,7 +187,7 @@ export function SessionReceiptPage() {
         <Line />
 
         <p className="center" style={{ marginTop: 8 }}>Thank you for dining with us!</p>
-        <p className="center small" style={{ marginTop: 4 }}>Please come again ðŸ™</p>
+        <p className="center small" style={{ marginTop: 4 }}>Please come again 🙏</p>
         <Line char=" " />
         <Line char=" " />
       </div>

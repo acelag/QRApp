@@ -21,7 +21,7 @@ export function MenuSetupPage() {
 
   // Tag management
   const [newTagLabel, setNewTagLabel] = useState('');
-  const [newTagEmoji, setNewTagEmoji] = useState('ðŸ·ï¸');
+  const [newTagEmoji, setNewTagEmoji] = useState('🏷️');
   const [newTagCategory, setNewTagCategory] = useState<TagCategory>('label');
   const [editingTag, setEditingTag] = useState<{ id: string; label: string; emoji: string; category: TagCategory } | null>(null);
   const [savingTag, setSavingTag] = useState(false);
@@ -102,10 +102,10 @@ export function MenuSetupPage() {
     if (!newTagLabel.trim()) return;
     setSavingTag(true);
     try {
-      const t = await tagService.createTag(newTagLabel.trim(), newTagEmoji.trim() || 'ðŸ·ï¸', newTagCategory);
+      const t = await tagService.createTag(newTagLabel.trim(), newTagEmoji.trim() || '🏷️', newTagCategory);
       setTags((prev) => [...prev, t]);
       setNewTagLabel('');
-      setNewTagEmoji('ðŸ·ï¸');
+      setNewTagEmoji('🏷️');
       setNewTagCategory('label');
       toast.success('Tag added');
     } catch {
@@ -119,7 +119,7 @@ export function MenuSetupPage() {
     if (!editingTag || !editingTag.label.trim()) return;
     setSavingTag(true);
     try {
-      const t = await tagService.updateTag(editingTag.id, editingTag.label.trim(), editingTag.emoji.trim() || 'ðŸ·ï¸', editingTag.category);
+      const t = await tagService.updateTag(editingTag.id, editingTag.label.trim(), editingTag.emoji.trim() || '🏷️', editingTag.category);
       setTags((prev) => prev.map((tg) => tg.id === t.id ? t : tg));
       setEditingTag(null);
       toast.success('Tag updated');
@@ -290,7 +290,7 @@ export function MenuSetupPage() {
               <input
                 value={newTagEmoji}
                 onChange={(e) => setNewTagEmoji(e.target.value)}
-                placeholder="ðŸ·ï¸"
+                placeholder="🏷️"
                 maxLength={4}
                 className="w-12 text-center border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300"
                 title="Emoji"

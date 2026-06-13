@@ -522,7 +522,7 @@ export function MenuItemsPage() {
               <div className="relative">
                 {item.image
                   ? <img src={item.image} alt={item.name} className="w-full h-32 object-cover" />
-                  : <div className="w-full h-32 bg-orange-50 flex items-center justify-center text-4xl">ðŸ½ï¸</div>}
+                  : <div className="w-full h-32 bg-orange-50 flex items-center justify-center text-4xl">🍽️</div>}
                 {item.discountPct > 0 && (
                   <span className="absolute top-2 left-2 text-xs bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full">
                     {item.discountPct}% OFF
@@ -776,7 +776,7 @@ export function MenuItemsPage() {
                     <td className="px-4 py-2.5">
                       {item.image
                         ? <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />
-                        : <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-lg">ðŸ½ï¸</div>}
+                        : <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-lg">🍽️</div>}
                     </td>
                     {/* Name + tags */}
                     <td className="px-4 py-2.5">
@@ -920,7 +920,7 @@ export function MenuItemsPage() {
                       ) : preview ? (
                         <img src={preview} alt="preview" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-3xl">ðŸ½ï¸</span>
+                        <span className="text-3xl">🍽️</span>
                       )}
                     </div>
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -1203,7 +1203,7 @@ export function MenuItemsPage() {
                     {(['label', 'dietary', 'allergen'] as TagCategory[]).map((cat) => {
                       const catTags = tags.filter((t) => t.category === cat);
                       if (catTags.length === 0) return null;
-                      const catLabel = cat === 'dietary' ? 'ðŸ¥¦ Dietary' : cat === 'allergen' ? 'âš ï¸ Allergens' : 'ðŸ·ï¸ Labels';
+                      const catLabel = cat === 'dietary' ? '🥦 Dietary' : cat === 'allergen' ? '⚠️ Allergens' : '🏷️ Labels';
                       return (
                         <div key={cat}>
                           <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${cat === 'dietary' ? 'text-green-600' : cat === 'allergen' ? 'text-amber-600' : 'text-gray-400'}`}>
@@ -1297,7 +1297,7 @@ function SortableItemRow({ item, fmt }: { item: MenuItem; fmt: (n: number) => st
 
       {/* Thumbnail */}
       <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center text-lg">
-        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : 'ðŸ½ï¸'}
+        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : '🍽️'}
       </div>
 
       {/* Name */}

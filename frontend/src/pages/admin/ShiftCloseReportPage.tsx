@@ -11,7 +11,7 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 
 const PAYMENT_ICONS: Record<string, string> = {
-  cash: 'ðŸ’µ', card: 'ðŸ’³', qr: 'ðŸ“±', bank_transfer: 'ðŸ¦', other: 'ðŸ“‹', unpaid: 'â³',
+  cash: '💵', card: '💳', qr: '📱', bank_transfer: '🏦', other: '📋', unpaid: '',
 };
 
 function fmt_time(iso: string) {
@@ -133,7 +133,7 @@ export function ShiftCloseReport() {
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                 <p className="text-xs text-gray-400 mb-1">Refunds</p>
                 <p className={`text-xl font-bold ${s.totalRefunds > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                  {s.totalRefunds > 0 ? `âˆ’ ${fmt(s.totalRefunds)}` : ' - '}
+                  {s.totalRefunds > 0 ? `- ${fmt(s.totalRefunds)}` : ' - '}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">{report.refunds.length} issued</p>
               </div>
@@ -145,7 +145,7 @@ export function ShiftCloseReport() {
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                 <p className="text-xs text-gray-400 mb-1">Discounts</p>
                 <p className={`text-xl font-bold ${s.totalDiscounts > 0 ? 'text-purple-600' : 'text-gray-400'}`}>
-                  {s.totalDiscounts > 0 ? `âˆ’ ${fmt(s.totalDiscounts)}` : ' - '}
+                  {s.totalDiscounts > 0 ? `- ${fmt(s.totalDiscounts)}` : ' - '}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">Promo savings</p>
               </div>
@@ -185,7 +185,7 @@ export function ShiftCloseReport() {
                 <p className="px-5 py-4 text-sm text-gray-400">No payments recorded</p>
               ) : report.paymentMethods.map((pm, i) => (
                 <div key={pm.method} className={`flex items-center px-5 py-3.5 ${i > 0 ? 'border-t border-gray-50' : ''}`}>
-                  <span className="text-base mr-3">{PAYMENT_ICONS[pm.method] ?? 'ðŸ’°'}</span>
+                  <span className="text-base mr-3">{PAYMENT_ICONS[pm.method] ?? '💰'}</span>
                   <span className="text-sm text-gray-700 font-medium capitalize flex-1">
                     {pm.method === 'unpaid' ? 'Unpaid / Pending' : pm.method.replace('_', ' ')}
                   </span>
@@ -261,13 +261,13 @@ export function ShiftCloseReport() {
                           {fmt_time(r.createdAt)}  .  {r.issuedBy}  .  via {refundMethodLabel(r.method)}
                         </p>
                       </div>
-                      <span className="ml-4 text-sm font-semibold text-red-600 shrink-0">âˆ’ {fmt(r.amount)}</span>
+                      <span className="ml-4 text-sm font-semibold text-red-600 shrink-0">- {fmt(r.amount)}</span>
                     </div>
                   </div>
                 ))}
                 <div className="flex items-center px-5 py-3 border-t border-gray-100 bg-red-50">
                   <span className="text-sm font-semibold text-red-700 flex-1">Total Refunded</span>
-                  <span className="text-sm font-bold text-red-700">âˆ’ {fmt(s.totalRefunds)}</span>
+                  <span className="text-sm font-bold text-red-700">- {fmt(s.totalRefunds)}</span>
                 </div>
               </div>
             )}

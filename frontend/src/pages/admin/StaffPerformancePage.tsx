@@ -46,7 +46,7 @@ function rangeToFromTo(range: Range, customFrom: string, customTo: string): [str
   return [customFrom, customTo];
 }
 
-const MEDAL = ['ðŸ¥‡', 'ðŸ¥ˆ', 'ðŸ¥‰'];
+const MEDAL = ['🥇', '🥈', '🥉'];
 
 export function StaffPerformancePage() {
   const { fmt } = useCurrency();

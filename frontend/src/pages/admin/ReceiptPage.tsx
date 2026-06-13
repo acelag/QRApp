@@ -123,7 +123,7 @@ export function ReceiptPage() {
       {/* On-screen print button  -  hidden when printing */}
       <div className="no-print" style={{ textAlign: 'center', paddingTop: 16 }}>
         <button className="print-btn" onClick={() => window.print()}>
-          ðŸ–¨ï¸ Print Receipt
+          🖨️ Print Receipt
         </button>
       </div>
 
@@ -239,9 +239,9 @@ export function ReceiptPage() {
         <p className="center" style={{ marginTop: 8 }}>
           {settings?.receiptFooterLine1 ?? 'Thank you for dining with us!'}
         </p>
-        {(settings?.receiptFooterLine2 ?? 'Please come again ðŸ™') && (
+        {(settings?.receiptFooterLine2 ?? 'Please come again 🙏') && (
           <p className="center small" style={{ marginTop: 4 }}>
-            {settings?.receiptFooterLine2 ?? 'Please come again ðŸ™'}
+            {settings?.receiptFooterLine2 ?? 'Please come again 🙏'}
           </p>
         )}
         <Line char=" " />

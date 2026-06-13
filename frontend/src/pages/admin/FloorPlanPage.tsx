@@ -230,7 +230,7 @@ export function FloorPlanPage() {
           >
             {placed.length === 0 && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 text-sm gap-2">
-                <span className="text-4xl">ðŸª‘</span>
+                <span className="text-4xl">🪑</span>
                 <span>{editMode ? 'Click tables below to place them on the floor' : 'No tables placed yet  -  switch to Edit mode'}</span>
               </div>
             )}

@@ -130,7 +130,7 @@ export function KitchenTicketPage() {
       {/* On-screen button  -  hidden when printing */}
       <div className="no-print" style={{ textAlign: 'center', paddingTop: 16 }}>
         <button className="print-btn" onClick={() => window.print()}>
-          ðŸ–¨ï¸ Print Kitchen Ticket
+          🖨️ Print Kitchen Ticket
         </button>
       </div>
 

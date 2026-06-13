@@ -236,7 +236,7 @@ export function CombosPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">{editing ? 'Edit Combo' : 'New Combo'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">âœ•</button>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">x</button>
             </div>
             <div className="px-6 py-4 space-y-4">
               {/* Name */}
@@ -346,7 +346,7 @@ export function CombosPage() {
                         <span key={entry.menuItemId} className="flex items-center gap-1 text-xs bg-orange-50 text-orange-700 border border-orange-200 px-2 py-1 rounded-full">
                           {entry.quantity > 1 && <span className="font-bold">{entry.quantity}x</span>}
                           {mi?.name ?? entry.menuItemId}
-                          <button onClick={() => setQty(entry.menuItemId, 0)} className="ml-0.5 text-orange-400 hover:text-red-500">âœ•</button>
+                          <button onClick={() => setQty(entry.menuItemId, 0)} className="ml-0.5 text-orange-400 hover:text-red-500">x</button>
                         </span>
                       );
                     })}

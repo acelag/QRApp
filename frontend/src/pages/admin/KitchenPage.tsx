@@ -247,7 +247,7 @@ export function KitchenPage() {
           <main className="px-3 sm:px-4 lg:px-6 py-4">
             {orders.length === 0 ? (
               <div className="flex flex-col items-center justify-center pt-24 text-gray-500">
-                <p className="text-2xl">ðŸ‘¨â€ðŸ³</p>
+                <p className="text-2xl">👨‍🍳</p>
                 <p className="mt-2">{t('kitchen.noActiveOrders')}</p>
               </div>
             ) : (

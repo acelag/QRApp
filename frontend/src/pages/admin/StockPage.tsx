@@ -430,7 +430,7 @@ export function StockPage() {
                                 : 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200'
                             }`}
                           >
-                            {isOut ? 'âœ•' : 'âš '} {i.name}
+                            {isOut ? 'x' : '⚠'} {i.name}
                             <span className="opacity-60">({i.quantity} {i.unit})</span>
                           </button>
                         );
@@ -473,7 +473,7 @@ export function StockPage() {
                   onClick={() => setFilter(f)}
                   className={`px-4 py-2 font-medium transition-colors ${filter === f ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
                 >
-                  {f === 'all' ? 'All' : `âš  Low Stock${lowStockCount > 0 ? ` (${lowStockCount})` : ''}`}
+                  {f === 'all' ? 'All' : `⚠ Low Stock${lowStockCount > 0 ? ` (${lowStockCount})` : ''}`}
                 </button>
               ))}
             </div>

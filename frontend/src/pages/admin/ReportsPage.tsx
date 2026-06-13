@@ -1448,9 +1448,9 @@ export function ReportsPage() {
               const totalOrders = rows.reduce((s, r) => s + r.orderCount, 0);
 
               const METHOD_META: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-                cash:    { label: 'Cash',    color: 'bg-green-500',  bg: 'bg-green-50',  icon: 'ðŸ’µ' },
-                card:    { label: 'Card',    color: 'bg-blue-500',   bg: 'bg-blue-50',   icon: 'ðŸ’³' },
-                qr:      { label: 'QR Pay',  color: 'bg-purple-500', bg: 'bg-purple-50', icon: 'ðŸ“±' },
+                cash:    { label: 'Cash',    color: 'bg-green-500',  bg: 'bg-green-50',  icon: '💵' },
+                card:    { label: 'Card',    color: 'bg-blue-500',   bg: 'bg-blue-50',   icon: '💳' },
+                qr:      { label: 'QR Pay',  color: 'bg-purple-500', bg: 'bg-purple-50', icon: '📱' },
                 unknown: { label: 'Unknown', color: 'bg-gray-400',   bg: 'bg-gray-50',   icon: 'â“' },
               };
               const FALLBACK_COLORS = ['bg-orange-500', 'bg-teal-500', 'bg-pink-500', 'bg-amber-500'];
@@ -1460,7 +1460,7 @@ export function ReportsPage() {
                   label: method.charAt(0).toUpperCase() + method.slice(1),
                   color: FALLBACK_COLORS[idx % FALLBACK_COLORS.length],
                   bg: 'bg-gray-50',
-                  icon: 'ðŸ’°',
+                  icon: '💰',
                 };
               }
 

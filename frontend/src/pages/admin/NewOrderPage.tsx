@@ -352,7 +352,7 @@ export function NewOrderPage() {
                     <div className="relative shrink-0">
                       {item.image
                         ? <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-xl" />
-                        : <div className="w-14 h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl flex items-center justify-center text-2xl">ðŸ½ï¸</div>}
+                        : <div className="w-14 h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl flex items-center justify-center text-2xl">🍽️</div>}
                       {totalInCart > 0 && (
                         <span className="absolute -top-1 -left-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                           {totalInCart}
@@ -412,7 +412,7 @@ export function NewOrderPage() {
                     <div className="relative w-full h-28 rounded-xl bg-orange-50 overflow-hidden mb-2">
                       {item.image
                         ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center text-3xl">ðŸ½ï¸</div>}
+                        : <div className="w-full h-full flex items-center justify-center text-3xl">🍽️</div>}
                       {(hasToppings || hasLarge) && (
                         <span className="absolute top-1 right-1 bg-orange-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
                           {hasToppings ? '+ Extras' : 'R / L'}
@@ -623,7 +623,7 @@ export function NewOrderPage() {
                             onClick={() => setEditingNotesKey(key)}
                             className="text-xs text-orange-400 hover:text-orange-600"
                           >
-                            {c.notes ? `ðŸ“ ${c.notes}` : '+ Add note'}
+                            {c.notes ? `📝 ${c.notes}` : '+ Add note'}
                           </button>
                         )}
                       </div>
@@ -682,7 +682,7 @@ export function NewOrderPage() {
                       <span>Subtotal</span><span>{fmt(total)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-green-600 font-semibold">
-                      <span>Discount ({appliedPromo?.code})</span><span>âˆ’{fmt(discount)}</span>
+                      <span>Discount ({appliedPromo?.code})</span><span>-{fmt(discount)}</span>
                     </div>
                   </>
                 )}

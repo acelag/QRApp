@@ -52,7 +52,7 @@ export function ReadyDisplayPage() {
       <div className="flex-1 px-4 sm:px-8 py-6">
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full pt-24 text-gray-600 select-none">
-            <div className="text-8xl mb-6">ðŸ½ï¸</div>
+            <div className="text-8xl mb-6">🍽️</div>
             <p className="text-2xl font-semibold tracking-wide">No orders ready yet</p>
             <p className="text-gray-500 mt-2 text-sm">This screen updates automatically</p>
           </div>

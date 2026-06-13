@@ -350,7 +350,7 @@ function MembersPanel() {
                               tx.type === 'earn' ? 'text-green-600' :
                               tx.type === 'redeem' ? 'text-red-500' : 'text-blue-500'
                             }`}>
-                              {tx.type === 'earn' ? '+' : tx.type === 'redeem' ? 'âˆ’' : ''}
+                              {tx.type === 'earn' ? '+' : tx.type === 'redeem' ? '-' : ''}
                               {Math.abs(tx.points)} pts
                             </span>
                             <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase, Check } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -308,7 +308,7 @@ export function UsersPage() {
                                 }`}
                               >
                                 <span className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border ${on ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300'}`}>
-                                  {on && <span className="text-[10px] leading-none">âœ“</span>}
+                                  {on && <Check size={10} />}
                                 </span>
                                 <span className="truncate">{it.label}</span>
                               </button>
