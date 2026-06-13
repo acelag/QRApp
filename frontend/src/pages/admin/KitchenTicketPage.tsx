@@ -173,7 +173,7 @@ export function KitchenTicketPage() {
               <p key={ti} className="topping">+ {t.name}</p>
             ))}
             {item.notes && (
-              <p className="note">â˜… {item.notes}</p>
+              <p className="note">★ {item.notes}</p>
             )}
           </div>
         ))}

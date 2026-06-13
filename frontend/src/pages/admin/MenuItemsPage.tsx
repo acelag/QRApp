@@ -566,7 +566,7 @@ export function MenuItemsPage() {
                   const sch = schedules.find((s) => s.id === item.scheduleId);
                   return sch ? (
                     <span className="inline-flex items-center gap-0.5 text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium mb-1">
-                      â° {sch.name}
+                      ⏰ {sch.name}
                     </span>
                   ) : null;
                 })()}
@@ -787,7 +787,7 @@ export function MenuItemsPage() {
                         )}
                         {item.scheduleId && (() => {
                           const sch = schedules.find((s) => s.id === item.scheduleId);
-                          return sch ? <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">â° {sch.name}</span> : null;
+                          return sch ? <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">⏰ {sch.name}</span> : null;
                         })()}
                       </div>
                       {(item.tags ?? []).length > 0 && (
@@ -1169,7 +1169,7 @@ export function MenuItemsPage() {
               <section>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-gray-800">Visibility</h3>
-                  <Link to="/admin/menu-schedules" className="text-xs text-orange-500 hover:underline">Manage schedules â†’</Link>
+                  <Link to="/admin/menu-schedules" className="text-xs text-orange-500 hover:underline">Manage schedules →</Link>
                 </div>
                 <select
                   value={form.scheduleId ?? ''}
@@ -1182,7 +1182,7 @@ export function MenuItemsPage() {
                   ))}
                 </select>
                 {form.scheduleId && (
-                  <p className="text-xs text-amber-600 mt-1.5">â° This item will only appear on the customer menu during the assigned time window.</p>
+                  <p className="text-xs text-amber-600 mt-1.5">⏰ This item will only appear on the customer menu during the assigned time window.</p>
                 )}
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer mt-4">
                   <input

@@ -192,7 +192,7 @@ export function StockReportPage() {
                     {s.lowStockItems} item{s.lowStockItems !== 1 ? 's' : ''} low on stock
                     {s.outOfStockItems > 0 && <>  .  <span className="text-red-600 font-bold">{s.outOfStockItems} out of stock</span></>}
                   </p>
-                  <Link to="/admin/stock" className="ml-auto text-xs text-orange-500 font-semibold hover:underline shrink-0">Manage â†’</Link>
+                  <Link to="/admin/stock" className="ml-auto text-xs text-orange-500 font-semibold hover:underline shrink-0">Manage →</Link>
                 </div>
               )}
 
@@ -218,7 +218,7 @@ export function StockReportPage() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-5 py-3 border-b border-gray-100">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                    Stock Levels &amp; Movement ({from} â†’ {to})
+                    Stock Levels &amp; Movement ({from} → {to})
                   </p>
                 </div>
                 {displayedItems.length === 0 ? (

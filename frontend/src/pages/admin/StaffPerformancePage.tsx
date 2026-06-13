@@ -118,7 +118,7 @@ export function StaffPerformancePage() {
           <div className="px-3 sm:px-4 lg:px-6 pb-3 flex items-center gap-2">
             <input type="date" value={customFrom} onChange={(e) => setFrom(e.target.value)}
               className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-300 text-gray-700" />
-            <span className="text-gray-400 text-sm">â†’</span>
+            <span className="text-gray-400 text-sm">→</span>
             <input type="date" value={customTo} onChange={(e) => setTo(e.target.value)}
               className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-300 text-gray-700" />
           </div>

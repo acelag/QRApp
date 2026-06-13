@@ -82,7 +82,7 @@ export function RestaurantsPage() {
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [editName, setEditName]       = useState('');
 
-  // expanded restaurant id â†’ its users
+  // expanded restaurant id → its users
   const [expandedId, setExpandedId]   = useState<string | null>(null);
   const [usersMap, setUsersMap]       = useState<Record<string, RestaurantUser[]>>({});
   const [usersLoading, setUsersLoading] = useState(false);

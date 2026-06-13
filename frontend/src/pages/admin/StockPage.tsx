@@ -490,7 +490,7 @@ export function StockPage() {
               <p className="text-gray-400 font-medium">{items.length === 0 ? 'No stock items yet' : 'No items match your search'}</p>
               {items.length === 0 && (
                 <button onClick={() => setShowAdd(true)} className="mt-4 text-sm text-orange-500 font-semibold hover:underline">
-                  Add your first item â†’
+                  Add your first item →
                 </button>
               )}
             </div>

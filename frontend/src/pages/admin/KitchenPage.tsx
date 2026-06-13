@@ -43,7 +43,7 @@ export function KitchenPage() {
     return () => clearInterval(id);
   }, []);
 
-  // prepTimeMap: item name â†’ prep minutes (built from menu items)
+  // prepTimeMap: item name → prep minutes (built from menu items)
   const prepTimeMap: Record<string, number> = {};
   for (const mi of menuItems) {
     if (mi.prepTimeMins) prepTimeMap[mi.name] = mi.prepTimeMins;

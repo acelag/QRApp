@@ -278,7 +278,7 @@ export function TableStatusPage() {
             <p>{filter === 'all' ? 'No active tables found' : `No ${filter} tables`}</p>
             {filter === 'all' && (
               <Link to="/admin/tables" className="text-sm text-orange-500 hover:underline">
-                Manage Tables â†’
+                Manage Tables →
               </Link>
             )}
           </div>

@@ -507,7 +507,7 @@ export function DashboardPage() {
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-lg font-bold text-gray-900">{fmt(trendingItem.price)}</span>
-                        <Link to="/admin/menu" className="text-xs text-orange-500 font-semibold hover:underline">View â†’</Link>
+                        <Link to="/admin/menu" className="text-xs text-orange-500 font-semibold hover:underline">View →</Link>
                       </div>
                     </div>
                   </>
@@ -562,7 +562,7 @@ export function DashboardPage() {
                     <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-amber-700">{lowStock.length} low-stock alert{lowStock.length > 1 ? 's' : ''}</p>
-                      <p className="text-[10px] text-amber-500">Tap to restock â†’</p>
+                      <p className="text-[10px] text-amber-500">Tap to restock →</p>
                     </div>
                   </Link>
                 )}

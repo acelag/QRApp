@@ -775,14 +775,14 @@ export function ReportsPage() {
             {/* Heatmap tab */}
             {tab === 'heatmap' && (() => {
               const cells = report.heatmap;
-              // Build lookup: [dayOfWeek][hour] â†’ orderCount
+              // Build lookup: [dayOfWeek][hour] → orderCount
               const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
               const revGrid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
               cells.forEach((c) => { grid[c.dayOfWeek][c.hour] = c.orderCount; revGrid[c.dayOfWeek][c.hour] = c.revenue; });
               const maxCount = Math.max(1, ...cells.map((c) => c.orderCount));
 
               // Day labels  -  reorder so Monday first (DOW: Sun=0)
-              const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Monâ†’Sun
+              const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon→Sun
               const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
               const HOUR_LABELS = Array.from({ length: 24 }, (_, h) =>
                 h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`
@@ -1451,7 +1451,7 @@ export function ReportsPage() {
                 cash:    { label: 'Cash',    color: 'bg-green-500',  bg: 'bg-green-50',  icon: '💵' },
                 card:    { label: 'Card',    color: 'bg-blue-500',   bg: 'bg-blue-50',   icon: '💳' },
                 qr:      { label: 'QR Pay',  color: 'bg-purple-500', bg: 'bg-purple-50', icon: '📱' },
-                unknown: { label: 'Unknown', color: 'bg-gray-400',   bg: 'bg-gray-50',   icon: 'â“' },
+                unknown: { label: 'Unknown', color: 'bg-gray-400',   bg: 'bg-gray-50',   icon: '❓' },
               };
               const FALLBACK_COLORS = ['bg-orange-500', 'bg-teal-500', 'bg-pink-500', 'bg-amber-500'];
 
