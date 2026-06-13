@@ -163,18 +163,49 @@ export function UsersPage() {
           </div>
         ) : (
           <>
-            {ROLE_CONFIG.map(({ role, sectionLabel, emptyLabel, Icon, iconCls }) => {
-              const group = users.filter((u) => u.role === role);
-              return (
-                <Section key={role} title={sectionLabel} count={group.length} icon={<Icon size={16} className={iconCls} />} onAdd={() => openNew(role)}>
-                  {group.length === 0
-                    ? <p className="text-sm text-gray-400 py-2 text-center">{emptyLabel}</p>
-                    : group.map((u) => (
-                        <UserRow key={u.id} user={u} isMe={u.id === me?.id} onEdit={openEdit} onDelete={del} />
-                      ))}
-                </Section>
-              );
-            })}
+            {/* Role summary cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {ROLE_CONFIG.map(({ role, sectionLabel, Icon, iconCls }) => {
+                const count = users.filter((u) => u.role === role).length;
+                return (
+                  <button
+                    key={role}
+                    onClick={() => openNew(role)}
+                    className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-col gap-1.5 hover:shadow-md hover:border-gray-200 transition-all text-left group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <Icon size={18} className={iconCls} />
+                      <span className="text-xs font-bold text-gray-500">{count}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-700">{sectionLabel}</p>
+                    <p className="text-xs text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity">+ Add</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Full user list */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {/* Table header */}
+              <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                <span className="w-9" />
+                <span>Name / Username</span>
+                <span className="text-center w-20">Role</span>
+                <span className="w-16 text-center">Actions</span>
+              </div>
+
+              {users.length === 0 ? (
+                <p className="text-sm text-gray-400 py-10 text-center">No users yet. Click a role card above to add one.</p>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {ROLE_CONFIG.flatMap(({ role }) =>
+                    users.filter((u) => u.role === role).map((u) => (
+                      <UserRow key={u.id} user={u} isMe={u.id === me?.id} onEdit={openEdit} onDelete={del} />
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -342,26 +373,6 @@ export function UsersPage() {
   );
 }
 
-function Section({ title, icon, count, onAdd, children }: { title: string; icon: React.ReactNode; count: number; onAdd: () => void; children: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
-        {icon}
-        <span className="text-sm font-semibold text-gray-700 flex-1">{title}</span>
-        <span className="text-xs text-gray-400 mr-2">
-          {count} {count === 1 ? 'user' : 'users'}
-        </span>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-1 text-xs font-medium text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1 rounded-full transition-colors"
-        >
-          <Plus size={12} /> Add
-        </button>
-      </div>
-      <div className="divide-y divide-gray-100">{children}</div>
-    </div>
-  );
-}
 
 function UserRow({ user, isMe, onEdit, onDelete }: {
   user: User; isMe: boolean;
@@ -373,14 +384,14 @@ function UserRow({ user, isMe, onEdit, onDelete }: {
   }
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
+    <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors">
       {/* Avatar */}
       <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${BADGE_CLS[user.role]}`}>
         {user.name.charAt(0).toUpperCase()}
       </div>
 
       {/* Name + username */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         <p className="font-medium text-gray-900 text-sm truncate">
           {user.name} {isMe && <span className="text-xs text-orange-500 font-normal">(you)</span>}
         </p>
@@ -395,12 +406,12 @@ function UserRow({ user, isMe, onEdit, onDelete }: {
       </div>
 
       {/* Role badge */}
-      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${BADGE_CLS[user.role]}`}>
+      <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full w-20 text-center ${BADGE_CLS[user.role]}`}>
         {user.role}
       </span>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1 w-16 justify-end">
         <button onClick={() => onEdit(user)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50">
           <Pencil size={15} />
         </button>
