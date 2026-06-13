@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2 } from 'lucide-react';
 import { printService } from '../services/printService';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
@@ -34,7 +34,6 @@ interface Props {
 export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
   const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
-  const prevStatus = currentIdx > 0  ? STATUS_FLOW[currentIdx - 1] as OrderStatus | undefined : undefined;
   const { fmt } = useCurrency();
 
   const now = clockMs ?? Date.now();
@@ -60,76 +59,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
 
-  // ── Swipe-to-change-status ────────────────────────────────────────────────
-  const cardRef       = useRef<HTMLDivElement>(null);
-  const leftActionRef  = useRef<HTMLDivElement>(null);
-  const rightActionRef = useRef<HTMLDivElement>(null);
-  const canSwipe = !!(showActions && onStatusChange && currentIdx >= 0);
-
-  // Keep latest values accessible from event handlers without re-subscribing
-  const swipeActionsRef = useRef({ nextStatus, prevStatus, onStatusChange, orderId: order.id });
-  swipeActionsRef.current = { nextStatus, prevStatus, onStatusChange, orderId: order.id };
-
-  useEffect(() => {
-    if (!canSwipe) return;
-    const card = cardRef.current as HTMLDivElement;
-    if (!card) return;
-    const leftEl  = leftActionRef.current;
-    const rightEl = rightActionRef.current;
-    const THRESHOLD = 80, MAX_DRAG = 120;
-    const drag = { startX: 0, startY: 0, dragging: false, locked: false, x: 0 };
-
-    function applyX(x: number, animated: boolean) {
-      card.style.transition = animated ? 'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
-      card.style.transform  = x === 0 ? '' : `translateX(${x}px)`;
-      if (rightEl) rightEl.style.opacity = String(Math.max(0, Math.min(1, -x / THRESHOLD)));
-      if (leftEl)  leftEl.style.opacity  = String(Math.max(0, Math.min(1,  x / THRESHOLD)));
-    }
-
-    function onDown(e: PointerEvent) {
-      drag.startX = e.clientX; drag.startY = e.clientY;
-      drag.dragging = false; drag.locked = false; drag.x = 0;
-    }
-
-    function onMove(e: PointerEvent) {
-      if (drag.locked) return;
-      const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
-      if (!drag.dragging) {
-        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-        if (Math.abs(dy) > Math.abs(dx)) { drag.locked = true; return; }
-        drag.dragging = true;
-        card.setPointerCapture(e.pointerId);
-      }
-      e.preventDefault();
-      const { nextStatus: ns, prevStatus: ps } = swipeActionsRef.current;
-      let x = dx;
-      if (x < 0 && !ns) x = 0;
-      if (x > 0 && !ps) x = 0;
-      x = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, x));
-      drag.x = x;
-      applyX(x, false);
-    }
-
-    function onUp() {
-      if (!drag.dragging) return;
-      drag.dragging = false;
-      applyX(0, true);
-      const { nextStatus: ns, prevStatus: ps, onStatusChange: cb, orderId: id } = swipeActionsRef.current;
-      if (drag.x <= -THRESHOLD && ns && cb) cb(id, ns);
-      if (drag.x >=  THRESHOLD && ps && cb) cb(id, ps);
-    }
-
-    card.addEventListener('pointerdown',   onDown);
-    card.addEventListener('pointermove',   onMove, { passive: false });
-    card.addEventListener('pointerup',     onUp);
-    card.addEventListener('pointercancel', onUp);
-    return () => {
-      card.removeEventListener('pointerdown',   onDown);
-      card.removeEventListener('pointermove',   onMove);
-      card.removeEventListener('pointerup',     onUp);
-      card.removeEventListener('pointercancel', onUp);
-    };
-  }, [canSwipe]);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const isEditable = showActions && ['pending', 'preparing'].includes(order.status) && (onRemoveItem || onUpdateItemQty);
 
@@ -214,33 +144,11 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = isToday ? timeStr : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
 
-  const advanceBg = nextStatus === 'ready' ? 'bg-green-500' : 'bg-amber-500';
-  const revertBg  = prevStatus === 'pending' ? 'bg-gray-500' : 'bg-amber-400';
-
   return (
-    <div className={`relative rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
+    <div className={`rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
       isStale ? 'ring-2 ring-red-400' : 'border border-gray-100'
     }`}>
-      {/* Advance action — revealed on left swipe */}
-      {canSwipe && nextStatus && (
-        <div ref={rightActionRef} aria-hidden="true" style={{ opacity: 0 }}
-          className={`absolute inset-0 flex items-center justify-end px-5 ${advanceBg}`}>
-          <div className="flex items-center gap-2 text-white font-bold text-sm capitalize">
-            Mark {nextStatus} <ChevronRight size={18} />
-          </div>
-        </div>
-      )}
-      {/* Revert action — revealed on right swipe */}
-      {canSwipe && prevStatus && (
-        <div ref={leftActionRef} aria-hidden="true" style={{ opacity: 0 }}
-          className={`absolute inset-0 flex items-center px-5 ${revertBg}`}>
-          <div className="flex items-center gap-2 text-white font-bold text-sm capitalize">
-            <ChevronLeft size={18} /> Back to {prevStatus}
-          </div>
-        </div>
-      )}
-      {/* Draggable card surface */}
-      <div ref={cardRef} className="bg-white will-change-transform">
+      <div ref={cardRef} className="bg-white">
       {/* ── Header band ── */}
       <div className={`px-4 py-3 border-b border-gray-100 ${theme.band}`}>
         <div className="flex items-center justify-between gap-2">
