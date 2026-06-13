@@ -62,7 +62,7 @@ export function ReceiptPage() {
 
   return (
     <>
-      {/* Thermal print styles â€” injected inline so they work in the new window */}
+      {/* Thermal print styles  -  injected inline so they work in the new window */}
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #fff; }
@@ -120,7 +120,7 @@ export function ReceiptPage() {
         }
       `}</style>
 
-      {/* On-screen print button â€” hidden when printing */}
+      {/* On-screen print button  -  hidden when printing */}
       <div className="no-print" style={{ textAlign: 'center', paddingTop: 16 }}>
         <button className="print-btn" onClick={() => window.print()}>
           ðŸ–¨ï¸ Print Receipt

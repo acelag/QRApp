@@ -185,7 +185,7 @@ export function MenuSchedulesPage() {
             Items <strong>without a schedule</strong> are always visible. Assign a schedule to an item
             from the <Link to="/admin/menu" className="underline hover:text-blue-900">Menu Items</Link> page
             to limit when it appears to customers.
-            Categories can also have a schedule â€” all items in that category inherit it.
+            Categories can also have a schedule  -  all items in that category inherit it.
           </p>
         </div>
 
@@ -243,9 +243,9 @@ export function MenuSchedulesPage() {
                         {s.startTime} â€“ {s.endTime}
                         <span className="text-gray-400 text-xs">({dur})</span>
                       </span>
-                      <span className="text-gray-300">Â·</span>
+                      <span className="text-gray-300"> . </span>
                       <span>{formatDays(s.days)}</span>
-                      <span className="text-gray-300">Â·</span>
+                      <span className="text-gray-300"> . </span>
                       <span className="text-xs text-gray-400">{s.itemCount} item{s.itemCount !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
@@ -405,7 +405,7 @@ export function MenuSchedulesPage() {
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.active ? 'translate-x-5' : 'translate-x-1'}`} />
               </div>
               <span className="text-sm text-gray-700">
-                {form.active ? 'Active â€” items follow this schedule' : 'Inactive â€” items show at all times'}
+                {form.active ? 'Active  -  items follow this schedule' : 'Inactive  -  items show at all times'}
               </span>
             </label>
 

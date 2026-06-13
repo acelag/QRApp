@@ -231,7 +231,7 @@ export function FloorPlanPage() {
             {placed.length === 0 && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 text-sm gap-2">
                 <span className="text-4xl">ðŸª‘</span>
-                <span>{editMode ? 'Click tables below to place them on the floor' : 'No tables placed yet â€” switch to Edit mode'}</span>
+                <span>{editMode ? 'Click tables below to place them on the floor' : 'No tables placed yet  -  switch to Edit mode'}</span>
               </div>
             )}
 
@@ -273,7 +273,7 @@ export function FloorPlanPage() {
                   {!editMode && st && st.status !== 'free' && (
                     <span className="text-[9px] opacity-60 mt-0.5 text-center px-1 leading-tight">
                       {st.orderCount > 0 && `${st.orderCount} ord`}
-                      {st.sessionTotal > 0 && ` Â· ${fmt(st.sessionTotal)}`}
+                      {st.sessionTotal > 0 && `  .  ${fmt(st.sessionTotal)}`}
                     </span>
                   )}
                   {!editMode && st && st.sessionStarted && (
@@ -299,7 +299,7 @@ export function FloorPlanPage() {
                         className="text-[9px] bg-white border border-red-200 rounded px-1 py-0.5 text-red-400 hover:bg-red-50"
                         title="Remove from floor"
                       >
-                        Ã—
+                        x
                       </button>
                     </div>
                   )}
@@ -312,7 +312,7 @@ export function FloorPlanPage() {
           {editMode && unplaced.length > 0 && (
             <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                Unplaced tables â€” click to add to floor
+                Unplaced tables  -  click to add to floor
               </p>
               <div className="flex flex-wrap gap-2">
                 {unplaced.map((t) => (
@@ -332,7 +332,7 @@ export function FloorPlanPage() {
           {/* View-mode: unplaced notice */}
           {!editMode && unplaced.length > 0 && (
             <p className="text-xs text-gray-400 text-center">
-              {unplaced.length} table{unplaced.length > 1 ? 's' : ''} not yet placed on floor plan â€”
+              {unplaced.length} table{unplaced.length > 1 ? 's' : ''} not yet placed on floor plan  - 
               switch to <span className="font-medium">Edit mode</span> to position them.
             </p>
           )}

@@ -99,7 +99,7 @@ export function BillsPage() {
       try {
         const updated = await sessionService.markAsPaid(session.id, method);
         setSessions((prev) => prev.map((s) => (s.id === session.id ? updated : s)));
-        toast.success(`Table ${session.tableNumber} â€" paid by ${method}`);
+        toast.success(`Table ${session.tableNumber} - paid by ${method}`);
         if (billingSettings?.autoPrintReceipt) {
           printService.sessionReceipt(session.id);
         } else {
@@ -356,7 +356,7 @@ export function BillsPage() {
                               <li key={i} className="text-sm">
                                 <div className="flex justify-between">
                                   <span className="text-gray-700 flex items-center gap-1.5">
-                                    <span className="font-medium text-gray-900">{item.quantity}Ã—</span> {item.name}
+                                    <span className="font-medium text-gray-900">{item.quantity}x</span> {item.name}
                                     {item.size && (
                                       <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                                         {item.size === 'large' ? 'L' : 'R'}
@@ -569,7 +569,7 @@ export function BillsPage() {
                           {order.items.map((item, i) => (
                             <li key={i} className="text-sm flex justify-between">
                               <span className="text-gray-700 flex items-center gap-1.5">
-                                <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums shrink-0">{item.quantity}Ã—</span> {item.name}
+                                <span className="font-bold text-xs text-gray-700 bg-gray-100 rounded-md px-1.5 py-0.5 tabular-nums shrink-0">{item.quantity}x</span> {item.name}
                                 {item.size && (
                                   <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${item.size === 'large' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                                     {item.size === 'large' ? 'L' : 'R'}
@@ -738,7 +738,7 @@ export function BillsPage() {
                         </div>
                         <p className="text-sm text-gray-600 mt-0.5 truncate">{r.reason}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {r.createdByName} Â· {new Date(r.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                          {r.createdByName}  .  {new Date(r.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                         </p>
                       </div>
                     </li>
@@ -763,8 +763,8 @@ export function BillsPage() {
           title="How was this paid?"
           subtitle={
             paymentTarget.type === 'session'
-              ? `Table ${paymentTarget.session.tableNumber} â€" ${fmt(paymentTarget.session.totalAmount ?? 0)}`
-              : `${paymentTarget.order.orderNumber ?? 'Takeaway'} â€" ${fmt(paymentTarget.order.totalAmount)}`
+              ? `Table ${paymentTarget.session.tableNumber} - ${fmt(paymentTarget.session.totalAmount ?? 0)}`
+              : `${paymentTarget.order.orderNumber ?? 'Takeaway'} - ${fmt(paymentTarget.order.totalAmount)}`
           }
           total={
             paymentTarget.type === 'session'

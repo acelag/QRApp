@@ -108,10 +108,10 @@ function ConfigPanel() {
 
       {/* Summary row */}
       <div className="bg-amber-50 rounded-xl px-3 py-2.5 text-xs text-amber-700 space-y-0.5">
-        <p>â€¢ Customers earn <strong>{draft.pointsPerUnit} pt(s)</strong> per 1 currency unit spent.</p>
-        <p>â€¢ <strong>{draft.redeemRate} pts</strong> = 1 currency unit discount.</p>
-        <p>â€¢ Minimum <strong>{draft.minRedeemPoints} pts</strong> required before redemption.</p>
-        <p>â€¢ Points can cover up to <strong>{draft.maxRedeemPct}%</strong> of an order total.</p>
+        <p>- Customers earn <strong>{draft.pointsPerUnit} pt(s)</strong> per 1 currency unit spent.</p>
+        <p>- <strong>{draft.redeemRate} pts</strong> = 1 currency unit discount.</p>
+        <p>- Minimum <strong>{draft.minRedeemPoints} pts</strong> required before redemption.</p>
+        <p>- Points can cover up to <strong>{draft.maxRedeemPct}%</strong> of an order total.</p>
       </div>
 
       <button
@@ -360,7 +360,7 @@ function MembersPanel() {
                               {tx.type}
                             </span>
                             <span className="text-gray-500 truncate flex-1">
-                              {tx.description ?? (tx.orderId ? `Order #${tx.orderId.slice(-6).toUpperCase()}` : 'â€”')}
+                              {tx.description ?? (tx.orderId ? `Order #${tx.orderId.slice(-6).toUpperCase()}` : ' - ')}
                             </span>
                             <span className="text-gray-300 shrink-0">
                               {new Date(tx.createdAt).toLocaleDateString()}

@@ -452,7 +452,7 @@ export function NewOrderPage() {
         {/* â”€â”€ Sidebar â”€â”€ */}
         <div className="w-full md:w-72 lg:w-80 md:shrink-0 md:sticky md:top-40 space-y-3">
 
-          {/* Table selector â€” dine-in only */}
+          {/* Table selector  -  dine-in only */}
           {mode === 'dine-in' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Select Table</p>
@@ -477,13 +477,13 @@ export function NewOrderPage() {
               )}
               {selectedTable && (
                 <p className="text-xs text-orange-600 font-medium mt-2 text-center">
-                  Table {selectedTable.number} Â· {selectedTable.seats} seats
+                  Table {selectedTable.number}  .  {selectedTable.seats} seats
                 </p>
               )}
             </div>
           )}
 
-          {/* Room selector â€” room-service only */}
+          {/* Room selector  -  room-service only */}
           {mode === 'room-service' && (
             <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Select Room</p>
@@ -509,7 +509,7 @@ export function NewOrderPage() {
               )}
               {selectedRoom && (
                 <p className="text-xs text-blue-600 font-medium mt-2 text-center">
-                  Room {selectedRoom.number}{selectedRoom.name ? ` â€” ${selectedRoom.name}` : ''}
+                  Room {selectedRoom.number}{selectedRoom.name ? `  -  ${selectedRoom.name}` : ''}
                 </p>
               )}
             </div>
@@ -581,7 +581,7 @@ export function NewOrderPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-400">{fmt(c.price + toppingsTotal)} Ã— {c.quantity}</p>
+                          <p className="text-xs text-gray-400">{fmt(c.price + toppingsTotal)} x {c.quantity}</p>
                         </div>
                         <span className="text-sm font-semibold text-gray-700 shrink-0">
                           {fmt((c.price + toppingsTotal) * c.quantity)}
@@ -642,7 +642,7 @@ export function NewOrderPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-green-700">{appliedPromo.code}</p>
                       <p className="text-xs text-green-600">
-                        {appliedPromo.type === 'percentage' ? `${appliedPromo.value}%` : fmt(appliedPromo.value!)} off Â· saving {fmt(discount)}
+                        {appliedPromo.type === 'percentage' ? `${appliedPromo.value}%` : fmt(appliedPromo.value!)} off  .  saving {fmt(discount)}
                       </p>
                     </div>
                     <button onClick={removePromo} className="text-green-400 hover:text-red-400 transition-colors">
@@ -711,8 +711,8 @@ export function NewOrderPage() {
                   : mode === 'takeaway'
                   ? <><Check size={16} /> Place Takeaway Order</>
                   : mode === 'room-service'
-                  ? <><Check size={16} /> Place Room Service Order{selectedRoom ? ` Â· Room ${selectedRoom.number}` : ''}</>
-                  : <><Check size={16} /> Place Dine-in Order{selectedTable ? ` Â· Table ${selectedTable.number}` : ''}</>
+                  ? <><Check size={16} /> Place Room Service Order{selectedRoom ? `  .  Room ${selectedRoom.number}` : ''}</>
+                  : <><Check size={16} /> Place Dine-in Order{selectedTable ? `  .  Table ${selectedTable.number}` : ''}</>
                 }
               </button>
             </div>

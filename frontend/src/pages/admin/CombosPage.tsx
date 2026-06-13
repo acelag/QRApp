@@ -204,7 +204,7 @@ export function CombosPage() {
                     <div className="flex flex-wrap gap-1 mb-3">
                       {combo.items.map((item) => (
                         <span key={item.id} className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">
-                          {item.quantity > 1 ? `${item.quantity}Ã— ` : ''}{item.menuItemName}
+                          {item.quantity > 1 ? `${item.quantity}x ` : ''}{item.menuItemName}
                         </span>
                       ))}
                     </div>
@@ -319,7 +319,7 @@ export function CombosPage() {
                         Remove photo
                       </button>
                     )}
-                    <p className="text-xs text-gray-400">JPG, PNG, WebP Â· max 5 MB</p>
+                    <p className="text-xs text-gray-400">JPG, PNG, WebP  .  max 5 MB</p>
                   </div>
                 </div>
               </div>
@@ -344,7 +344,7 @@ export function CombosPage() {
                       const mi = menuItems.find((m) => m.id === entry.menuItemId);
                       return (
                         <span key={entry.menuItemId} className="flex items-center gap-1 text-xs bg-orange-50 text-orange-700 border border-orange-200 px-2 py-1 rounded-full">
-                          {entry.quantity > 1 && <span className="font-bold">{entry.quantity}Ã—</span>}
+                          {entry.quantity > 1 && <span className="font-bold">{entry.quantity}x</span>}
                           {mi?.name ?? entry.menuItemId}
                           <button onClick={() => setQty(entry.menuItemId, 0)} className="ml-0.5 text-orange-400 hover:text-red-500">âœ•</button>
                         </span>

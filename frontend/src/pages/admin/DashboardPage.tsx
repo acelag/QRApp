@@ -351,7 +351,7 @@ export function DashboardPage() {
                               {firstItem?.name ?? 'Order'}{(o.items?.length ?? 0) > 1 ? ` +${(o.items?.length ?? 1) - 1}` : ''}
                             </p>
                             <p className="text-xs text-gray-400 mt-0.5">
-                              {loc} Â· {relativeTime(o.createdAt)}
+                              {loc}  .  {relativeTime(o.createdAt)}
                             </p>
                           </div>
                           <div className="text-right flex-shrink-0">
@@ -413,7 +413,7 @@ export function DashboardPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-sm font-bold text-gray-900">Order Status</p>
-                    <p className="text-xs text-gray-400">Today Â· {todayOrders.length} total</p>
+                    <p className="text-xs text-gray-400">Today  .  {todayOrders.length} total</p>
                   </div>
                   <Link to="/admin/orders" className="w-7 h-7 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors">
                     <ArrowUpRight size={13} className="text-gray-400" />

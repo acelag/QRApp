@@ -267,7 +267,7 @@ export function RosterPage() {
                           {day.getDate()}
                         </span>
                         <span className={`text-[10px] font-medium ${isToday ? 'text-orange-100' : 'text-gray-400'}`}>
-                          {dayShifts.length > 0 ? `${dayShifts.length} shift${dayShifts.length !== 1 ? 's' : ''}` : 'â€”'}
+                          {dayShifts.length > 0 ? `${dayShifts.length} shift${dayShifts.length !== 1 ? 's' : ''}` : ' - '}
                         </span>
                       </div>
 
@@ -288,7 +288,7 @@ export function RosterPage() {
                               <div className="flex items-center gap-1 mb-0.5">
                                 <button
                                   onClick={(e) => cycleStatus(e, shift)}
-                                  title={`${sc.label} â€” click to cycle`}
+                                  title={`${sc.label}  -  click to cycle`}
                                   className={`w-2 h-2 rounded-full shrink-0 ${sc.dot} hover:scale-150 transition-transform`}
                                 />
                                 <span className={`text-[11px] font-bold truncate ${rc.text}`}>
@@ -421,7 +421,7 @@ export function RosterPage() {
                   onChange={(e) => handleUserSelect(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-white"
                 >
-                  <option value="">â€” enter name manually â€”</option>
+                  <option value=""> -  enter name manually  - </option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                   ))}

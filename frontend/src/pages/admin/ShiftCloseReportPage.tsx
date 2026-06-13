@@ -23,7 +23,7 @@ function fmt_datetime(iso: string) {
   });
 }
 
-// Core component â€” no sidebar, no <main> wrapper
+// Core component  -  no sidebar, no <main> wrapper
 export function ShiftCloseReport() {
   const { fmt } = useCurrency();
   const today = new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD
@@ -56,7 +56,7 @@ export function ShiftCloseReport() {
 
   return (
     <>
-      {/* Header â€” hidden on print */}
+      {/* Header  -  hidden on print */}
       <div className="print:hidden">
         <AdminHeader title="Shift Close Report" backTo="/admin">
           <input
@@ -97,7 +97,7 @@ export function ShiftCloseReport() {
               {new Date(report.date + 'T12:00:00').toLocaleDateString([], {
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
               })}
-              &nbsp;Â·&nbsp;Generated at {fmt_time(report.generatedAt)}
+              &nbsp; . &nbsp;Generated at {fmt_time(report.generatedAt)}
             </p>
           </div>
 
@@ -133,7 +133,7 @@ export function ShiftCloseReport() {
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                 <p className="text-xs text-gray-400 mb-1">Refunds</p>
                 <p className={`text-xl font-bold ${s.totalRefunds > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                  {s.totalRefunds > 0 ? `âˆ’ ${fmt(s.totalRefunds)}` : 'â€”'}
+                  {s.totalRefunds > 0 ? `âˆ’ ${fmt(s.totalRefunds)}` : ' - '}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">{report.refunds.length} issued</p>
               </div>
@@ -145,7 +145,7 @@ export function ShiftCloseReport() {
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                 <p className="text-xs text-gray-400 mb-1">Discounts</p>
                 <p className={`text-xl font-bold ${s.totalDiscounts > 0 ? 'text-purple-600' : 'text-gray-400'}`}>
-                  {s.totalDiscounts > 0 ? `âˆ’ ${fmt(s.totalDiscounts)}` : 'â€”'}
+                  {s.totalDiscounts > 0 ? `âˆ’ ${fmt(s.totalDiscounts)}` : ' - '}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">Promo savings</p>
               </div>
@@ -227,7 +227,7 @@ export function ShiftCloseReport() {
                       <div className="flex items-center">
                         <span className="text-xs text-gray-400 w-5 shrink-0">{i + 1}</span>
                         <span className="text-sm text-gray-700 font-medium flex-1 ml-2">{item.name}</span>
-                        <span className="text-xs text-gray-500 mr-4">Ã—{item.quantity}</span>
+                        <span className="text-xs text-gray-500 mr-4">x{item.quantity}</span>
                         <span className="text-sm font-semibold text-gray-800 w-20 text-right">{fmt(item.revenue)}</span>
                       </div>
                       <div className="mt-1.5 ml-7 h-1 bg-gray-100 rounded-full overflow-hidden">
@@ -258,7 +258,7 @@ export function ShiftCloseReport() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-700 truncate">{r.reason}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {fmt_time(r.createdAt)} Â· {r.issuedBy} Â· via {refundMethodLabel(r.method)}
+                          {fmt_time(r.createdAt)}  .  {r.issuedBy}  .  via {refundMethodLabel(r.method)}
                         </p>
                       </div>
                       <span className="ml-4 text-sm font-semibold text-red-600 shrink-0">âˆ’ {fmt(r.amount)}</span>
@@ -293,7 +293,7 @@ export function ShiftCloseReport() {
   );
 }
 
-// Layout wrapper â€” keeps /admin/shift-close route working
+// Layout wrapper  -  keeps /admin/shift-close route working
 export function ShiftCloseReportPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">

@@ -138,7 +138,7 @@ function MovementModal({ item, defaultType = 'in', onClose, onDone }: MovementMo
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="font-bold text-gray-900">Log Stock Movement</h3>
-            <p className="text-sm text-gray-500">{item.name} Â· current: {item.quantity} {item.unit}</p>
+            <p className="text-sm text-gray-500">{item.name}  .  current: {item.quantity} {item.unit}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
         </div>
@@ -410,7 +410,7 @@ export function StockPage() {
                 <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-amber-800">
-                    {lowStockCount} item{lowStockCount > 1 ? 's' : ''} running low â€” restock soon
+                    {lowStockCount} item{lowStockCount > 1 ? 's' : ''} running low  -  restock soon
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {items

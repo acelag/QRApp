@@ -170,7 +170,7 @@ export function MenuItemsPage() {
       );
       const { created, updated, errors } = res.data;
       if (errors.length) {
-        toast.error(`${created} created, ${updated} updated â€” ${errors.length} row error(s)`);
+        toast.error(`${created} created, ${updated} updated  -  ${errors.length} row error(s)`);
       } else {
         toast.success(`Import done: ${created} created, ${updated} updated`);
       }
@@ -518,7 +518,7 @@ export function MenuItemsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
           {filteredItems.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-              {/* Tile top â€” image */}
+              {/* Tile top  -  image */}
               <div className="relative">
                 {item.image
                   ? <img src={item.image} alt={item.name} className="w-full h-32 object-cover" />
@@ -596,7 +596,7 @@ export function MenuItemsPage() {
                   )}
                   {item.largePrice != null && item.largePrice > 0 && (
                     <span className="text-gray-400">
-                      Â· L {(item.largeDiscountPct ?? 0) > 0
+                       .  L {(item.largeDiscountPct ?? 0) > 0
                         ? <><span className="line-through">{fmt(item.largePrice)}</span>{' '}<span className="text-green-600">{fmt(item.largePrice * (1 - (item.largeDiscountPct ?? 0) / 100))}</span></>
                         : fmt(item.largePrice)}
                     </span>
@@ -823,7 +823,7 @@ export function MenuItemsPage() {
                     {/* Stock */}
                     <td className="px-4 py-2.5 hidden lg:table-cell">
                       {!item.trackStock ? (
-                        <span className="text-xs text-gray-300">â€”</span>
+                        <span className="text-xs text-gray-300"> - </span>
                       ) : editingStock?.id === item.id ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -854,7 +854,7 @@ export function MenuItemsPage() {
                     <td className="px-4 py-2.5 text-center">
                       <button
                         onClick={() => toggleAvailable(item)}
-                        title={item.available ? 'Available â€” click to disable' : 'Unavailable â€” click to enable'}
+                        title={item.available ? 'Available  -  click to disable' : 'Unavailable  -  click to enable'}
                         className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full transition-colors ${
                           item.available ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         }`}
@@ -910,7 +910,7 @@ export function MenuItemsPage() {
 
               {/* Section: Photo + basic details */}
               <section className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
-                {/* Image picker â€” spans both columns */}
+                {/* Image picker  -  spans both columns */}
                 <div className="md:col-span-2">
                   <label className={labelCls}>Photo</label>
                   <div className="flex items-center gap-4">
@@ -943,12 +943,12 @@ export function MenuItemsPage() {
                           Remove photo
                         </button>
                       )}
-                      <p className="text-xs text-gray-400">JPG, PNG, WebP Â· max 5 MB</p>
+                      <p className="text-xs text-gray-400">JPG, PNG, WebP  .  max 5 MB</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Name â€” full width */}
+                {/* Name  -  full width */}
                 <div className="md:col-span-2">
                   <label className={labelCls}>Name *</label>
                   <input
@@ -960,7 +960,7 @@ export function MenuItemsPage() {
                   />
                 </div>
 
-                {/* Description â€” full width */}
+                {/* Description  -  full width */}
                 <div className="md:col-span-2">
                   <label className={labelCls}>Description</label>
                   <textarea
@@ -1039,7 +1039,7 @@ export function MenuItemsPage() {
                     </div>
                   </div>
 
-                  {/* Large discount â€” only when large price set */}
+                  {/* Large discount  -  only when large price set */}
                   {form.largePrice != null && form.largePrice > 0 && (
                     <div>
                       <label className={labelCls}>Large Discount % <span className="text-gray-400 normal-case font-normal">(0 = none)</span></label>
@@ -1124,7 +1124,7 @@ export function MenuItemsPage() {
 
               {/* Section: Nutritional Info */}
               <section>
-                <h3 className="text-sm font-bold text-gray-800 mb-3">Nutritional Info <span className="text-xs font-normal text-gray-400">(optional â€” shown on menu)</span></h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-3">Nutritional Info <span className="text-xs font-normal text-gray-400">(optional  -  shown on menu)</span></h3>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className={labelCls}>Calories (kcal)</label>
@@ -1178,7 +1178,7 @@ export function MenuItemsPage() {
                 >
                   <option value="">Always visible (no schedule)</option>
                   {schedules.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} â€” {s.startTime}â€“{s.endTime}</option>
+                    <option key={s.id} value={s.id}>{s.name}  -  {s.startTime}â€“{s.endTime}</option>
                   ))}
                 </select>
                 {form.scheduleId && (

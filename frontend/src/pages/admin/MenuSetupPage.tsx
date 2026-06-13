@@ -84,7 +84,7 @@ export function MenuSetupPage() {
   async function deleteCategory(cat: Category) {
     const inUse = items.some((i) => i.category === cat.id);
     if (inUse) {
-      toast.error(`"${cat.name}" is used by menu items â€” remove those items first`);
+      toast.error(`"${cat.name}" is used by menu items  -  remove those items first`);
       return;
     }
     if (!confirm(`Delete category "${cat.name}"?`)) return;

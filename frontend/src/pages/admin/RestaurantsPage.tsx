@@ -247,7 +247,7 @@ export function RestaurantsPage() {
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
           on ? 'bg-green-500' : 'bg-gray-300'
         }`}
-        title={on ? 'Active â€” click to deactivate' : 'Inactive â€” click to activate'}
+        title={on ? 'Active  -  click to deactivate' : 'Inactive  -  click to activate'}
       >
         <span
           className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
@@ -353,7 +353,7 @@ export function RestaurantsPage() {
                       {r.subscriptionStatus && (
                         <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${SUB_BADGE[r.subscriptionStatus] ?? 'bg-gray-100 text-gray-600'}`}>
                           {r.subscriptionStatus.replace('_', ' ')}
-                          {r.subscriptionStatus === 'trialing' && r.trialEndsAt ? ` Â· ${daysUntil(r.trialEndsAt)}d` : ''}
+                          {r.subscriptionStatus === 'trialing' && r.trialEndsAt ? `  .  ${daysUntil(r.trialEndsAt)}d` : ''}
                         </span>
                       )}
                     </div>

@@ -127,7 +127,7 @@ export function RoomChargesPage() {
                           <ul className="mt-1 space-y-0.5">
                             {order.items.map((item, i) => (
                               <li key={i} className="text-xs text-gray-500">
-                                {item.quantity}Ã— {item.name}
+                                {item.quantity}x {item.name}
                               </li>
                             ))}
                           </ul>
@@ -174,8 +174,8 @@ export function RoomChargesPage() {
       {/* Settle modal for a single order */}
       {settling && (
         <PaymentMethodModal
-          title={`Settle â€” ${settling.orderNumber ?? settling.id.slice(0, 8)}`}
-          subtitle={`Room ${settling.roomNumber} Â· ${fmt(settling.totalAmount)}`}
+          title={`Settle  -  ${settling.orderNumber ?? settling.id.slice(0, 8)}`}
+          subtitle={`Room ${settling.roomNumber}  .  ${fmt(settling.totalAmount)}`}
           total={settling.totalAmount}
           onConfirm={(method: PaymentMethod) => handleSettle(settling, method)}
           onClose={() => setSettling(null)}

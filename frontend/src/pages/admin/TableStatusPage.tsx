@@ -108,7 +108,7 @@ function TableCard({ t, fmt }: { t: TableStatusEntry; fmt: (n: number) => string
 
           {t.status === 'waiting' ? (
             <p className="text-xs text-sky-600 font-medium flex items-center gap-1">
-              <Coffee size={11} /> Seated â€” no orders yet
+              <Coffee size={11} /> Seated  -  no orders yet
             </p>
           ) : (
             <>
@@ -142,7 +142,7 @@ function TableCard({ t, fmt }: { t: TableStatusEntry; fmt: (n: number) => string
 
               {t.status === 'stale' && (
                 <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
-                  <AlertTriangle size={11} /> No activity â€” check table
+                  <AlertTriangle size={11} /> No activity  -  check table
                 </p>
               )}
             </>
@@ -216,7 +216,7 @@ export function TableStatusPage() {
       {/* Header */}
       <AdminHeader
         title="Table Status"
-        subtitle={lastSync ? `Live Â· updated ${ago(lastSync.toISOString())}` : undefined}
+        subtitle={lastSync ? `Live  .  updated ${ago(lastSync.toISOString())}` : undefined}
         backTo="/admin"
       >
         <button

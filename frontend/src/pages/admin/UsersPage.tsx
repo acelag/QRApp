@@ -185,7 +185,7 @@ export function UsersPage() {
           <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
-                {editing ? `Edit â€” ${editing.name}` : 'New User'}
+                {editing ? `Edit: ${editing.name}` : 'New User'}
               </h2>
               <button onClick={() => setShowForm(false)}><X size={20} className="text-gray-400" /></button>
             </div>
@@ -237,7 +237,7 @@ export function UsersPage() {
                   type={showPwd ? 'text' : 'password'}
                   value={form.password}
                   onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  placeholder={editing ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' : 'Min. 6 characters'}
+                  placeholder={editing ? 'Leave blank to keep current' : 'Min. 6 characters'}
                   autoComplete="new-password"
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
                 />
@@ -283,7 +283,7 @@ export function UsersPage() {
                   <label className="text-sm font-medium text-gray-700">Access &amp; Permissions</label>
                   <div className="flex gap-2 text-xs">
                     <button type="button" onClick={() => setForm((f) => ({ ...f, permissions: assignable.map((p) => p.key) }))} className="text-orange-600 font-semibold hover:underline">All</button>
-                    <span className="text-gray-300">Â·</span>
+                    <span className="text-gray-300"> . </span>
                     <button type="button" onClick={() => setForm((f) => ({ ...f, permissions: [] }))} className="text-gray-500 font-semibold hover:underline">None</button>
                   </div>
                 </div>

@@ -16,7 +16,7 @@ interface WaiterStat {
 }
 
 function fmtMins(m: number): string {
-  if (m <= 0) return 'â€”';
+  if (m <= 0) return ' - ';
   if (m < 60) return `${Math.round(m)} min`;
   const h = Math.floor(m / 60);
   const rem = Math.round(m % 60);
@@ -134,7 +134,7 @@ export function StaffPerformancePage() {
             <div className="grid grid-cols-3 gap-3">
               <StatCard icon={<ShoppingBag size={16} />} label="Assigned Orders" value={String(totalOrders)} />
               <StatCard icon={<TrendingUp size={16} />} label="Waiter Revenue" value={fmt(totalRevenue)} />
-              <StatCard icon={<Trophy size={16} />} label="Top Performer" value={topWaiter?.waiterName ?? 'â€”'} small />
+              <StatCard icon={<Trophy size={16} />} label="Top Performer" value={topWaiter?.waiterName ?? ' - '} small />
             </div>
 
             {/* Unassigned callout */}
@@ -172,7 +172,7 @@ export function StaffPerformancePage() {
                           <p className="font-semibold text-gray-900 flex-1 text-sm">{w.waiterName}</p>
                           <div className="text-right shrink-0">
                             <p className="font-bold text-gray-900 text-sm">{fmt(w.totalRevenue)}</p>
-                            <p className="text-xs text-gray-400">{w.orderCount} orders Â· {w.servedCount} served</p>
+                            <p className="text-xs text-gray-400">{w.orderCount} orders  .  {w.servedCount} served</p>
                           </div>
                         </div>
                         {/* Revenue bar */}

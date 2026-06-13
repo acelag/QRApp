@@ -36,7 +36,7 @@ export function KitchenPage() {
   const [toggling, setToggling]       = useState<Set<string>>(new Set());
   const [itemsLoaded, setItemsLoaded] = useState(false);
 
-  // Prep-time countdown clock â€” ticks every 15 s so badges stay fresh
+  // Prep-time countdown clock  -  ticks every 15 s so badges stay fresh
   const [clockMs, setClockMs] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setClockMs(Date.now()), 15_000);
@@ -103,7 +103,7 @@ export function KitchenPage() {
         setMenuItems(items.sort((a, b) => a.name.localeCompare(b.name)));
         setItemsLoaded(true);
       })
-      .catch(() => {});   // silently ignore â€” countdown just won't show
+      .catch(() => {});   // silently ignore  -  countdown just won't show
   }, [itemsLoaded]);
 
   async function handleStatusChange(id: string, status: OrderStatus) {

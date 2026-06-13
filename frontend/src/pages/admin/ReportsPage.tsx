@@ -175,7 +175,7 @@ const PDF_STYLES = `
 
 function openPrintWindow(title: string, body: string) {
   const win = window.open('', '_blank', 'width=820,height=750');
-  if (!win) { toast.error('Pop-up blocked â€” allow pop-ups and try again'); return; }
+  if (!win) { toast.error('Pop-up blocked  -  allow pop-ups and try again'); return; }
   win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${PDF_STYLES}</style></head><body>${body}</body></html>`);
   win.document.close();
   // Auto-trigger print then close the helper window
@@ -201,7 +201,7 @@ function pdfHeader(title: string, from: string, to: string) {
 }
 
 function pdfFooter() {
-  return `<div class="doc-footer"><span>QRA â€” Restaurant Management</span><span>Printed ${new Date().toLocaleDateString()}</span></div>`;
+  return `<div class="doc-footer"><span>QRA  -  Restaurant Management</span><span>Printed ${new Date().toLocaleDateString()}</span></div>`;
 }
 
 function pdfSummaryCards(s: Report['summary'], fmt: (n: number) => string) {
@@ -304,7 +304,7 @@ function pdfItemsSection(report: Report, fmt: (n: number) => string) {
       <td>${r.name}${sizeTag}</td>
       <td class="right">${r.quantity}</td>
       <td class="right">${fmt(r.baseRevenue)}</td>
-      <td class="right">${r.toppingRevenue > 0 ? '+' + fmt(r.toppingRevenue) : 'â€”'}</td>
+      <td class="right">${r.toppingRevenue > 0 ? '+' + fmt(r.toppingRevenue) : ' - '}</td>
       <td>
         <div class="bar-wrap">
           <div class="bar-bg"><div class="bar-fill green" style="width:${pct.toFixed(1)}%"></div></div>
@@ -391,9 +391,9 @@ function pdfPromosSection(report: Report, fmt: (n: number) => string) {
     return `<tr>
       <td><strong>${r.code}</strong>${!r.active ? ' <span style="font-size:9px;color:#9ca3af">(inactive)</span>' : ''}</td>
       <td>${disc}</td>
-      <td class="right">${r.orderCount || 'â€”'}</td>
-      <td class="right">${r.totalDiscount > 0 ? fmt(r.totalDiscount) : 'â€”'}</td>
-      <td class="right">${r.avgDiscount > 0 ? fmt(r.avgDiscount) : 'â€”'}</td>
+      <td class="right">${r.orderCount || ' - '}</td>
+      <td class="right">${r.totalDiscount > 0 ? fmt(r.totalDiscount) : ' - '}</td>
+      <td class="right">${r.avgDiscount > 0 ? fmt(r.avgDiscount) : ' - '}</td>
     </tr>`;
   }).join('');
   return `
@@ -485,7 +485,7 @@ function buildPdf(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
         <h2>Peak Hours Summary</h2>
         <div class="summary" style="grid-template-columns:repeat(3,1fr)">
           <div class="card"><div class="val">${HOUR[peakHour]}</div><div class="lbl">Busiest Hour</div><div class="sub">${hourTotals[peakHour]} orders</div></div>
-          <div class="card"><div class="val">${DAY[peak.dayOfWeek]}</div><div class="lbl">Peak Day/Slot</div><div class="sub">${HOUR[peak.hour]} Â· ${peak.orderCount} orders</div></div>
+          <div class="card"><div class="val">${DAY[peak.dayOfWeek]}</div><div class="lbl">Peak Day/Slot</div><div class="sub">${HOUR[peak.hour]}  .  ${peak.orderCount} orders</div></div>
           <div class="card"><div class="val">${report.heatmap.reduce((s,c)=>s+c.orderCount,0)}</div><div class="lbl">Total Orders</div></div>
         </div>
         <h2>Hourly Order Totals</h2>
@@ -494,14 +494,14 @@ function buildPdf(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
           <tbody>${hourTotals.map((cnt,h)=>{
             const total = hourTotals.reduce((a,b)=>a+b,0)||1;
             const pct = (cnt/total*100).toFixed(1);
-            return `<tr><td>${HOUR[h]}</td><td class="right">${cnt||'â€”'}</td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill${h===peakHour?' peak':''}" style="background:${h===peakHour?'#ea580c':'#fed7aa'};width:${cnt>0?(cnt/Math.max(...hourTotals)*100).toFixed(0):0}%"></div></div><span style="min-width:30px;text-align:right">${cnt>0?pct+'%':''}</span></div></td></tr>`;
+            return `<tr><td>${HOUR[h]}</td><td class="right">${cnt||' - '}</td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill${h===peakHour?' peak':''}" style="background:${h===peakHour?'#ea580c':'#fed7aa'};width:${cnt>0?(cnt/Math.max(...hourTotals)*100).toFixed(0):0}%"></div></div><span style="min-width:30px;text-align:right">${cnt>0?pct+'%':''}</span></div></td></tr>`;
           }).join('')}</tbody>
         </table>`;
       break;
     }
   }
 
-  openPrintWindow(`${title} â€” ${from === to ? from : `${from} â€“ ${to}`}`, header + summary + body + footer);
+  openPrintWindow(`${title}  -  ${from === to ? from : `${from} â€“ ${to}`}`, header + summary + body + footer);
 }
 
 /** Full comprehensive report PDF (all sections) */
@@ -514,7 +514,7 @@ function buildFullPdf(report: Report, from: string, to: string, fmt: (n: number)
                 + pdfExtrasSection(report, fmt)
                 + pdfPaymentSection(report, fmt)
                 + pdfPromosSection(report, fmt);
-  openPrintWindow(`Full Report â€” ${from === to ? from : `${from} â€“ ${to}`}`, header + summary + body + pdfFooter());
+  openPrintWindow(`Full Report  -  ${from === to ? from : `${from} â€“ ${to}`}`, header + summary + body + pdfFooter());
 }
 
 type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap' | 'promos' | 'payment' | 'turns';
@@ -781,7 +781,7 @@ export function ReportsPage() {
               cells.forEach((c) => { grid[c.dayOfWeek][c.hour] = c.orderCount; revGrid[c.dayOfWeek][c.hour] = c.revenue; });
               const maxCount = Math.max(1, ...cells.map((c) => c.orderCount));
 
-              // Day labels â€” reorder so Monday first (DOW: Sun=0)
+              // Day labels  -  reorder so Monday first (DOW: Sun=0)
               const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Monâ†’Sun
               const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
               const HOUR_LABELS = Array.from({ length: 24 }, (_, h) =>
@@ -828,7 +828,7 @@ export function ReportsPage() {
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
                           <p className="text-2xl font-bold text-orange-500">{DAY_LABELS[peakCell.dayOfWeek]}</p>
                           <p className="text-xs text-gray-400 mt-1">Peak slot</p>
-                          <p className="text-xs text-gray-500 font-medium">{HOUR_LABELS[peakCell.hour]} Â· {peakCell.orderCount} orders</p>
+                          <p className="text-xs text-gray-500 font-medium">{HOUR_LABELS[peakCell.hour]}  .  {peakCell.orderCount} orders</p>
                         </div>
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
                           <p className="text-2xl font-bold text-orange-500">{totalOrders}</p>
@@ -863,7 +863,7 @@ export function ReportsPage() {
                                       key={h}
                                       className="flex-1 mx-px rounded-sm flex items-center justify-center cursor-default"
                                       style={{ height: 28, backgroundColor: cellBg(count) }}
-                                      title={count > 0 ? `${DAY_LABELS[dow]} ${HOUR_LABELS[h]}: ${count} orders Â· ${fmt(rev)}` : undefined}
+                                      title={count > 0 ? `${DAY_LABELS[dow]} ${HOUR_LABELS[h]}: ${count} orders  .  ${fmt(rev)}` : undefined}
                                     >
                                       {count > 0 && (
                                         <span style={{ fontSize: 9, fontWeight: 700, color: cellText(count), lineHeight: 1 }}>
@@ -926,7 +926,7 @@ export function ReportsPage() {
                           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="px-5 pt-4 pb-2 border-b border-gray-100">
                               <p className="text-sm font-bold text-gray-900">Revenue by Day of Week</p>
-                              <p className="text-xs text-gray-400 mt-0.5">Busiest day: <span className="font-semibold text-orange-500">{DAY_LABELS[peakDow]}</span> Â· {dayOrders[peakDow]} orders</p>
+                              <p className="text-xs text-gray-400 mt-0.5">Busiest day: <span className="font-semibold text-orange-500">{DAY_LABELS[peakDow]}</span>  .  {dayOrders[peakDow]} orders</p>
                             </div>
                             <div className="px-2 pt-3 pb-2">
                               <ResponsiveContainer width="100%" height={200}>
@@ -1032,7 +1032,7 @@ export function ReportsPage() {
                       {/* Footer totals */}
                       <div className="px-5 py-3 bg-orange-50 border-t border-orange-100 flex justify-between text-sm font-bold text-orange-800">
                         <span>Total ({report.categories.length} categories)</span>
-                        <span>{totalQty} items Â· {fmt(totalRev)}</span>
+                        <span>{totalQty} items  .  {fmt(totalRev)}</span>
                       </div>
                     </>
                   );
@@ -1040,7 +1040,7 @@ export function ReportsPage() {
               </div>
             )}
 
-            {/* Sales by day â€” trend chart + table */}
+            {/* Sales by day  -  trend chart + table */}
             {tab === 'sales' && (() => {
               if (report.daily.length === 0) {
                 return (
@@ -1064,7 +1064,7 @@ export function ReportsPage() {
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="px-5 pt-4 pb-2 border-b border-gray-100">
                       <p className="text-sm font-bold text-gray-900">Revenue &amp; Order Trend</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{trendData.length} day{trendData.length !== 1 ? 's' : ''} Â· bars = revenue Â· line = orders</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{trendData.length} day{trendData.length !== 1 ? 's' : ''}  .  bars = revenue  .  line = orders</p>
                     </div>
                     <div className="px-2 pt-3 pb-2">
                       <ResponsiveContainer width="100%" height={220}>
@@ -1161,7 +1161,7 @@ export function ReportsPage() {
               );
             })()}
 
-            {/* Items tab â€” chart + table */}
+            {/* Items tab  -  chart + table */}
             {tab === 'items' && (
               <div className="space-y-4">
                 {report.items.length === 0 ? (
@@ -1289,7 +1289,7 @@ export function ReportsPage() {
                       {/* Full detail table */}
                       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                         <div className="px-5 py-3 border-b border-gray-100">
-                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Full breakdown â€” all {report.items.length} item variants</p>
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Full breakdown  -  all {report.items.length} item variants</p>
                         </div>
                         <table className="w-full text-sm">
                           <thead>
@@ -1319,7 +1319,7 @@ export function ReportsPage() {
                                 <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">
                                   {row.toppingRevenue > 0 ? (
                                     <span className="text-orange-500">+{fmt(row.toppingRevenue)}</span>
-                                  ) : 'â€”'}
+                                  ) : ' - '}
                                 </td>
                                 <td className="px-4 py-3 text-right font-bold text-gray-900">{fmt(row.totalRevenue)}</td>
                               </tr>
@@ -1414,14 +1414,14 @@ export function ReportsPage() {
                                 {row.orderCount > 0 ? (
                                   <span className="font-semibold text-gray-900">{row.orderCount}</span>
                                 ) : (
-                                  <span className="text-gray-300">â€”</span>
+                                  <span className="text-gray-300"> - </span>
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right font-bold text-red-500">
-                                {row.totalDiscount > 0 ? `-${fmt(row.totalDiscount)}` : <span className="text-gray-300 font-normal">â€”</span>}
+                                {row.totalDiscount > 0 ? `-${fmt(row.totalDiscount)}` : <span className="text-gray-300 font-normal"> - </span>}
                               </td>
                               <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">
-                                {row.avgDiscount > 0 ? fmt(row.avgDiscount) : <span className="text-gray-300">â€”</span>}
+                                {row.avgDiscount > 0 ? fmt(row.avgDiscount) : <span className="text-gray-300"> - </span>}
                               </td>
                             </tr>
                           ))}
@@ -1484,7 +1484,7 @@ export function ReportsPage() {
                                 <span className="text-xs text-gray-500 font-medium">{meta.label}</span>
                               </div>
                               <p className="text-2xl font-bold text-gray-900">{fmt(r.revenue)}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">{r.orderCount} order{r.orderCount !== 1 ? 's' : ''} Â· {totalRev > 0 ? ((r.revenue / totalRev) * 100).toFixed(1) : '0'}%</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{r.orderCount} order{r.orderCount !== 1 ? 's' : ''}  .  {totalRev > 0 ? ((r.revenue / totalRev) * 100).toFixed(1) : '0'}%</p>
                             </div>
                           );
                         })}
@@ -1512,7 +1512,7 @@ export function ReportsPage() {
                             return (
                               <div key={r.method} className="flex items-center gap-1.5 text-xs text-gray-600">
                                 <span className={`w-2.5 h-2.5 rounded-full ${meta.color} shrink-0`} />
-                                {meta.label} â€” {totalRev > 0 ? ((r.revenue / totalRev) * 100).toFixed(1) : '0'}%
+                                {meta.label}  -  {totalRev > 0 ? ((r.revenue / totalRev) * 100).toFixed(1) : '0'}%
                               </div>
                             );
                           })}
@@ -1598,17 +1598,17 @@ export function ReportsPage() {
                     </div>
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                       <div className="flex items-center gap-2 mb-1"><TrendingUp size={15} className="text-blue-500" /><span className="text-xs text-gray-500">Avg Duration</span></div>
-                      <p className="text-2xl font-bold text-gray-900">{totalTurns > 0 ? fmtDuration(weightedAvg) : 'â€”'}</p>
+                      <p className="text-2xl font-bold text-gray-900">{totalTurns > 0 ? fmtDuration(weightedAvg) : ' - '}</p>
                       <p className="text-xs text-gray-400 mt-0.5">per table session</p>
                     </div>
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                       <div className="flex items-center gap-2 mb-1"><span className="text-green-500 text-xs font-bold">â–¼</span><span className="text-xs text-gray-500">Shortest</span></div>
-                      <p className="text-2xl font-bold text-gray-900">{minDuration > 0 ? fmtDuration(minDuration) : 'â€”'}</p>
+                      <p className="text-2xl font-bold text-gray-900">{minDuration > 0 ? fmtDuration(minDuration) : ' - '}</p>
                       <p className="text-xs text-gray-400 mt-0.5">quickest session</p>
                     </div>
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                       <div className="flex items-center gap-2 mb-1"><span className="text-red-400 text-xs font-bold">â–²</span><span className="text-xs text-gray-500">Longest</span></div>
-                      <p className="text-2xl font-bold text-gray-900">{maxDuration > 0 ? fmtDuration(maxDuration) : 'â€”'}</p>
+                      <p className="text-2xl font-bold text-gray-900">{maxDuration > 0 ? fmtDuration(maxDuration) : ' - '}</p>
                       <p className="text-xs text-gray-400 mt-0.5">longest session</p>
                     </div>
                   </div>
@@ -1625,7 +1625,7 @@ export function ReportsPage() {
                       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                         <div className="px-5 pt-4 pb-2 border-b border-gray-100">
                           <p className="text-sm font-bold text-gray-900">Daily Turn Rate</p>
-                          <p className="text-xs text-gray-400 mt-0.5">bars = table turns Â· line = avg duration (mins)</p>
+                          <p className="text-xs text-gray-400 mt-0.5">bars = table turns  .  line = avg duration (mins)</p>
                         </div>
                         <div className="px-2 pt-3 pb-2">
                           <ResponsiveContainer width="100%" height={200}>

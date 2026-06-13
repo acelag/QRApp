@@ -190,7 +190,7 @@ export function StockReportPage() {
                   <AlertTriangle size={16} className="text-amber-500 shrink-0" />
                   <p className="text-sm text-amber-700 font-medium">
                     {s.lowStockItems} item{s.lowStockItems !== 1 ? 's' : ''} low on stock
-                    {s.outOfStockItems > 0 && <> Â· <span className="text-red-600 font-bold">{s.outOfStockItems} out of stock</span></>}
+                    {s.outOfStockItems > 0 && <>  .  <span className="text-red-600 font-bold">{s.outOfStockItems} out of stock</span></>}
                   </p>
                   <Link to="/admin/stock" className="ml-auto text-xs text-orange-500 font-semibold hover:underline shrink-0">Manage â†’</Link>
                 </div>
@@ -256,8 +256,8 @@ export function StockReportPage() {
                               <span className={`font-bold ${i.isLow ? 'text-amber-600' : 'text-gray-900'}`}>{i.quantity}</span>
                               <span className="text-gray-400 text-xs ml-1">{i.unit}</span>
                             </td>
-                            <td className="px-4 py-3 text-right font-semibold text-green-600">{i.totalIn > 0 ? `+${i.totalIn}` : 'â€”'}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-red-500">{i.totalOut > 0 ? `-${i.totalOut}` : 'â€”'}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-green-600">{i.totalIn > 0 ? `+${i.totalIn}` : ' - '}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-red-500">{i.totalOut > 0 ? `-${i.totalOut}` : ' - '}</td>
                             <td className="px-4 py-3 text-right font-semibold text-gray-700 hidden sm:table-cell">{fmt(i.stockValue)}</td>
                           </tr>
                         ))}
@@ -302,8 +302,8 @@ export function StockReportPage() {
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             {m.reason && <span className="text-xs text-gray-500">{m.reason}</span>}
-                            {m.createdByName && <span className="text-xs text-gray-400">Â· {m.createdByName}</span>}
-                            <span className="text-xs text-gray-400">Â· {fmtDateTime(m.createdAt)}</span>
+                            {m.createdByName && <span className="text-xs text-gray-400"> .  {m.createdByName}</span>}
+                            <span className="text-xs text-gray-400"> .  {fmtDateTime(m.createdAt)}</span>
                           </div>
                           {m.notes && <p className="text-xs text-gray-400 italic mt-0.5">"{m.notes}"</p>}
                         </div>

@@ -134,7 +134,7 @@ export function ReservationsPage() {
   }
 
   const locationLabel = (r: Reservation) => r.type === 'room'
-    ? `Room ${r.roomNumber ?? '?'}${r.roomName ? ` Â· ${r.roomName}` : ''}` : `Table ${r.tableNumber ?? '?'}`;
+    ? `Room ${r.roomNumber ?? '?'}${r.roomName ? `  .  ${r.roomName}` : ''}` : `Table ${r.tableNumber ?? '?'}`;
   const timeStr = (iso: string) => new Date(iso).toLocaleTimeString([], { timeZone: tz, hour: '2-digit', minute: '2-digit' });
   const input = 'w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors';
   const todayKey = ymd(new Date());
@@ -177,7 +177,7 @@ export function ReservationsPage() {
                       key={r.id}
                       onClick={() => openEdit(r)}
                       className={`w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-md truncate flex items-center gap-1 ${STATUS_META[r.status].cls} ${r.status === 'cancelled' ? 'line-through opacity-70' : ''}`}
-                      title={`${timeStr(r.reservedAt)} Â· ${r.customerName} Â· ${locationLabel(r)}`}
+                      title={`${timeStr(r.reservedAt)}  .  ${r.customerName}  .  ${locationLabel(r)}`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_META[r.status].dot}`} />
                       <span className="font-semibold tabular-nums">{timeStr(r.reservedAt)}</span>
@@ -350,7 +350,7 @@ export function ReservationsPage() {
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Room *</label>
                   <select className={`${input} bg-white`} value={form.roomId} onChange={(e) => setForm((f) => ({ ...f, roomId: e.target.value }))}>
                     <option value="">Select a roomâ€¦</option>
-                    {rooms.map((r) => <option key={r.id} value={r.id}>Room {r.number}{r.name ? ` Â· ${r.name}` : ''}</option>)}
+                    {rooms.map((r) => <option key={r.id} value={r.id}>Room {r.number}{r.name ? `  .  ${r.name}` : ''}</option>)}
                   </select>
                 </div>
               )}

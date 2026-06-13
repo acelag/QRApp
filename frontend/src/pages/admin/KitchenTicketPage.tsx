@@ -33,9 +33,9 @@ export function KitchenTicketPage() {
   const totalQty = order.items.reduce((s, i) => s + i.quantity, 0);
 
   function locationLine(): string {
-    if (order!.orderType === 'room-service') return `ROOM  ${order!.roomNumber ?? 'â€”'}`;
-    if (order!.orderType === 'takeaway')     return `TAKEAWAY${order!.customerName ? `  Â·  ${order!.customerName.toUpperCase()}` : ''}`;
-    return `TABLE  ${order!.tableNumber ?? 'â€”'}`;
+    if (order!.orderType === 'room-service') return `ROOM  ${order!.roomNumber ?? ' - '}`;
+    if (order!.orderType === 'takeaway')     return `TAKEAWAY${order!.customerName ? `   .   ${order!.customerName.toUpperCase()}` : ''}`;
+    return `TABLE  ${order!.tableNumber ?? ' - '}`;
   }
 
   return (
@@ -127,7 +127,7 @@ export function KitchenTicketPage() {
         }
       `}</style>
 
-      {/* On-screen button â€” hidden when printing */}
+      {/* On-screen button  -  hidden when printing */}
       <div className="no-print" style={{ textAlign: 'center', paddingTop: 16 }}>
         <button className="print-btn" onClick={() => window.print()}>
           ðŸ–¨ï¸ Print Kitchen Ticket
@@ -145,7 +145,7 @@ export function KitchenTicketPage() {
           {order.orderNumber ? `#${order.orderNumber}` : `#${order.id.slice(0, 6).toUpperCase()}`}
         </p>
         <p className="center" style={{ fontSize: 11, marginTop: 2 }}>
-          {dateStr}  Â·  {timeStr}
+          {dateStr}   .   {timeStr}
         </p>
 
         <Dash />
@@ -155,11 +155,11 @@ export function KitchenTicketPage() {
 
         <Dash char="=" />
 
-        {/* Items â€” no prices, large and clear */}
+        {/* Items  -  no prices, large and clear */}
         {order.items.map((item, idx) => (
           <div key={idx} style={{ marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="item-qty">{item.quantity}Ã—</span>
+              <span className="item-qty">{item.quantity}x</span>
               <span className="item-name">
                 {item.name}
                 {item.size && (

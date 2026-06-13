@@ -110,8 +110,8 @@ export function PlansAdminPage() {
             <h2 className="font-semibold text-gray-800">Subscription system</h2>
             <p className="text-sm text-gray-400 mt-0.5">
               {enabled
-                ? 'On â€” marketing site, signup, trials and billing are active.'
-                : 'Off â€” pricing/signup are hidden and all restaurants have full access.'}
+                ? 'On  -  marketing site, signup, trials and billing are active.'
+                : 'Off  -  pricing/signup are hidden and all restaurants have full access.'}
             </p>
           </div>
           <button

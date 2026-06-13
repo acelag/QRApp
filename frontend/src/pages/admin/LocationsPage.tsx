@@ -209,7 +209,7 @@ export function LocationsPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
 
-      {/* Hidden QR renders â€” SVG for print, Canvas for PNG download */}
+      {/* Hidden QR renders  -  SVG for print, Canvas for PNG download */}
       <div className="hidden" aria-hidden>
         {tables.map((t) => (
           <div key={t.id}>
@@ -294,7 +294,7 @@ export function LocationsPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <ShoppingBag size={16} className="text-purple-500" />
                   <h2 className="font-semibold text-gray-700 text-sm">Takeaway QR Code</h2>
-                  <span className="ml-auto text-xs text-gray-400">One QR â€” many customers</span>
+                  <span className="ml-auto text-xs text-gray-400">One QR  -  many customers</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="cursor-pointer flex-shrink-0" onClick={() => setTakeawayQrOpen(true)}>
