@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase, Check, Copy } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -166,7 +166,7 @@ export function UsersPage() {
             {ROLE_CONFIG.map(({ role, sectionLabel, emptyLabel, Icon, iconCls }) => {
               const group = users.filter((u) => u.role === role);
               return (
-                <Section key={role} title={sectionLabel} icon={<Icon size={16} className={iconCls} />} onAdd={() => openNew(role)}>
+                <Section key={role} title={sectionLabel} count={group.length} icon={<Icon size={16} className={iconCls} />} onAdd={() => openNew(role)}>
                   {group.length === 0
                     ? <p className="text-sm text-gray-400 py-2 text-center">{emptyLabel}</p>
                     : group.map((u) => (
@@ -342,12 +342,15 @@ export function UsersPage() {
   );
 }
 
-function Section({ title, icon, onAdd, children }: { title: string; icon: React.ReactNode; onAdd: () => void; children: React.ReactNode }) {
+function Section({ title, icon, count, onAdd, children }: { title: string; icon: React.ReactNode; count: number; onAdd: () => void; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
         {icon}
         <span className="text-sm font-semibold text-gray-700 flex-1">{title}</span>
+        <span className="text-xs text-gray-400 mr-2">
+          {count} {count === 1 ? 'user' : 'users'}
+        </span>
         <button
           onClick={onAdd}
           className="flex items-center gap-1 text-xs font-medium text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1 rounded-full transition-colors"
@@ -365,20 +368,38 @@ function UserRow({ user, isMe, onEdit, onDelete }: {
   onEdit: (u: User) => void;
   onDelete: (u: User) => void;
 }) {
+  function copyUsername() {
+    navigator.clipboard.writeText(user.username).then(() => toast.success(`Copied @${user.username}`));
+  }
+
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0">
+      {/* Avatar */}
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${BADGE_CLS[user.role]}`}>
         {user.name.charAt(0).toUpperCase()}
       </div>
+
+      {/* Name + username */}
       <div className="flex-1 min-w-0">
         <p className="font-medium text-gray-900 text-sm truncate">
           {user.name} {isMe && <span className="text-xs text-orange-500 font-normal">(you)</span>}
         </p>
-        <p className="text-xs text-gray-400">@{user.username}</p>
+        <button
+          onClick={copyUsername}
+          className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors group"
+          title="Copy username"
+        >
+          <span className="font-mono">@{user.username}</span>
+          <Copy size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
       </div>
+
+      {/* Role badge */}
       <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${BADGE_CLS[user.role]}`}>
         {user.role}
       </span>
+
+      {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
         <button onClick={() => onEdit(user)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50">
           <Pencil size={15} />
