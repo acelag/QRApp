@@ -5,8 +5,8 @@ import { AdminHeader } from '../../components/AdminHeader';
 import {
   Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag, Package,
   Calendar, QrCode, MapPin, CalendarDays, LayoutGrid, MonitorPlay, ChefHat,
-  Receipt, CreditCard, Users, UserCheck, Trophy, Warehouse, BarChart2,
-  FileText, Settings, Star, ArrowLeft, GitBranch, Clock, Box,
+  Receipt, CreditCard, Users, Warehouse, BarChart2,
+  FileText, Settings, Star, ArrowLeft, Clock, Box,
 } from 'lucide-react';
 
 // ── Deploy info helpers ──────────────────────────────────────────────────────
