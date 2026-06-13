@@ -1,13 +1,22 @@
 ﻿import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase, Check, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase, Check, Copy, Users, BarChart2, CalendarDays } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import { PERMISSION_GROUPS, assignablePermissions } from '../../lib/permissions';
+import { StaffPerformancePanel } from './StaffPerformancePage';
+import { RosterPanel } from './RosterPage';
 
 type UserRole = 'admin' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
+type StaffTab = 'users' | 'performance' | 'roster';
+
+const STAFF_TABS: { id: StaffTab; label: string; Icon: React.ElementType }[] = [
+  { id: 'users',       label: 'Users',       Icon: Users },
+  { id: 'performance', label: 'Performance', Icon: BarChart2 },
+  { id: 'roster',      label: 'Roster',      Icon: CalendarDays },
+];
 
 interface User { id: string; username: string; name: string; role: UserRole; permissions?: string[]; }
 
@@ -42,6 +51,7 @@ export function UsersPage() {
   const { user: me, features } = useAuth();
   const assignable = assignablePermissions(features);
   const assignableKeys = new Set<string>(assignable.map((p) => p.key));
+  const [tab, setTab] = useState<StaffTab>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -147,15 +157,39 @@ export function UsersPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Manage Users" backTo="/admin/settings">
-        <button
-          onClick={() => openNew()}
-          className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
-        >
-          <Plus size={14} /> Add User
-        </button>
+      <AdminHeader title="Manage Staff" backTo="/admin/settings">
+        {tab === 'users' && (
+          <button
+            onClick={() => openNew()}
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
+          >
+            <Plus size={14} /> Add User
+          </button>
+        )}
       </AdminHeader>
 
+      {/* Tab bar */}
+      <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 flex gap-1">
+        {STAFF_TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              tab === id
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Icon size={15} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'performance' && <StaffPerformancePanel />}
+      {tab === 'roster' && <RosterPanel />}
+
+      {tab === 'users' && (
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {loading ? (
           <div className="flex justify-center pt-16">
@@ -209,6 +243,7 @@ export function UsersPage() {
           </>
         )}
       </div>
+      )}
 
       {/* Form modal */}
       {showForm && (

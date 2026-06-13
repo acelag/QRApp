@@ -57,11 +57,17 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173,ht
 // Capacitor native apps send these as their Origin header
 const NATIVE_ORIGINS = ['capacitor://localhost', 'https://localhost', 'http://localhost'];
 
+// In dev, also allow any private-network origin (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+// so phones/tablets on the same LAN can reach the dev server.
+const LOCAL_NET = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/;
+
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow server-to-server / same-origin requests (origin undefined)
-    if (!origin || allowedOrigins.includes(origin) || NATIVE_ORIGINS.includes(origin)) cb(null, true);
-    else cb(new Error(`CORS: ${origin} not allowed`));
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    if (NATIVE_ORIGINS.includes(origin)) return cb(null, true);
+    if (!isProd && LOCAL_NET.test(origin)) return cb(null, true);
+    cb(new Error(`CORS: ${origin} not allowed`));
   },
   credentials: true,
 }));
