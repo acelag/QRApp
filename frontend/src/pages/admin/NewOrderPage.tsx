@@ -615,7 +615,7 @@ export function NewOrderPage() {
                             value={c.notes ?? ''}
                             onChange={(e) => dispatch({ type: 'SET_NOTES', key, notes: e.target.value })}
                             onBlur={() => setEditingNotesKey(null)}
-                            placeholder="e.g. no onions, less spicyâ€¦"
+                            placeholder="e.g. no onions, less spicy…"
                             className="w-full text-xs border border-orange-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-orange-300"
                           />
                         ) : (
@@ -707,7 +707,7 @@ export function NewOrderPage() {
                 }`}
               >
                 {placing
-                  ? <><Loader2 size={16} className="animate-spin" /> Placingâ€¦</>
+                  ? <><Loader2 size={16} className="animate-spin" /> Placing…</>
                   : mode === 'takeaway'
                   ? <><Check size={16} /> Place Takeaway Order</>
                   : mode === 'room-service'

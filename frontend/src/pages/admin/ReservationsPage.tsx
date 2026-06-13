@@ -300,7 +300,7 @@ export function ReservationsPage() {
                           <span className="flex items-center gap-1"><Users size={12} /> {r.partySize}</span>
                           {r.customerPhone && <a href={`tel:${r.customerPhone}`} className="flex items-center gap-1 text-gray-500 hover:text-orange-600"><Phone size={12} /> {r.customerPhone}</a>}
                         </div>
-                        {r.notes && <p className="text-xs text-gray-400 italic mt-1">â€œ{r.notes}â€</p>}
+                        {r.notes && <p className="text-xs text-gray-400 italic mt-1">“{r.notes}”</p>}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => openEdit(r)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors" title="Edit"><Pencil size={15} /></button>
@@ -341,7 +341,7 @@ export function ReservationsPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Table *</label>
                   <select className={`${input} bg-white`} value={form.tableId} onChange={(e) => setForm((f) => ({ ...f, tableId: e.target.value }))}>
-                    <option value="">Select a tableâ€¦</option>
+                    <option value="">Select a table…</option>
                     {tables.map((t) => <option key={t.id} value={t.id}>Table {t.number} ({t.seats} seats)</option>)}
                   </select>
                 </div>
@@ -349,7 +349,7 @@ export function ReservationsPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Room *</label>
                   <select className={`${input} bg-white`} value={form.roomId} onChange={(e) => setForm((f) => ({ ...f, roomId: e.target.value }))}>
-                    <option value="">Select a roomâ€¦</option>
+                    <option value="">Select a room…</option>
                     {rooms.map((r) => <option key={r.id} value={r.id}>Room {r.number}{r.name ? `  .  ${r.name}` : ''}</option>)}
                   </select>
                 </div>
@@ -361,7 +361,7 @@ export function ReservationsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Phone</label>
-                  <input className={input} value={form.customerPhone} onChange={(e) => setForm((f) => ({ ...f, customerPhone: e.target.value }))} placeholder="+94â€¦" />
+                  <input className={input} value={form.customerPhone} onChange={(e) => setForm((f) => ({ ...f, customerPhone: e.target.value }))} placeholder="+94…" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Party size</label>

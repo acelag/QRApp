@@ -192,7 +192,7 @@ export function FloorPlanPage() {
                 disabled={saving}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-60 transition-colors"
               >
-                <Save size={14} /> {saving ? 'Savingâ€¦' : 'Save Layout'}
+                <Save size={14} /> {saving ? 'Saving…' : 'Save Layout'}
               </button>
             )}
           </div>

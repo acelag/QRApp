@@ -439,7 +439,7 @@ export function BillsPage() {
                           className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
                         >
                           {paying === session.id ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-                          {paying === session.id ? 'Processingâ€¦' : 'Mark as Paid'}
+                          {paying === session.id ? 'Processing…' : 'Mark as Paid'}
                         </button>
                         {(session.billItems ?? []).length === 0 && (
                           <p className="text-center text-xs text-gray-400">No orders placed yet</p>
@@ -612,7 +612,7 @@ export function BillsPage() {
                           className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 active:scale-[0.98] disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-all whitespace-nowrap"
                         >
                           {payingOrder === order.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                          {payingOrder === order.id ? 'Processingâ€¦' : 'Mark Paid'}
+                          {payingOrder === order.id ? 'Processing…' : 'Mark Paid'}
                         </button>
                       </div>
                     </div>

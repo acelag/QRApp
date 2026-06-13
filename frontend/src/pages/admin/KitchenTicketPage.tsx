@@ -24,7 +24,7 @@ export function KitchenTicketPage() {
   }, [orderId]);
 
   if (error) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Order not found.</p>;
-  if (!order) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loadingâ€¦</p>;
+  if (!order) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loading…</p>;
 
   const now     = new Date(order.createdAt);
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

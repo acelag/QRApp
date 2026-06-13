@@ -27,7 +27,7 @@ export function SessionReceiptPage() {
   }, [sessionId]);
 
   if (error) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Session not found.</p>;
-  if (!session) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loadingâ€¦</p>;
+  if (!session) return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loading…</p>;
 
   const billItems   = session.billItems ?? [];
   const totalAmount = session.totalAmount ?? 0;

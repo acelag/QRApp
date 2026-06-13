@@ -186,7 +186,7 @@ function openPrintWindow(title: string, body: string) {
 }
 
 function pdfHeader(title: string, from: string, to: string) {
-  const dateRange = from === to ? from : `${from} â€“ ${to}`;
+  const dateRange = from === to ? from : `${from} – ${to}`;
   return `
     <div class="doc-header">
       <div>
@@ -501,7 +501,7 @@ function buildPdf(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
     }
   }
 
-  openPrintWindow(`${title}  -  ${from === to ? from : `${from} â€“ ${to}`}`, header + summary + body + footer);
+  openPrintWindow(`${title}  -  ${from === to ? from : `${from} – ${to}`}`, header + summary + body + footer);
 }
 
 /** Full comprehensive report PDF (all sections) */
@@ -514,7 +514,7 @@ function buildFullPdf(report: Report, from: string, to: string, fmt: (n: number)
                 + pdfExtrasSection(report, fmt)
                 + pdfPaymentSection(report, fmt)
                 + pdfPromosSection(report, fmt);
-  openPrintWindow(`Full Report  -  ${from === to ? from : `${from} â€“ ${to}`}`, header + summary + body + pdfFooter());
+  openPrintWindow(`Full Report  -  ${from === to ? from : `${from} – ${to}`}`, header + summary + body + pdfFooter());
 }
 
 type Tab = 'sales' | 'items' | 'extras' | 'categories' | 'heatmap' | 'promos' | 'payment' | 'turns';
@@ -1244,7 +1244,7 @@ export function ReportsPage() {
                                 tick={{ fontSize: 11, fill: '#374151', fontWeight: 500 }}
                                 tickLine={false}
                                 axisLine={false}
-                                tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 17) + 'â€¦' : v}
+                                tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 17) + '…' : v}
                               />
                               <Tooltip
                                 cursor={{ fill: '#fff7ed' }}

@@ -81,7 +81,7 @@ export function ShiftCloseReport() {
       {loading ? (
         <div className="flex flex-col items-center justify-center pt-24 gap-3">
           <Loader2 size={32} className="animate-spin text-orange-500" />
-          <p className="text-gray-400 text-sm">Generating reportâ€¦</p>
+          <p className="text-gray-400 text-sm">Generating report…</p>
         </div>
       ) : error ? (
         <div className="flex justify-center pt-24">

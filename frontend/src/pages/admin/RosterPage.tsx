@@ -75,8 +75,8 @@ export function RosterPage() {
   const fromStr    = toDateStr(weekStart);
   const toStr      = toDateStr(addDays(weekStart, 6));
 
-  // Week label: "12 â€“ 18 May 2025"
-  const weekLabel = `${weekStart.getDate()} â€“ ${addDays(weekStart, 6).toLocaleDateString('en-US', {
+  // Week label: "12 – 18 May 2025"
+  const weekLabel = `${weekStart.getDate()} – ${addDays(weekStart, 6).toLocaleDateString('en-US', {
     day: 'numeric', month: 'short', year: 'numeric',
   })}`;
 
@@ -297,7 +297,7 @@ export function RosterPage() {
                               </div>
                               {/* Time */}
                               <p className="text-[10px] text-gray-500 leading-snug">
-                                {shift.startTime}â€“{shift.endTime}
+                                {shift.startTime}–{shift.endTime}
                                 {dur && <span className="text-gray-400 ml-1">({dur})</span>}
                               </p>
                               {/* Role chip */}
@@ -526,7 +526,7 @@ export function RosterPage() {
                 type="text"
                 value={form.notes ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value || null }))}
-                placeholder="Optional notesâ€¦"
+                placeholder="Optional notes…"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
               />
             </div>

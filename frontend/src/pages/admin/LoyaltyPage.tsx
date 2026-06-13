@@ -236,7 +236,7 @@ function MembersPanel() {
             type="text"
             value={search}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search by phone or nameâ€¦"
+            placeholder="Search by phone or name…"
             className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-200 w-56"
           />
         </div>
@@ -338,7 +338,7 @@ function MembersPanel() {
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Transaction History</p>
                     {txnLoading === acc.phone ? (
                       <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-                        <Loader2 size={12} className="animate-spin" /> Loadingâ€¦
+                        <Loader2 size={12} className="animate-spin" /> Loading…
                       </div>
                     ) : (txns[acc.phone] ?? []).length === 0 ? (
                       <p className="text-xs text-gray-400">No transactions yet.</p>

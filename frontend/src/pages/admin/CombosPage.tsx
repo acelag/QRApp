@@ -356,7 +356,7 @@ export function CombosPage() {
                   type="text"
                   value={itemSearch}
                   onChange={(e) => setItemSearch(e.target.value)}
-                  placeholder="Search menu itemsâ€¦"
+                  placeholder="Search menu items…"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300 mb-2"
                 />
                 <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
@@ -402,7 +402,7 @@ export function CombosPage() {
                 disabled={saving}
                 className="px-5 py-2 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 disabled:opacity-60 transition-colors"
               >
-                {saving ? 'Savingâ€¦' : editing ? 'Update Combo' : 'Create Combo'}
+                {saving ? 'Saving…' : editing ? 'Update Combo' : 'Create Combo'}
               </button>
             </div>
           </div>

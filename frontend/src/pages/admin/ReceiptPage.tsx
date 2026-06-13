@@ -36,7 +36,7 @@ export function ReceiptPage() {
   }
 
   if (!order) {
-    return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loadingâ€¦</p>;
+    return <p style={{ fontFamily: 'monospace', padding: 16 }}>Loading…</p>;
   }
 
   const now = new Date(order.createdAt);

@@ -16,7 +16,7 @@ import { AdminHeader } from '../../components/AdminHeader';
 
 const DAY_PRESETS = [
   { label: 'Every day', value: 'daily' },
-  { label: 'Mon â€“ Fri', value: 'weekdays' },
+  { label: 'Mon – Fri', value: 'weekdays' },
   { label: 'Sat & Sun', value: 'weekends' },
 ] as const;
 
@@ -240,7 +240,7 @@ export function MenuSchedulesPage() {
                     <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
                       <span className="flex items-center gap-1">
                         <Clock size={12} />
-                        {s.startTime} â€“ {s.endTime}
+                        {s.startTime} – {s.endTime}
                         <span className="text-gray-400 text-xs">({dur})</span>
                       </span>
                       <span className="text-gray-300"> . </span>
@@ -388,7 +388,7 @@ export function MenuSchedulesPage() {
             {form.startTime && form.endTime && (
               <p className="text-xs text-gray-400 -mt-3 text-center">
                 Window: <span className="font-semibold text-gray-600">
-                  {form.startTime} â€“ {form.endTime} ({duration(form.startTime, form.endTime)})
+                  {form.startTime} – {form.endTime} ({duration(form.startTime, form.endTime)})
                 </span>
                 {form.startTime > form.endTime && (
                   <span className="ml-1.5 text-amber-600">(spans midnight)</span>

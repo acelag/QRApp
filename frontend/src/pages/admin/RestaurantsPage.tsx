@@ -452,7 +452,7 @@ export function RestaurantsPage() {
                               title={`Login as ${u.username}`}
                             >
                               {impersonating === u.id ? (
-                                <span className="animate-pulse">â€¦</span>
+                                <span className="animate-pulse">…</span>
                               ) : (
                                 <>
                                   <LogIn size={12} /> Login As
@@ -514,7 +514,7 @@ export function RestaurantsPage() {
                         disabled={savingBilling}
                         className="px-4 py-1.5 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
                       >
-                        {savingBilling ? 'Savingâ€¦' : 'Save'}
+                        {savingBilling ? 'Saving…' : 'Save'}
                       </button>
                     </div>
                   </div>

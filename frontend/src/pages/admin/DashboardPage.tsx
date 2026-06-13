@@ -322,7 +322,7 @@ export function DashboardPage() {
                     <input
                       value={orderSearch}
                       onChange={(e) => setOrderSearch(e.target.value)}
-                      placeholder="Search by order # or tableâ€¦"
+                      placeholder="Search by order # or table…"
                       className="bg-transparent flex-1 text-xs text-gray-600 outline-none placeholder-gray-400"
                     />
                   </div>
@@ -543,7 +543,7 @@ export function DashboardPage() {
                   {[
                     { label: 'Total Bills', value: todayOrders.length, icon: Receipt,  color: 'text-orange-500', bg: 'bg-orange-50' },
                     { label: 'Avg Value',   value: fmt(avgOrderValue),  icon: Banknote, color: 'text-blue-500',   bg: 'bg-blue-50'   },
-                    { label: 'Peak Hour',   value: peakHour?.hour ?? 'â€“', icon: Clock, color: 'text-purple-500', bg: 'bg-purple-50' },
+                    { label: 'Peak Hour',   value: peakHour?.hour ?? '–', icon: Clock, color: 'text-purple-500', bg: 'bg-purple-50' },
                   ].map((m) => (
                     <div key={m.label} className={`${m.bg} rounded-xl p-2.5 flex flex-col items-center gap-1`}>
                       <m.icon size={14} className={m.color} />

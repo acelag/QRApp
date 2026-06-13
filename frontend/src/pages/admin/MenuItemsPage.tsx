@@ -382,7 +382,7 @@ export function MenuItemsPage() {
               type="text"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="Search by name or categoryâ€¦"
+              placeholder="Search by name or category…"
               className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-300"
             />
             {searchQ && (
@@ -1153,12 +1153,12 @@ export function MenuItemsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className={labelCls}>Spice level (0â€“5)</label>
+                    <label className={labelCls}>Spice level (0–5)</label>
                     <input
                       type="number" min="0" max="5" step="1"
                       value={form.spiceLevel ?? ''}
                       onChange={(e) => setForm((f) => ({ ...f, spiceLevel: e.target.value !== '' ? Math.min(5, Math.max(0, parseInt(e.target.value, 10))) : null }))}
-                      placeholder="0â€“5"
+                      placeholder="0–5"
                       className={inputCls}
                     />
                   </div>
@@ -1178,7 +1178,7 @@ export function MenuItemsPage() {
                 >
                   <option value="">Always visible (no schedule)</option>
                   {schedules.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}  -  {s.startTime}â€“{s.endTime}</option>
+                    <option key={s.id} value={s.id}>{s.name}  -  {s.startTime}–{s.endTime}</option>
                   ))}
                 </select>
                 {form.scheduleId && (

@@ -215,7 +215,7 @@ export function PromoCodesPage() {
                   className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white py-2.5 rounded-2xl text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60"
                 >
                   {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                  {saving ? 'Creatingâ€¦' : 'Create Code'}
+                  {saving ? 'Creating…' : 'Create Code'}
                 </button>
               </div>
             </form>
