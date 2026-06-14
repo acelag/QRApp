@@ -2,8 +2,9 @@ import { useState, useRef } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2 } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, Download } from 'lucide-react';
 import { printService } from '../services/printService';
+import { computeCharges, type RestaurantSettings } from '../services/restaurantService';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
 
@@ -22,6 +23,10 @@ interface Props {
   showActions?: boolean;
   showPrint?: boolean;
   showKitchenPrint?: boolean;
+  /** Show the integrated bill: charge breakdown + Print / WhatsApp / PDF actions */
+  showBill?: boolean;
+  /** Restaurant billing settings — needed for service charge / tax breakdown */
+  settings?: RestaurantSettings | null;
   isNext?: boolean;
   priority?: number;
   hidePrices?: boolean;
@@ -31,7 +36,7 @@ interface Props {
   clockMs?: number;
 }
 
-export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, waiters, showActions = false, showPrint = false, showKitchenPrint = false, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, waiters, showActions = false, showPrint = false, showKitchenPrint = false, showBill = false, settings, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
   const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
   const { fmt } = useCurrency();
@@ -58,6 +63,24 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const [cooked, setCooked] = useState<Set<number>>(new Set());
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
+  const [billPhone, setBillPhone] = useState(order.customerPhone ?? '');
+
+  // â”€â”€ Bill charge breakdown (admin detail view) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Prefer stored SC/tax amounts; fall back to re-computation for older orders.
+  const hasStoredCharges = (order.taxAmount ?? 0) > 0 || (order.serviceChargeAmount ?? 0) > 0;
+  const billGrossSubtotal = hasStoredCharges
+    ? order.totalAmount - (order.taxAmount ?? 0) - (order.serviceChargeAmount ?? 0) + (order.discountAmount ?? 0)
+    : order.totalAmount + (order.discountAmount ?? 0);
+  const billNet = billGrossSubtotal - (order.discountAmount ?? 0);
+  const billCharges = hasStoredCharges
+    ? { serviceCharge: order.serviceChargeAmount ?? 0, tax: order.taxAmount ?? 0, grandTotal: order.totalAmount }
+    : computeCharges(billNet, {
+        serviceChargePct: order.orderType === 'dine-in' ? (settings?.serviceChargePct ?? 0) : 0,
+        taxPct:           settings?.taxPct ?? 0,
+      });
+  const hasBreakdown = (order.discountAmount ?? 0) > 0 || billCharges.serviceCharge > 0 || billCharges.tax > 0;
+  const scName  = settings?.serviceChargeName ?? 'Service Charge';
+  const taxName = settings?.taxName           ?? 'Tax';
 
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -71,27 +94,38 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     });
   }
 
-  function buildBillWhatsAppUrl(): string {
-    const lines: string[] = [
-      `🧾 Bill — #${order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}`,
-      '',
-      ...order.items.map((i) => {
-        const toppingsTotal = (i.toppings ?? []).reduce((s, t) => s + t.price, 0);
-        return `• ${i.quantity}× ${i.name} — ${fmt((i.price + toppingsTotal) * i.quantity)}`;
-      }),
-      '',
-    ];
-    if ((order.discountAmount ?? 0) > 0) {
-      lines.push(`Subtotal: ${fmt(order.totalAmount + (order.discountAmount ?? 0))}`);
-      lines.push(`Discount: -${fmt(order.discountAmount ?? 0)}`);
+  function buildBillWhatsAppUrl(phone: string): string {
+    const lines: string[] = [];
+    lines.push(`🧾 Bill — #${order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}`);
+    if (settings?.name) lines.push(settings.name);
+    lines.push('');
+    for (const i of order.items) {
+      const toppingsTotal = (i.toppings ?? []).reduce((s, t) => s + t.price, 0);
+      lines.push(`• ${i.quantity}× ${i.name} — ${fmt((i.price + toppingsTotal) * i.quantity)}`);
     }
-    lines.push(`Total: ${fmt(order.totalAmount)}`);
-    lines.push('', 'Thank you! 🙏');
+    lines.push('');
+    lines.push(`Subtotal: ${fmt(billNet)}`);
+    if ((order.discountAmount ?? 0) > 0) lines.push(`Discount: -${fmt(order.discountAmount ?? 0)}`);
+    if (billCharges.serviceCharge > 0)   lines.push(`${scName}: ${fmt(billCharges.serviceCharge)}`);
+    if (billCharges.tax > 0)             lines.push(`${taxName}: ${fmt(billCharges.tax)}`);
+    lines.push(`*Total: ${fmt(billCharges.grandTotal)}*`, '', 'Thank you! 🙏');
     const text = encodeURIComponent(lines.join('\n'));
-    const raw = order.customerPhone!.trim();
-    const digits = raw.replace(/\D/g, '');
-    const e164 = raw.startsWith('+') ? digits : digits.startsWith('0') ? `94${digits.slice(1)}` : digits;
+    const digits = phone.replace(/\D/g, '');
+    // Normalise to E.164 — assume Sri Lanka (+94) for local 0-prefixed numbers
+    const e164 = phone.trim().startsWith('+') ? digits : digits.startsWith('0') ? `94${digits.slice(1)}` : digits;
     return `https://wa.me/${e164}?text=${text}`;
+  }
+
+  function handleSendWhatsApp() {
+    const target = billPhone.trim();
+    if (!target) { toast.error('Enter a mobile number first'); return; }
+    window.open(buildBillWhatsAppUrl(target), '_blank', 'noopener,noreferrer');
+  }
+
+  /** Open the printable receipt — the browser dialog allows "Save as PDF". */
+  function handleDownloadPdf() {
+    const url = order.sessionId ? `/session-receipt/${order.sessionId}` : `/receipt/${order.id}`;
+    window.open(url, '_blank', 'width=400,height=600');
   }
 
   async function handlePrint() {
@@ -100,10 +134,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       toast.success('Receipt sent to printer');
     } else {
       // Fallback to browser print if no printer configured
-      const url = order.sessionId
-        ? `/session-receipt/${order.sessionId}`
-        : `/receipt/${order.id}`;
-      window.open(url, '_blank', 'width=400,height=600');
+      handleDownloadPdf();
     }
   }
 
@@ -202,7 +233,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       </div>
 
       {/* Items */}
-      <ul className="px-4 pb-3 space-y-2">
+      <ul className="px-4 pt-3 pb-3 space-y-2">
         {order.items.map((item, idx) => {
           const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
           const lineTotal = (item.price + toppingsTotal) * item.quantity;
@@ -332,6 +363,33 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
 
       {/* Footer */}
       <div className="px-4 py-3 border-t border-gray-100">
+        {/* Bill charge breakdown */}
+        {showBill && !hidePrices && hasBreakdown && (
+          <div className="space-y-1 mb-2.5 text-sm">
+            <div className="flex justify-between text-gray-500">
+              <span>Subtotal</span>
+              <span className="tabular-nums">{fmt(billNet)}</span>
+            </div>
+            {(order.discountAmount ?? 0) > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount{order.promoCode ? ` (${order.promoCode})` : ''}</span>
+                <span className="tabular-nums">-{fmt(order.discountAmount ?? 0)}</span>
+              </div>
+            )}
+            {billCharges.serviceCharge > 0 && (
+              <div className="flex justify-between text-gray-500">
+                <span>{scName}</span>
+                <span className="tabular-nums">{fmt(billCharges.serviceCharge)}</span>
+              </div>
+            )}
+            {billCharges.tax > 0 && (
+              <div className="flex justify-between text-gray-500">
+                <span>{taxName}</span>
+                <span className="tabular-nums">{fmt(billCharges.tax)}</span>
+              </div>
+            )}
+          </div>
+        )}
         {/* Total / progress row */}
         {(!hidePrices || cooked.size > 0) && (
           <div className="flex items-center justify-between mb-2.5">
@@ -370,9 +428,9 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
               <Printer size={13} /> Print Bill
             </button>
           )}
-          {showActions && order.status === 'ready' && order.customerPhone && (
+          {!showBill && showActions && order.status === 'ready' && order.customerPhone && (
             <a
-              href={buildBillWhatsAppUrl()}
+              href={buildBillWhatsAppUrl(order.customerPhone)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white text-sm rounded-full font-medium hover:bg-green-600 transition-colors whitespace-nowrap"
@@ -425,6 +483,45 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
             </button>
           )}
         </div>
+
+        {/* Bill actions — print, download PDF, send via WhatsApp (single full-width row) */}
+        {showBill && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="flex flex-wrap items-stretch gap-2">
+              <button
+                onClick={handlePrint}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 active:scale-[0.99] transition-all whitespace-nowrap"
+              >
+                <Printer size={15} /> Print Bill
+              </button>
+              <button
+                onClick={handleDownloadPdf}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-[0.99] transition-all whitespace-nowrap"
+                title="Open the bill to print or save as PDF"
+              >
+                <Download size={15} /> PDF
+              </button>
+              {/* Send-to-mobile group fills remaining width */}
+              <div className="flex flex-1 min-w-[240px] gap-2">
+                <input
+                  type="tel"
+                  value={billPhone}
+                  onChange={(e) => setBillPhone(e.target.value)}
+                  placeholder="Send to mobile — 07X XXX XXXX"
+                  className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-300"
+                />
+                <button
+                  onClick={handleSendWhatsApp}
+                  className="flex items-center gap-1.5 px-5 py-2.5 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 active:scale-[0.99] transition-all whitespace-nowrap"
+                  title="Send the bill via WhatsApp"
+                >
+                  <MessageCircle size={15} /> Send
+                </button>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-2">Print, save as PDF, or send the bill to the customer's phone via WhatsApp.</p>
+          </div>
+        )}
       </div>
       </div>
     </div>

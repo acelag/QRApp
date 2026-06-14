@@ -50,6 +50,7 @@ import { RestaurantsPage } from './pages/admin/RestaurantsPage';
 import { NewOrderPage } from './pages/admin/NewOrderPage';
 import { ReadyDisplayPage } from './pages/admin/ReadyDisplayPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
+import { AuditLogsPage } from './pages/admin/AuditLogsPage';
 import { PromoCodesPage } from './pages/admin/PromoCodesPage';
 import { RoomChargesPage } from './pages/admin/RoomChargesPage';
 import { WaitersPage } from './pages/admin/WaitersPage';
@@ -221,6 +222,7 @@ export default function App() {
             <Route path="/admin/bills" element={<ProtectedRoute roles={['admin','manager','cashier']} permission="bills"><BillsPage /></ProtectedRoute>} />
             <Route path="/admin/restaurants" element={<ProtectedRoute roles={['super_admin']}><RestaurantsPage /></ProtectedRoute>} />
             <Route path="/admin/plans" element={<ProtectedRoute roles={['super_admin']}><PlansAdminPage /></ProtectedRoute>} />
+            <Route path="/admin/logs" element={<ProtectedRoute roles={['super_admin']}><AuditLogsPage /></ProtectedRoute>} />
             <Route path="/admin/new-order" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="newOrder"><NewOrderPage /></ProtectedRoute>} />
             <Route path="/admin/ready-display" element={<ProtectedRoute permission="readyDisplay"><ReadyDisplayPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute roles={['admin','manager']} permission="reports"><ReportsPage /></ProtectedRoute>} />

@@ -1,8 +1,13 @@
-import { UtensilsCrossed, Clock } from 'lucide-react';
+import { UtensilsCrossed, Clock, Sparkles, Leaf } from 'lucide-react';
 
 // Default hero — a warm, vibrant restaurant atmosphere shot from Unsplash
 export const DEFAULT_HERO =
   'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80';
+
+// Elegant luxury palette for the welcome screen
+const SERIF = '"Playfair Display", Georgia, "Times New Roman", serif';
+const GOLD = '#c9a25c';
+const GOLD_SOFT = 'rgba(201,162,92,0.45)';
 
 /* ── Brand icons (inline SVG — lucide has no brand marks) ─────────────────── */
 function FacebookIcon({ className }: { className?: string }) {
@@ -112,7 +117,7 @@ export interface WelcomeScreenProps {
 export function WelcomeScreen({
   restaurantName,
   logo,
-  themeColor = '#f97316',
+  themeColor = '#2a7344',
   heroUrl,
   heading,
   tagline,
@@ -146,77 +151,114 @@ export function WelcomeScreen({
         src={heroUrl || DEFAULT_HERO}
         alt={title}
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: 'brightness(0.65)' }}
+        style={{ filter: 'brightness(0.45) saturate(0.9)' }}
       />
 
-      {/* Gradient — darker at bottom so the glass panel stands out */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
+      {/* Warm dark gradient overlay */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(to bottom, rgba(10,8,5,0.45), rgba(10,8,5,0.55) 38%, rgba(8,6,4,0.82))' }}
+      />
 
       {/* Foreground content */}
-      <div className={`relative z-10 flex flex-col px-5 pt-12 pb-8 ${contained ? 'h-full' : 'min-h-screen'}`}>
+      <div className={`relative z-10 flex flex-col items-center px-6 pt-14 pb-7 ${contained ? 'h-full' : 'min-h-screen'}`}>
 
-        {/* Logo + restaurant name — vertically centered */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-3">
+        {/* Logo + title — vertically centered */}
+        <div className="flex-1 flex flex-col items-center justify-center w-full">
           {logo ? (
-            <img src={logo} alt={title} className="w-16 h-16 rounded-2xl object-cover border-2 border-white/30 shadow-xl" />
+            <img
+              src={logo}
+              alt={title}
+              className="w-24 h-24 rounded-[1.6rem] object-cover shadow-2xl"
+              style={{ border: `2px solid ${GOLD_SOFT}` }}
+            />
           ) : (
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl border-2 border-white/20"
-              style={{ backgroundColor: themeColor }}
+              className="w-24 h-24 rounded-[1.6rem] flex items-center justify-center shadow-2xl"
+              style={{ backgroundColor: themeColor, border: `2px solid ${GOLD_SOFT}` }}
             >
-              <UtensilsCrossed size={28} className="text-white" />
+              <UtensilsCrossed size={40} className="text-white" />
             </div>
           )}
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white leading-tight drop-shadow-lg">{title}</h1>
-            {subtitle && <p className="text-sm text-white/60 mt-0.5">{subtitle}</p>}
+
+          <h1
+            className="mt-7 text-center text-white px-2"
+            style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(2.1rem, 9vw, 2.9rem)', lineHeight: 1.05, textShadow: '0 2px 18px rgba(0,0,0,0.5)' }}
+          >
+            {title}
+          </h1>
+
+          {/* Decorative divider */}
+          <div className="flex items-center gap-3 mt-5" aria-hidden="true">
+            <span className="block h-px w-16" style={{ background: `linear-gradient(to right, transparent, ${GOLD})` }} />
+            <span className="inline-block rotate-45" style={{ width: 7, height: 7, background: GOLD }} />
+            <span className="block h-px w-16" style={{ background: `linear-gradient(to left, transparent, ${GOLD})` }} />
           </div>
+
+          {subtitle && (
+            <p className="mt-4 text-center text-xl tracking-wide" style={{ color: GOLD, fontFamily: SERIF }}>{subtitle}</p>
+          )}
         </div>
 
         {/* Glass panel — bottom */}
         <div
-          className="rounded-3xl px-6 pt-6 pb-7 flex flex-col gap-5"
+          className="w-full max-w-sm rounded-[1.75rem] px-6 pt-7 pb-6 flex flex-col items-center"
           style={{
-            background: 'rgba(255, 255, 255, 0.12)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.22)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            background: 'rgba(18, 14, 10, 0.45)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: `1px solid ${GOLD_SOFT}`,
+            boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
           }}
         >
+          {/* Medallion */}
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: themeColor, border: `1px solid ${GOLD_SOFT}` }}
+          >
+            <UtensilsCrossed size={26} style={{ color: GOLD }} />
+          </div>
+
           {/* Tagline */}
           {tagline && (
-            <p className="text-center text-white/80 text-sm leading-relaxed">{tagline}</p>
+            <p className="mt-5 text-center text-base leading-relaxed" style={{ color: '#f3ead9' }}>{tagline}</p>
           )}
 
           {/* Wait time badge */}
           {waitTimeMin != null && waitTimeLabel && (
-            <div className="flex justify-center">
-              <div
-                className="flex items-center gap-2 text-white text-sm font-medium px-4 py-2 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)' }}
-              >
-                <Clock size={14} />
-                <span>{waitTimeLabel}</span>
-              </div>
+            <div
+              className="mt-4 flex items-center gap-2 text-sm px-4 py-1.5 rounded-full"
+              style={{ color: '#f3ead9', border: `1px solid ${GOLD_SOFT}` }}
+            >
+              <Clock size={14} />
+              <span>{waitTimeLabel}</span>
             </div>
           )}
 
           {/* CTA button */}
           <button
             onClick={onEnter}
-            className="w-full py-4 rounded-2xl text-white text-lg font-bold active:scale-[0.97] transition-transform"
-            style={{ backgroundColor: themeColor, boxShadow: `0 4px 20px ${themeColor}66` }}
+            className="mt-6 w-full py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-transform"
+            style={{
+              background: `linear-gradient(180deg, color-mix(in srgb, ${themeColor} 92%, white 8%), color-mix(in srgb, ${themeColor} 78%, black 22%))`,
+              border: `1.5px solid ${GOLD}`,
+              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.15), 0 10px 30px rgba(0,0,0,0.4)`,
+            }}
           >
-            {ctaLabel}
+            <Sparkles size={20} style={{ color: GOLD }} />
+            <span className="text-white" style={{ fontFamily: SERIF, fontWeight: 600, fontSize: '1.5rem' }}>{ctaLabel}</span>
           </button>
 
           {/* Social icons */}
           {socialLinks.length > 0 && (
-            <div className="flex flex-col items-center gap-3">
-              <p className="text-xs text-white/40 uppercase tracking-widest">{followUsLabel}</p>
-              <div className="flex items-center justify-center gap-3 flex-wrap">
-                {socialLinks.map(({ key, label, Icon, bg, url }) => (
+            <>
+              <div className="mt-7 flex items-center gap-3 w-full justify-center">
+                <span className="h-px flex-1 max-w-[60px]" style={{ background: `linear-gradient(to right, transparent, ${GOLD_SOFT})` }} />
+                <p className="text-[11px] tracking-[0.25em]" style={{ color: GOLD }}>{followUsLabel.toUpperCase()}</p>
+                <span className="h-px flex-1 max-w-[60px]" style={{ background: `linear-gradient(to left, transparent, ${GOLD_SOFT})` }} />
+              </div>
+              <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
+                {socialLinks.map(({ key, label, Icon, url }) => (
                   <a
                     key={key}
                     href={url!}
@@ -224,21 +266,24 @@ export function WelcomeScreen({
                     rel="noopener noreferrer"
                     aria-label={label}
                     title={label}
-                    className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-transform hover:scale-110 active:scale-95"
-                    style={{ background: bg, border: '1px solid rgba(255,255,255,0.25)' }}
+                    className="w-12 h-12 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                    style={{ background: 'rgba(18,14,10,0.6)', border: `1px solid ${GOLD_SOFT}`, color: '#f3ead9' }}
                   >
                     <Icon className="w-5 h-5" />
                   </a>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Footer note */}
-          {poweredByLabel && (
-            <p className="text-center text-xs text-white/25">{poweredByLabel}</p>
+            </>
           )}
         </div>
+
+        {/* Footer note */}
+        {poweredByLabel && (
+          <div className="mt-6 flex flex-col items-center gap-1.5">
+            <Leaf size={14} style={{ color: GOLD_SOFT }} />
+            <p className="text-[11px] tracking-wide" style={{ color: 'rgba(201,162,92,0.6)' }}>{poweredByLabel}</p>
+          </div>
+        )}
       </div>
     </div>
   );

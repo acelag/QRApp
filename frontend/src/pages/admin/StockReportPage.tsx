@@ -52,7 +52,7 @@ function fmtDateTime(iso: string) {
     ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function StockReportPage() {
+export function StockReportPanel() {
   const { fmt } = useCurrency();
 
   const PRESETS = [
@@ -108,13 +108,6 @@ export function StockReportPage() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-
-        {/* Header */}
-        <AdminHeader title="Stock Report" backTo="/admin" icon={Warehouse} />
-
         <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5">
 
           {/* Date range picker */}
@@ -315,6 +308,17 @@ export function StockReportPage() {
             </>
           )}
         </div>
+  );
+}
+
+// â”€â”€ Full standalone page  -  keeps /admin/stock-report route working â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export function StockReportPage() {
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+        <AdminHeader title="Stock Report" backTo="/admin" icon={Warehouse} />
+        <StockReportPanel />
       </main>
     </div>
   );

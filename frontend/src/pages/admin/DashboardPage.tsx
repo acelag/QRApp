@@ -127,7 +127,7 @@ export function DashboardPage() {
   const takeaway = todayOrders.filter((o) => o.orderType === 'takeaway').length;
   const room     = todayOrders.filter((o) => o.orderType !== 'dine-in' && o.orderType !== 'takeaway').length;
   const orderTypeData = [
-    { name: 'Dine-in',    value: dineIn,   color: '#f97316' },
+    { name: 'Dine-in',    value: dineIn,   color: '#2a7344' },
     { name: 'Take-away',  value: takeaway, color: '#3b82f6' },
     { name: 'Room',       value: room,     color: '#8b5cf6' },
   ].filter((d) => d.value > 0);
@@ -290,8 +290,8 @@ export function DashboardPage() {
                   <LineChart data={weeklyData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="revLine" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%"   stopColor="#f97316" />
-                        <stop offset="100%" stopColor="#fb923c" />
+                        <stop offset="0%"   stopColor="#2a7344" />
+                        <stop offset="100%" stopColor="#46915f" />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
@@ -300,7 +300,7 @@ export function DashboardPage() {
                       contentStyle={{ fontSize: 11, borderRadius: 10, border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,.10)' }}
                       formatter={(v, name) => [name === 'revenue' ? fmt(Number(v ?? 0)) : v, name === 'revenue' ? 'Revenue' : 'Orders']}
                     />
-                    <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="revenue" stroke="#2a7344" strokeWidth={2.5} dot={false} />
                     <Line type="monotone" dataKey="orders"  stroke="#93c5fd" strokeWidth={2}   dot={false} strokeDasharray="4 3" />
                   </LineChart>
                 </ResponsiveContainer>

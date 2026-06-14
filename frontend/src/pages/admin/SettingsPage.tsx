@@ -28,7 +28,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const input = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors";
+const input = "w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 bg-white transition-colors";
 
 // Full IANA timezone list when the runtime supports it, else a sensible subset.
 const TIMEZONES: string[] = (() => {
@@ -92,7 +92,7 @@ export function SettingsPage() {
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingSuccess, setBillingSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
-  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('qra-theme') ?? '#f97316');
+  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('qra-theme') ?? '#2a7344');
   const [themeSaving, setThemeSaving] = useState(false);
   const [orderPrefix, setOrderPrefix] = useState('ORD');
   const [prefixSaving, setPrefixSaving] = useState(false);
@@ -161,7 +161,7 @@ export function SettingsPage() {
       setServiceChargeName(r.serviceChargeName ?? 'Service Charge');
       setTaxName(r.taxName ?? 'Tax');
       setCurrency(r.currency ?? 'USD');
-      setThemeColor(r.themeColor ?? '#f97316');
+      setThemeColor(r.themeColor ?? '#2a7344');
       setOrderPrefix(r.orderNumberPrefix ?? 'ORD');
       setWaitTimeMin(r.waitTimeMin ?? null);
       setTimezone(r.timezone ?? 'UTC');
@@ -506,117 +506,126 @@ export function SettingsPage() {
     return (
       <div className="space-y-4 max-w-2xl">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
-              <User size={15} className="text-blue-500" />
+          {/* Header */}
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+            <User size={18} className="text-gray-900" />
+            <div>
+              <h2 className="font-bold text-gray-900 leading-tight">Account</h2>
+              <p className="text-xs text-gray-400">Your display name, username &amp; password</p>
             </div>
-            <h2 className="font-semibold text-gray-800">Account</h2>
           </div>
 
-          <form id="account-form" onSubmit={handleSubmit} className="p-5 space-y-4">
-            {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                <X size={14} /> {error}
-              </div>
-            )}
-            {success && (
-              <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                <CheckCircle2 size={14} /> Credentials updated successfully!
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Display Name">
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => { setNewName(e.target.value); markDirty('account'); }}
-                  className={input}
-                />
-              </Field>
-              <Field label="Username">
-                <input
-                  type="text"
-                  value={newUsername}
-                  onChange={(e) => { setNewUsername(e.target.value); markDirty('account'); }}
-                  autoComplete="username"
-                  className={input}
-                />
-              </Field>
-            </div>
-
-            <div className="border-t border-gray-50 pt-4 space-y-3">
-              <div className="flex items-center gap-2 mb-1">
-                <Lock size={13} className="text-gray-400" />
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Change Password</span>
-              </div>
-
-              <Field label="New Password">
-                <div className="relative">
-                  <input
-                    type={showNew ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => { setNewPassword(e.target.value); markDirty('account'); }}
-                    autoComplete="new-password"
-                    placeholder="Leave blank to keep current"
-                    className={input + ' pr-11'}
-                  />
-                  <button type="button" onClick={() => setShowNew((p) => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
+          <form id="account-form" onSubmit={handleSubmit}>
+            <div className="p-6 space-y-5">
+              {error && (
+                <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                  <X size={14} /> {error}
                 </div>
-              </Field>
-
-              {newPassword && (
-                <Field label="Confirm Password">
-                  <input
-                    type={showNew ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => { setConfirmPassword(e.target.value); markDirty('account'); }}
-                    autoComplete="new-password"
-                    placeholder="Repeat new password"
-                    className={`${input} ${confirmPassword && confirmPassword !== newPassword ? 'border-red-300 bg-red-50' : ''}`}
-                  />
-                  {confirmPassword && confirmPassword !== newPassword && (
-                    <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
-                  )}
-                </Field>
               )}
-            </div>
-
-            <div className="border-t border-gray-50 pt-4">
-              <Field label="Current Password *">
-                <div className="relative">
-                  <input
-                    type={showCurrent ? 'text' : 'password'}
-                    value={currentPassword}
-                    onChange={(e) => { setCurrentPassword(e.target.value); markDirty('account'); }}
-                    autoComplete="current-password"
-                    placeholder="Required to save changes"
-                    required
-                    className={input + ' pr-11'}
-                  />
-                  <button type="button" onClick={() => setShowCurrent((p) => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
+              {success && (
+                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Credentials updated successfully!
                 </div>
-              </Field>
+              )}
+
+              {/* Profile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Display Name">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => { setNewName(e.target.value); markDirty('account'); }}
+                    className={input}
+                  />
+                </Field>
+                <Field label="Username">
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => { setNewUsername(e.target.value); markDirty('account'); }}
+                    autoComplete="username"
+                    className={input}
+                  />
+                </Field>
+              </div>
+
+              {/* Change password — grouped panel */}
+              <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Lock size={13} className="text-gray-400" />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Change Password</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="New Password">
+                    <div className="relative">
+                      <input
+                        type={showNew ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => { setNewPassword(e.target.value); markDirty('account'); }}
+                        autoComplete="new-password"
+                        placeholder="Leave blank to keep current"
+                        className={input + ' pr-11'}
+                      />
+                      <button type="button" onClick={() => setShowNew((p) => !p)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </Field>
+
+                  <Field label="Current Password *">
+                    <div className="relative">
+                      <input
+                        type={showCurrent ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => { setCurrentPassword(e.target.value); markDirty('account'); }}
+                        autoComplete="current-password"
+                        placeholder="Required to save changes"
+                        required
+                        className={input + ' pr-11'}
+                      />
+                      <button type="button" onClick={() => setShowCurrent((p) => !p)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </Field>
+                </div>
+
+                {newPassword && (
+                  <Field label="Confirm New Password">
+                    <input
+                      type={showNew ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => { setConfirmPassword(e.target.value); markDirty('account'); }}
+                      autoComplete="new-password"
+                      placeholder="Repeat new password"
+                      className={`${input} ${confirmPassword && confirmPassword !== newPassword ? 'border-red-300 bg-red-50' : ''}`}
+                    />
+                    {confirmPassword && confirmPassword !== newPassword && (
+                      <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                    )}
+                  </Field>
+                )}
+              </div>
+
+              {/* Hidden submit trigger for sticky bar */}
+              <button id="account-form-submit" type="submit" className="hidden" />
             </div>
 
-            {/* Hidden submit trigger for sticky bar */}
-            <button id="account-form-submit" type="submit" className="hidden" />
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
-              style={{ backgroundColor: themeColor }}
-            >
-              {loading && <Loader2 size={15} className="animate-spin" />}
-              {loading ? 'Saving…' : 'Save Account Changes'}
-            </button>
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
+              <button
+                type="submit"
+                disabled={loading}
+                className="text-white font-semibold px-6 py-2.5 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm active:scale-[0.99]"
+                style={{ backgroundColor: themeColor }}
+              >
+                {loading && <Loader2 size={15} className="animate-spin" />}
+                {loading ? 'Saving…' : 'Save Account Changes'}
+              </button>
+            </div>
           </form>
         </div>
 
@@ -1589,18 +1598,18 @@ export function SettingsPage() {
             )}
           </div>
 
-          {/* ── Tab bar ───────────────────────────────────────────────────── */}
-          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none border-b border-gray-100 mb-6">
+          {/* ── Tab bar (segmented pill) ──────────────────────────────────── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 flex gap-1 overflow-x-auto scrollbar-none mb-6">
             {TABS.map((tab) => {
               const active = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap border-b-2 transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2 text-sm whitespace-nowrap rounded-xl transition-colors ${
                     active
-                      ? 'border-orange-500 text-gray-900 font-bold'
-                      : 'border-transparent text-gray-500 font-medium hover:text-gray-700'
+                      ? 'bg-gray-900 text-white font-semibold'
+                      : 'text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
                   <tab.Icon size={15} />

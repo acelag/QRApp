@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { pool } from '../db/database';
 import { JWT_SECRET, authenticate, AuthRequest } from '../middleware/auth';
 import { parsePermissions } from '../lib/permissions';
+import { recordAudit, clientIp } from '../lib/audit';
 
 const router = Router();
 
@@ -24,10 +25,16 @@ router.post('/login', async (req, res) => {
 
   const result = await pool.query('SELECT * FROM users WHERE username = $1', [username.trim()]);
   const user = result.rows[0] as Record<string, unknown> | undefined;
-  if (!user) { res.status(401).json({ error: 'Invalid username or password' }); return; }
+  if (!user) {
+    void recordAudit({ action: 'auth.login_failed', userName: username.trim(), summary: `Failed login — unknown user "${username.trim()}"`, ip: clientIp(req) });
+    res.status(401).json({ error: 'Invalid username or password' }); return;
+  }
 
   const valid = await bcrypt.compare(password, user.password_hash as string);
-  if (!valid) { res.status(401).json({ error: 'Invalid username or password' }); return; }
+  if (!valid) {
+    void recordAudit({ action: 'auth.login_failed', userId: user.id as string, userName: user.name as string, userRole: user.role as string, restaurantId: (user.restaurant_id as string) ?? null, summary: `Failed login — wrong password for "${username.trim()}"`, ip: clientIp(req) });
+    res.status(401).json({ error: 'Invalid username or password' }); return;
+  }
 
   if (user.role !== 'super_admin' && user.restaurant_id) {
     const rCheck = await pool.query('SELECT active, subscription_status FROM restaurants WHERE id = $1', [user.restaurant_id]);
@@ -42,6 +49,12 @@ router.post('/login', async (req, res) => {
   }
 
   const payload = makePayload(user);
+  void recordAudit({
+    action: 'auth.login',
+    userId: user.id as string, userName: user.name as string, userRole: user.role as string,
+    restaurantId: (user.restaurant_id as string) ?? null,
+    summary: `${user.name} signed in`, ip: clientIp(req),
+  });
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
   res.json({ token, user: payload });
 });

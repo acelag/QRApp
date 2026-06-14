@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, LogOut, ChevronDown, Sun, Moon, House } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 import { SoundAlertToggle } from './SoundAlertToggle';
+import { PrinterStatusIndicator } from './PrinterStatusIndicator';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavMode } from '../context/NavModeContext';
@@ -63,6 +64,7 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
         {/* Page-specific actions */}
         {children}
 
+        <PrinterStatusIndicator />
         <SoundAlertToggle />
 
         <button

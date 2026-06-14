@@ -6,7 +6,7 @@ import {
   Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag,
   QrCode, MapPin, CalendarDays, LayoutGrid, MonitorPlay, ChefHat,
   Receipt, CreditCard, Users, Warehouse, BarChart2,
-  FileText, Settings, Star, ArrowLeft, Clock, Box,
+  Settings, Star, ArrowLeft, Clock, Box,
 } from 'lucide-react';
 
 // ── Deploy info helpers ──────────────────────────────────────────────────────
@@ -72,14 +72,7 @@ const TOP_NAV: NavEntry[] = [
       { label: 'Loyalty', icon: Star,      to: '/admin/loyalty', color: 'bg-amber-50 text-amber-600' },
     ],
   },
-  {
-    type: 'group', label: 'Reports', icon: BarChart2, color: 'bg-gray-100 text-gray-600',
-    children: [
-      { label: 'Order Reports', icon: BarChart2, to: '/admin/reports',      color: 'bg-gray-100 text-gray-600' },
-      { label: 'Shift Report',  icon: FileText,  to: '/admin/shift-close',  color: 'bg-gray-100 text-gray-600' },
-      { label: 'Stock Report',  icon: Warehouse, to: '/admin/stock-report', color: 'bg-gray-100 text-gray-600' },
-    ],
-  },
+  { type: 'item', label: 'Reports', icon: BarChart2, to: '/admin/reports', color: 'bg-gray-100 text-gray-600' },
   { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings', color: 'bg-gray-100 text-gray-600' },
 ];
 

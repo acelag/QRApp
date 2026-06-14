@@ -20,7 +20,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   taxName:           (row.tax_name           as string | null) ?? 'Tax',
   currency: (row.currency as string | null) ?? 'USD',
   logo: (row.logo as string | null) ?? null,
-  themeColor: (row.theme_color as string | null) ?? '#f97316',
+  themeColor: (row.theme_color as string | null) ?? '#2a7344',
   orderNumberPrefix: (row.order_number_prefix as string | null) ?? 'ORD',
   waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
   timezone: (row.timezone as string | null) ?? 'UTC',
@@ -79,7 +79,7 @@ router.get('/:id/info', async (req, res) => {
   res.json({
     name: row.name,
     logo: row.logo ?? null,
-    themeColor: (row.theme_color as string | null) ?? '#f97316',
+    themeColor: (row.theme_color as string | null) ?? '#2a7344',
     waitTimeMin: row.wait_time_min != null ? Number(row.wait_time_min) : null,
     roomServiceOpen:  (row.room_service_open  as string | null) ?? null,
     roomServiceClose: (row.room_service_close as string | null) ?? null,
@@ -112,7 +112,7 @@ router.get('/by-slug/:slug/branding', async (req, res) => {
     name: row.name,
     slug: row.slug,
     logo: (row.logo as string | null) ?? null,
-    themeColor: (row.theme_color as string | null) ?? '#f97316',
+    themeColor: (row.theme_color as string | null) ?? '#2a7344',
     loginMedia: Array.isArray(row.login_media) ? (row.login_media as string[]) : [],
     loginVideoUrl: (row.login_video_url as string | null) ?? null,
   });

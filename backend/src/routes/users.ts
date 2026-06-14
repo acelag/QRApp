@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { parsePermissions } from '../lib/permissions';
+import { recordAudit, auditFromReq } from '../lib/audit';
 
 const router = Router();
 router.use(authenticate, requireRole('admin'));
@@ -28,6 +29,7 @@ router.post('/', async (req: AuthRequest, res) => {
   const id = uuid(); const hash = await bcrypt.hash(password, 10);
   await pool.query(`INSERT INTO users (id,restaurant_id,username,name,password_hash,role,permissions) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
     [id, req.user!.restaurantId, username.trim(), name.trim(), hash, role, JSON.stringify(perms)]);
+  void recordAudit(auditFromReq(req, 'user.create', { entityType: 'user', entityId: id, summary: `Created ${role} "${name.trim()}" (@${username.trim()})` }));
   res.status(201).json({ id, username: username.trim(), name: name.trim(), role, permissions: perms });
 });
 
@@ -47,13 +49,17 @@ router.put('/:id', async (req: AuthRequest, res) => {
   await pool.query('UPDATE users SET username=$1, name=$2, password_hash=$3, role=$4, permissions=$5 WHERE id=$6 AND restaurant_id=$7',
     [newUsername, name?.trim() || user.name, newHash, role || user.role, JSON.stringify(newPerms), req.params.id, req.user!.restaurantId]);
   const updated = await pool.query('SELECT id, username, name, role, permissions FROM users WHERE id = $1', [req.params.id]);
+  void recordAudit(auditFromReq(req, 'user.update', { entityType: 'user', entityId: String(req.params.id), summary: `Updated user "${newUsername}"${role && role !== user.role ? ` — role → ${role}` : ''}` }));
   res.json(toUser(updated.rows[0] as Record<string, unknown>));
 });
 
 router.delete('/:id', async (req: AuthRequest, res) => {
   if (req.params.id === req.user!.id) { res.status(400).json({ error: 'You cannot delete your own account' }); return; }
+  const target = await pool.query('SELECT username, name, role FROM users WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   const result = await pool.query('DELETE FROM users WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'User not found' }); return; }
+  const t = target.rows[0] as { username?: string; name?: string; role?: string } | undefined;
+  void recordAudit(auditFromReq(req, 'user.delete', { entityType: 'user', entityId: String(req.params.id), summary: `Deleted ${t?.role ?? 'user'} "${t?.name ?? ''}" (@${t?.username ?? ''})` }));
   res.status(204).send();
 });
 

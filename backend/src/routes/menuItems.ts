@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 import multer from 'multer';
 import { pool } from '../db/database';
 import { authenticate, optionalAuthenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { recordAudit, auditFromReq } from '../lib/audit';
 
 const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
 
@@ -253,6 +254,7 @@ router.post('/', authenticate, requireRole('admin', 'manager'), async (req: Auth
     [id, req.user!.restaurantId, name, description, price, safeDiscount, safeLargePrice, safeLargeDiscount, category, image ?? null, available, trackStock, safeStock, nextOrder, safeTags, safePrepTime, scheduleId ?? null, safeCalories, safeProteinG, safeSpiceLevel],
   );
   const created = await pool.query(`${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`, [id]);
+  void recordAudit(auditFromReq(req, 'menu.create', { entityType: 'menu_item', entityId: id, summary: `Created menu item "${name}" @ ${Number(price).toFixed(2)}` }));
   res.status(201).json(toItem(created.rows[0] as Record<string, unknown>));
 });
 
@@ -289,6 +291,11 @@ router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: Au
     `${ITEMS_WITH_TOPPINGS_SQL} WHERE mi.id = $1 GROUP BY mi.id`,
     [req.params.id],
   );
+  const itemName = name ?? (row.name as string);
+  const oldPrice = Number(row.price);
+  const newPrice = price ?? oldPrice;
+  const priceNote = Number(newPrice) !== oldPrice ? ` — price ${oldPrice.toFixed(2)} → ${Number(newPrice).toFixed(2)}` : '';
+  void recordAudit(auditFromReq(req, 'menu.update', { entityType: 'menu_item', entityId: String(req.params.id), summary: `Updated menu item "${itemName}"${priceNote}` }));
   res.json(toItem(updated.rows[0] as Record<string, unknown>));
 });
 
@@ -323,8 +330,10 @@ router.patch('/:id/stock', authenticate, requireRole('admin', 'manager'), async 
 });
 
 router.delete('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const target = await pool.query('SELECT name FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   const result = await pool.query('DELETE FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.id, req.user!.restaurantId]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  void recordAudit(auditFromReq(req, 'menu.delete', { entityType: 'menu_item', entityId: String(req.params.id), summary: `Deleted menu item "${(target.rows[0] as { name?: string } | undefined)?.name ?? ''}"` }));
   res.status(204).send();
 });
 

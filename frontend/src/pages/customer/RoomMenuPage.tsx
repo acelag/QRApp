@@ -392,7 +392,7 @@ export function RoomMenuPage() {
     <WelcomeScreen
       restaurantName={welcomeInfo.name}
       logo={welcomeInfo.logo}
-      themeColor={welcomeInfo.themeColor ?? '#f97316'}
+      themeColor={welcomeInfo.themeColor ?? '#2a7344'}
       heroUrl={welcomeInfo.welcomeImageUrl}
       heading={welcomeInfo.welcomeHeading}
       tagline={welcomeInfo.welcomeTagline || t('customer.scanEnjoy')}

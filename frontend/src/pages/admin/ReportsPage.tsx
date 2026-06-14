@@ -19,6 +19,8 @@ import {
   Legend,
 } from 'recharts';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { ShiftCloseReportPanel } from './ShiftCloseReportPage';
+import { StockReportPanel } from './StockReportPage';
 
 // â”€â”€ CSV helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function csvCell(v: string | number): string {
@@ -127,41 +129,41 @@ const PDF_STYLES = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; font-size: 11px; color: #111; background: #fff; }
   /* page header */
-  .doc-header { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid #ea580c; margin-bottom: 16px; }
-  .doc-header h1 { font-size: 20px; font-weight: 800; color: #ea580c; letter-spacing: -.3px; }
+  .doc-header { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid #1f5a34; margin-bottom: 16px; }
+  .doc-header h1 { font-size: 20px; font-weight: 800; color: #1f5a34; letter-spacing: -.3px; }
   .doc-header .meta { font-size: 10px; color: #6b7280; margin-top: 2px; }
   .doc-header .range { text-align: right; }
   .doc-header .range .dates { font-size: 13px; font-weight: 700; color: #111; }
   /* section headings */
-  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #ea580c; border-bottom: 1px solid #fed7aa; padding-bottom: 4px; margin: 18px 0 8px; }
+  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #1f5a34; border-bottom: 1px solid #a9d2b6; padding-bottom: 4px; margin: 18px 0 8px; }
   h2:first-of-type { margin-top: 0; }
   /* summary grid */
   .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
   .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; background: #fafafa; }
-  .card .val { font-size: 17px; font-weight: 800; color: #ea580c; }
+  .card .val { font-size: 17px; font-weight: 800; color: #1f5a34; }
   .card .lbl { font-size: 9px; color: #6b7280; margin-top: 3px; text-transform: uppercase; letter-spacing: .05em; }
   .card .sub { font-size: 9px; color: #9ca3af; margin-top: 1px; }
   /* tables */
   table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10.5px; }
-  thead th { background: #fff7ed; color: #92400e; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; padding: 6px 8px; text-align: left; border-bottom: 2px solid #fed7aa; white-space: nowrap; }
+  thead th { background: #eef6f1; color: #153a23; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; padding: 6px 8px; text-align: left; border-bottom: 2px solid #a9d2b6; white-space: nowrap; }
   tbody td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:nth-child(even) td { background: #fffbf5; }
-  tfoot td { padding: 6px 8px; font-weight: 700; background: #fff7ed; border-top: 2px solid #fed7aa; color: #92400e; }
+  tfoot td { padding: 6px 8px; font-weight: 700; background: #eef6f1; border-top: 2px solid #a9d2b6; color: #153a23; }
   .right { text-align: right; }
   .center { text-align: center; }
   /* inline bar */
   .bar-wrap { display: flex; align-items: center; gap: 6px; }
   .bar-bg { flex: 1; height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
-  .bar-fill { height: 6px; border-radius: 3px; background: #ea580c; }
+  .bar-fill { height: 6px; border-radius: 3px; background: #1f5a34; }
   .bar-fill.blue   { background: #3b82f6; }
   .bar-fill.green  { background: #22c55e; }
   .bar-fill.purple { background: #a855f7; }
   .bar-fill.gray   { background: #9ca3af; }
   /* revenue trend sparkline area */
   .trend-bars { display: flex; align-items: flex-end; gap: 2px; height: 40px; margin-bottom: 6px; }
-  .trend-bar  { flex: 1; border-radius: 2px 2px 0 0; background: #fed7aa; min-width: 4px; }
-  .trend-bar.peak { background: #ea580c; }
+  .trend-bar  { flex: 1; border-radius: 2px 2px 0 0; background: #a9d2b6; min-width: 4px; }
+  .trend-bar.peak { background: #1f5a34; }
   .trend-labels { display: flex; gap: 2px; }
   .trend-label { flex: 1; text-align: center; font-size: 7px; color: #9ca3af; white-space: nowrap; overflow: hidden; min-width: 4px; }
   /* page footer */
@@ -494,7 +496,7 @@ function buildPdf(report: Report, tab: Tab, from: string, to: string, fmt: (n: n
           <tbody>${hourTotals.map((cnt,h)=>{
             const total = hourTotals.reduce((a,b)=>a+b,0)||1;
             const pct = (cnt/total*100).toFixed(1);
-            return `<tr><td>${HOUR[h]}</td><td class="right">${cnt||' - '}</td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill${h===peakHour?' peak':''}" style="background:${h===peakHour?'#ea580c':'#fed7aa'};width:${cnt>0?(cnt/Math.max(...hourTotals)*100).toFixed(0):0}%"></div></div><span style="min-width:30px;text-align:right">${cnt>0?pct+'%':''}</span></div></td></tr>`;
+            return `<tr><td>${HOUR[h]}</td><td class="right">${cnt||' - '}</td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill${h===peakHour?' peak':''}" style="background:${h===peakHour?'#1f5a34':'#a9d2b6'};width:${cnt>0?(cnt/Math.max(...hourTotals)*100).toFixed(0):0}%"></div></div><span style="min-width:30px;text-align:right">${cnt>0?pct+'%':''}</span></div></td></tr>`;
           }).join('')}</tbody>
         </table>`;
       break;
@@ -558,7 +560,7 @@ function buildRange(preset: string): { from: string; to: string } {
   }
 }
 
-export function ReportsPage() {
+export function ReportsPanel() {
   const { fmt } = useCurrency();
   const { t } = useTranslation();
 
@@ -611,11 +613,6 @@ export function ReportsPage() {
   const s = report?.summary;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title={t('reports.title')} backTo="/admin" icon={BarChart2} />
-
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5">
 
         {/* Date range picker */}
@@ -898,7 +895,7 @@ export function ReportsPage() {
                               <div key={h} className="flex-1 flex flex-col items-center gap-0.5" title={`${HOUR_LABELS[h]}: ${count} orders`}>
                                 <div
                                   className="w-full rounded-t-sm transition-all"
-                                  style={{ height: `${Math.max(2, pct)}%`, backgroundColor: h === peakHour ? '#f97316' : '#fed7aa' }}
+                                  style={{ height: `${Math.max(2, pct)}%`, backgroundColor: h === peakHour ? '#2a7344' : '#a9d2b6' }}
                                 />
                               </div>
                             );
@@ -942,7 +939,7 @@ export function ReportsPage() {
                                   <Legend formatter={(v) => v === 'revenue' ? 'Revenue' : 'Orders'} iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                                   <Bar yAxisId="rev" dataKey="revenue" radius={[4, 4, 0, 0]} maxBarSize={40}>
                                     {dowData.map((d, i) => (
-                                      <Cell key={i} fill={d.day === DAY_LABELS[peakDow] ? '#ea580c' : '#fb923c'} />
+                                      <Cell key={i} fill={d.day === DAY_LABELS[peakDow] ? '#1f5a34' : '#46915f'} />
                                     ))}
                                   </Bar>
                                   <Line yAxisId="ord" type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} activeDot={{ r: 5 }} />
@@ -1110,9 +1107,9 @@ export function ReportsPage() {
                             iconSize={10}
                             wrapperStyle={{ fontSize: 11 }}
                           />
-                          <Bar yAxisId="rev" dataKey="revenue" fill="#fed7aa" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                          <Bar yAxisId="rev" dataKey="revenue" fill="#a9d2b6" radius={[4, 4, 0, 0]} maxBarSize={40}>
                             {trendData.map((_, i) => (
-                              <Cell key={i} fill={i === trendData.length - 1 ? '#ea580c' : '#fb923c'} />
+                              <Cell key={i} fill={i === trendData.length - 1 ? '#1f5a34' : '#46915f'} />
                             ))}
                           </Bar>
                           <Line yAxisId="ord" type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} activeDot={{ r: 5 }} />
@@ -1187,7 +1184,7 @@ export function ReportsPage() {
                   const chartHeight = Math.max(180, chartData.length * barHeight + 40);
 
                   // Gradient colours: top item = deepest orange, fade down
-                  const BARS = ['#c2410c','#ea580c','#f97316','#fb923c','#fdba74','#fed7aa','#ffedd5'];
+                  const BARS = ['#15492a','#1f5a34','#2a7344','#46915f','#76b389','#a9d2b6','#d3e8da'];
                   const topIdx = chartData.length - 1; // index of the highest bar (last = top item due to reverse)
 
                   return (
@@ -1247,7 +1244,7 @@ export function ReportsPage() {
                                 tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 17) + '…' : v}
                               />
                               <Tooltip
-                                cursor={{ fill: '#fff7ed' }}
+                                cursor={{ fill: '#eef6f1' }}
                                 formatter={(value) => {
                                   const v = Number(value);
                                   return [
@@ -1643,7 +1640,7 @@ export function ReportsPage() {
                                 }
                               />
                               <Legend formatter={(v) => v === 'turns' ? 'Table Turns' : 'Avg Duration (min)'} iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-                              <Bar yAxisId="t" dataKey="turns" fill="#fb923c" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                              <Bar yAxisId="t" dataKey="turns" fill="#46915f" radius={[4, 4, 0, 0]} maxBarSize={40} />
                               <Line yAxisId="m" type="monotone" dataKey="avgMins" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3, fill: '#8b5cf6' }} activeDot={{ r: 5 }} />
                             </ComposedChart>
                           </ResponsiveContainer>
@@ -1722,6 +1719,43 @@ export function ReportsPage() {
           </>
         )}
       </div>
+  );
+}
+
+// â”€â”€ Tabbed host page: Order Reports | Shift Report | Stock Report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+type ReportTab = 'orders' | 'shift' | 'stock';
+const REPORT_TABS: { id: ReportTab; label: string }[] = [
+  { id: 'orders', label: 'Order Reports' },
+  { id: 'shift',  label: 'Shift Report'  },
+  { id: 'stock',  label: 'Stock Report'  },
+];
+
+export function ReportsPage() {
+  const [activeTab, setActiveTab] = useState<ReportTab>('orders');
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+        <AdminHeader title="Reports" backTo="/admin" icon={BarChart2} />
+
+        {/* Tab bar */}
+        <div className="flex border-b border-gray-200 bg-white px-4 overflow-x-auto">
+          {REPORT_TABS.map((tab) => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-800'
+              }`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'orders' && <ReportsPanel />}
+        {activeTab === 'shift'  && <ShiftCloseReportPanel />}
+        {activeTab === 'stock'  && <StockReportPanel />}
       </main>
     </div>
   );

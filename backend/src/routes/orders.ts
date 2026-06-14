@@ -5,6 +5,7 @@ import { authenticate, optionalAuthenticate, requireRole, AuthRequest } from '..
 import { sendPushToAll, newOrderPayload, sendPushToOrder } from '../lib/pushNotifier';
 import { sendOrderConfirmation } from '../lib/smsNotifier';
 import { autoPrintKitchen } from '../services/printerService';
+import { recordAudit, auditFromReq } from '../lib/audit';
 
 const router = Router();
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
@@ -32,11 +33,24 @@ const ITEMS_SQL = `
   GROUP BY oi.id
 `;
 
-async function buildOrder(orderId: string) {
-  const orderRes = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
-  const o = orderRes.rows[0] as Record<string, unknown> | undefined;
-  if (!o) return null;
-  const itemsRes = await pool.query(ITEMS_SQL, [orderId]);
+// Batched variant of ITEMS_SQL — fetches items for many orders in one round trip.
+const ITEMS_BULK_SQL = `
+  SELECT oi.*,
+    COALESCE(
+      json_agg(
+        json_build_object('id', oit.topping_id, 'name', oit.name, 'price', oit.price::float)
+        ORDER BY oit.name
+      ) FILTER (WHERE oit.id IS NOT NULL),
+      '[]'::json
+    ) AS toppings
+  FROM order_items oi
+  LEFT JOIN order_item_toppings oit ON oit.order_item_id = oi.id
+  WHERE oi.order_id = ANY($1)
+  GROUP BY oi.id
+`;
+
+/** Shape a raw order row + its (already-fetched) item rows into the API object. No DB calls. */
+function mapOrderRow(o: Record<string, unknown>, itemRows: Record<string, unknown>[]) {
   return {
     id: o.id, orderNumber: (o.order_number as string | null) ?? null,
     restaurantId: o.restaurant_id ?? null, sessionId: o.session_id ?? null,
@@ -57,7 +71,7 @@ async function buildOrder(orderId: string) {
     rating: o.rating != null ? Number(o.rating) : null,
     feedbackNote: (o.feedback_note as string | null) ?? null,
     createdAt: o.created_at, updatedAt: o.updated_at,
-    items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
+    items: itemRows.map((i) => ({
       id: i.id,
       menuItemId: i.menu_item_id, name: i.name, price: Number(i.price), quantity: i.quantity,
       notes: i.notes ?? undefined, size: (i.size as string | null) ?? undefined,
@@ -67,13 +81,33 @@ async function buildOrder(orderId: string) {
   };
 }
 
+async function buildOrder(orderId: string) {
+  const orderRes = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+  const o = orderRes.rows[0] as Record<string, unknown> | undefined;
+  if (!o) return null;
+  const itemsRes = await pool.query(ITEMS_SQL, [orderId]);
+  return mapOrderRow(o, itemsRes.rows as Record<string, unknown>[]);
+}
+
 router.get('/', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter', 'kitchen'), async (req: AuthRequest, res) => {
   const rid = req.user!.restaurantId;
   const ordersRes = rid
     ? await pool.query('SELECT * FROM orders WHERE restaurant_id = $1 ORDER BY created_at DESC', [rid])
     : await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
-  const orders = await Promise.all((ordersRes.rows as Record<string, unknown>[]).map((o) => buildOrder(o.id as string)));
-  res.json(orders.filter(Boolean));
+  const orderRows = ordersRes.rows as Record<string, unknown>[];
+  if (orderRows.length === 0) { res.json([]); return; }
+
+  // Fetch all items for these orders in ONE query, then group by order_id (avoids N+1).
+  const ids = orderRows.map((o) => o.id as string);
+  const itemsRes = await pool.query(ITEMS_BULK_SQL, [ids]);
+  const itemsByOrder = new Map<string, Record<string, unknown>[]>();
+  for (const row of itemsRes.rows as Record<string, unknown>[]) {
+    const oid = row.order_id as string;
+    const list = itemsByOrder.get(oid);
+    if (list) list.push(row); else itemsByOrder.set(oid, [row]);
+  }
+
+  res.json(orderRows.map((o) => mapOrderRow(o, itemsByOrder.get(o.id as string) ?? [])));
 });
 
 // Public: look up a customer's recent orders by phone number (last 30 days, max 20)
@@ -472,6 +506,7 @@ router.patch('/:id/cancel', authenticate, requireRole('admin', 'manager'), async
         'UPDATE orders SET status=$1, updated_at=$2 WHERE id=$3',
         ['cancelled', now, req.params.id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  void recordAudit(auditFromReq(req, 'order.cancel', { entityType: 'order', entityId: String(req.params.id), summary: `Cancelled order ${String(req.params.id).slice(0, 8)}` }));
   res.json(await buildOrder(String(req.params.id)));
 });
 

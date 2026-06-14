@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Pencil, Check, X, Store, LogOut,
-  ChevronDown, ChevronUp, LogIn, Users, Sliders, CreditCard,
+  ChevronDown, ChevronUp, LogIn, Users, Sliders, CreditCard, ScrollText,
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -271,6 +271,12 @@ export function RestaurantsPage() {
             <p className="text-xs text-gray-400">Super Admin</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/admin/logs')}
+              className="flex items-center gap-1 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              <ScrollText size={14} /> Logs
+            </button>
             <button
               onClick={() => navigate('/admin/plans')}
               className="flex items-center gap-1 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors"

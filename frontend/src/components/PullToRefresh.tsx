@@ -130,7 +130,7 @@ export function PullToRefresh({ onRefresh, children, className }: Props) {
             height:       28,
             borderRadius: '50%',
             border:       '2.5px solid #e5e7eb',
-            borderTopColor: '#f97316',
+            borderTopColor: '#2a7344',
             opacity:      0,
           }}
         />

@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+/*
+ * Brand palette — Tablet UI Redesign.
+ * The app is built with hardcoded `orange-*` utilities as the brand accent.
+ * Re-skinning the brand globally = overriding the orange scale here with the
+ * design's dark forest-green shades. Every bg-orange-500 / text-orange-600 /
+ * focus:ring-orange-300 etc. picks this up automatically. The default `green-*`
+ * scale is left untouched so success / available states stay distinct.
+ */
+@theme {
+  --color-orange-50:  #eef6f1;
+  --color-orange-100: #d3e8da;
+  --color-orange-200: #a9d2b6;
+  --color-orange-300: #76b389;
+  --color-orange-400: #46915f;
+  --color-orange-500: #2a7344;
+  --color-orange-600: #1f5a34;
+  --color-orange-700: #19482a;
+  --color-orange-800: #153a23;
+  --color-orange-900: #12301d;
+  --color-orange-950: #081a0f;
+}
+
 * {
   box-sizing: border-box;
 }

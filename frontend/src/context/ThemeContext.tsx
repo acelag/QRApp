@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { applyDarkMode, isDarkMode, initDarkMode } from '../lib/darkMode';
 
 export const THEME_COLORS = [
+  { name: 'Forest', hex: '#2a7344', light: '#eef6f1', dark: '#1f5a34', border: '#a9d2b6', ring: '#76b389' },
   { name: 'Orange', hex: '#f97316', light: '#fff7ed', dark: '#ea6c00', border: '#fed7aa', ring: '#fdba74' },
   { name: 'Rose',   hex: '#f43f5e', light: '#fff1f2', dark: '#e11d48', border: '#fecdd3', ring: '#fda4af' },
   { name: 'Violet', hex: '#8b5cf6', light: '#f5f3ff', dark: '#7c3aed', border: '#ddd6fe', ring: '#c4b5fd' },
@@ -119,7 +120,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (user?.restaurantId) {
       restaurantService
         .getRestaurantInfo(user.restaurantId)
-        .then((r) => applyTheme(r.themeColor ?? '#f97316'))
+        .then((r) => applyTheme(r.themeColor ?? '#2a7344'))
         .catch(() => {});
     }
   }, [loading, user?.restaurantId]);
@@ -128,7 +129,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const loadTheme = useCallback((restaurantId: string) => {
     restaurantService
       .getRestaurantInfo(restaurantId)
-      .then((r) => applyTheme(r.themeColor ?? '#f97316'))
+      .then((r) => applyTheme(r.themeColor ?? '#2a7344'))
       .catch(() => {});
   }, []);
 

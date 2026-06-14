@@ -401,6 +401,34 @@ export async function testPrinterConnection(restaurantId: string, role: PrinterR
   }
 }
 
+/* ── Connection status (for the header indicator) ───────────────────────── */
+export interface PrinterStatus {
+  receipt: { configured: boolean; online: boolean };
+  kitchen: { configured: boolean; online: boolean };
+}
+
+export async function getPrinterStatus(restaurantId: string): Promise<PrinterStatus> {
+  const rest = await getRestConfig(restaurantId);
+  const check = async (role: PrinterRole): Promise<{ configured: boolean; online: boolean }> => {
+    const cfg = rest ? getPrinterCfg(rest, role) : null;
+    if (!cfg) return { configured: false, online: false };
+    try {
+      const printer = makePrinter(cfg);
+      // Race the reachability probe against a short timeout so the endpoint
+      // never hangs when a printer is offline.
+      const online = await Promise.race<boolean>([
+        Promise.resolve(printer.isPrinterConnected()),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 2500)),
+      ]);
+      return { configured: true, online: !!online };
+    } catch {
+      return { configured: true, online: false };
+    }
+  };
+  const [receipt, kitchen] = await Promise.all([check('receipt'), check('kitchen')]);
+  return { receipt, kitchen };
+}
+
 /* ── Auto-print helpers (fire-and-forget safe) ──────────────────────────── */
 export function autoPrintKitchen(restaurantId: string, orderId: string) {
   getRestConfig(restaurantId).then((rest) => {

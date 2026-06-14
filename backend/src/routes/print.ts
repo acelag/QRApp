@@ -1,9 +1,19 @@
 import { Router } from 'express';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
-import { printKitchenTicket, printReceipt, printSessionReceipt, testPrinterConnection } from '../services/printerService';
+import { printKitchenTicket, printReceipt, printSessionReceipt, testPrinterConnection, getPrinterStatus } from '../services/printerService';
 
 const router = Router();
 router.use(authenticate, requireRole('admin', 'manager', 'cashier'));
+
+// Connection status for the header indicator
+router.get('/status', async (req: AuthRequest, res) => {
+  const rid = req.user!.restaurantId;
+  if (!rid) {
+    res.json({ receipt: { configured: false, online: false }, kitchen: { configured: false, online: false } });
+    return;
+  }
+  res.json(await getPrinterStatus(rid));
+});
 
 router.post('/kitchen/:orderId', async (req: AuthRequest, res) => {
   const result = await printKitchenTicket(req.user!.restaurantId as string, req.params.orderId as string);

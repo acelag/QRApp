@@ -35,6 +35,7 @@ import reservationsRouter from './routes/reservations';
 import subscriptionRouter from './routes/subscription';
 import stockRouter from './routes/stock';
 import loyaltyRouter from './routes/loyalty';
+import auditLogsRouter from './routes/auditLogs';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
 import { startSubscriptionChecker } from './lib/subscriptionChecker';
@@ -126,6 +127,7 @@ app.use('/api/reservations',    reservationsRouter);
 app.use('/api/subscription',    subscriptionRouter);
 app.use('/api/stock',           stockRouter);
 app.use('/api/loyalty',         loyaltyRouter);
+app.use('/api/audit-logs',      auditLogsRouter);
 app.use('/api/upload',      authenticate, requireRole('admin'), uploadRouter);
 app.use('/api/users',       usersRouter);
 

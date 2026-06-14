@@ -55,7 +55,7 @@ export function WelcomePage() {
       <WelcomeScreen
         restaurantName={info?.name ?? 'Welcome'}
         logo={info?.logo}
-        themeColor={info?.themeColor ?? '#f97316'}
+        themeColor={info?.themeColor ?? '#2a7344'}
         heroUrl={info?.welcomeImageUrl}
         heading={info?.welcomeHeading}
         tagline={info?.welcomeTagline || t('customer.scanEnjoy')}

@@ -1,12 +1,12 @@
 ﻿import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Plus } from 'lucide-react';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
-import { BillPanel } from '../../components/BillPanel';
 import { AddItemsModal } from '../../components/AddItemsModal';
 import { restaurantService, type RestaurantSettings } from '../../services/restaurantService';
 import toast from 'react-hot-toast';
@@ -134,28 +134,36 @@ export function OrdersPage() {
         </button>
       </AdminHeader>
       <div className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="px-3 sm:px-4 lg:px-6 py-3 flex gap-2 overflow-x-auto">
-          {STATUS_TABS.map((t) => {
-            const count = t.value === 'all' ? null
-              : t.value === 'takeaway' ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
-              : orders.filter((o) => o.status === t.value).length;
-            return (
-              <button
-                key={t.value}
-                onClick={() => setTab(t.value)}
-                className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  tab === t.value
-                    ? t.value === 'takeaway' ? 'bg-purple-600 text-white'
-                      : t.value === 'cancelled' ? 'bg-red-500 text-white'
-                      : 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {t.label}
-                {count !== null && <span className="ml-1 text-xs opacity-75">({count})</span>}
-              </button>
-            );
-          })}
+        <div className="px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2">
+          <div className="flex gap-2 overflow-x-auto flex-1">
+            {STATUS_TABS.map((t) => {
+              const count = t.value === 'all' ? null
+                : t.value === 'takeaway' ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
+                : orders.filter((o) => o.status === t.value).length;
+              return (
+                <button
+                  key={t.value}
+                  onClick={() => setTab(t.value)}
+                  className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    tab === t.value
+                      ? t.value === 'takeaway' ? 'bg-purple-600 text-white'
+                        : t.value === 'cancelled' ? 'bg-red-500 text-white'
+                        : 'bg-orange-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {t.label}
+                  {count !== null && <span className="ml-1 text-xs opacity-75">({count})</span>}
+                </button>
+              );
+            })}
+          </div>
+          <Link
+            to="/admin/new-order"
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
+          >
+            <Plus size={16} /> New Order
+          </Link>
         </div>
       </div>
 
@@ -248,23 +256,20 @@ export function OrdersPage() {
               const order = filtered.find((o) => o.id === selectedOrderId);
               if (!order) return <p className="text-gray-300 text-sm">Order not found</p>;
               return (
-                <div className="flex flex-col xl:flex-row gap-4 xl:items-start">
-                  <div className="flex-1 max-w-lg">
-                    <OrderCard
-                      order={order}
-                      onStatusChange={handleStatusChange}
-                      onAssignWaiter={handleAssignWaiter}
-                      onAddItems={setAddItemsOrder}
-                      onCancel={handleCancel}
-                      onRemoveItem={handleRemoveItem}
-                      onUpdateItemQty={handleUpdateItemQty}
-                      waiters={waiters}
-                      showActions
-                    />
-                  </div>
-                  <div className="w-full xl:w-80 shrink-0">
-                    <BillPanel order={order} settings={settings} />
-                  </div>
+                <div className="w-full">
+                  <OrderCard
+                    order={order}
+                    onStatusChange={handleStatusChange}
+                    onAssignWaiter={handleAssignWaiter}
+                    onAddItems={setAddItemsOrder}
+                    onCancel={handleCancel}
+                    onRemoveItem={handleRemoveItem}
+                    onUpdateItemQty={handleUpdateItemQty}
+                    waiters={waiters}
+                    showActions
+                    showBill
+                    settings={settings}
+                  />
                 </div>
               );
             })()

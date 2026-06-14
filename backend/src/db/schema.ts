@@ -162,7 +162,11 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'tax_pct',               'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('restaurants', 'currency',              "VARCHAR(10) NOT NULL DEFAULT 'USD'");
   await addCol('restaurants', 'logo',                  'VARCHAR(500) NULL');
-  await addCol('restaurants', 'theme_color',           "VARCHAR(20) NOT NULL DEFAULT '#f97316'");
+  await addCol('restaurants', 'theme_color',           "VARCHAR(20) NOT NULL DEFAULT '#2a7344'");
+  // Re-skin: forest green is the new brand default. Update the live column
+  // default and migrate restaurants still on the legacy orange default.
+  await pool.query("ALTER TABLE restaurants ALTER COLUMN theme_color SET DEFAULT '#2a7344'");
+  await pool.query("UPDATE restaurants SET theme_color = '#2a7344' WHERE theme_color = '#f97316'");
   await addCol('restaurants', 'order_number_prefix',   "VARCHAR(20) NOT NULL DEFAULT 'ORD'");
   await addCol('restaurants', 'next_order_seq',        'INTEGER NOT NULL DEFAULT 0');
   await addCol('menu_items',  'sort_order',              'INTEGER NOT NULL DEFAULT 0');
@@ -560,6 +564,26 @@ export async function createSchema(): Promise<void> {
   await addCol('menu_items', 'calories',    'SMALLINT NULL');
   await addCol('menu_items', 'protein_g',   'SMALLINT NULL');
   await addCol('menu_items', 'spice_level', 'SMALLINT NULL');
+
+  // ── Audit log (super-admin activity trail) ──────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id            BIGSERIAL    PRIMARY KEY,
+      restaurant_id VARCHAR(36)  NULL,
+      user_id       VARCHAR(36)  NULL,
+      user_name     VARCHAR(255) NOT NULL DEFAULT '',
+      user_role     VARCHAR(20)  NOT NULL DEFAULT '',
+      action        VARCHAR(60)  NOT NULL,
+      entity_type   VARCHAR(40)  NULL,
+      entity_id     VARCHAR(64)  NULL,
+      summary       VARCHAR(500) NOT NULL DEFAULT '',
+      ip            VARCHAR(60)  NULL,
+      created_at    VARCHAR(50)  NOT NULL
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs (created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_restaurant ON audit_logs (restaurant_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action)`);
 
   console.log('✓ Schema ready');
 }

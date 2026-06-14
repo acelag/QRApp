@@ -93,7 +93,7 @@ export function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const theme = branding?.themeColor || '#f97316';
+  const theme = branding?.themeColor || '#2a7344';
   const images = branding?.loginMedia ?? [];
   const hasMedia = !!branding && (!!branding.loginVideoUrl || images.length > 0);
 

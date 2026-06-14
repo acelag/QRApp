@@ -58,6 +58,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 const TOKEN_KEY = 'qra_token';
+const USER_KEY = 'qra_user';
 
 async function fetchFeatures(restaurantId: string): Promise<RestaurantFeatures> {
   try {
@@ -76,22 +77,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem(TOKEN_KEY);
-    if (stored) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${stored}`;
-      axios.get<AuthUser>('/api/auth/me', { timeout: 10000 })
-        .then(async (res) => {
-          setToken(stored);
-          setUser(res.data);
-          if (res.data.restaurantId) {
-            const f = await fetchFeatures(res.data.restaurantId);
-            setFeatures(f);
-          }
-        })
-        .catch(() => { localStorage.removeItem(TOKEN_KEY); delete axios.defaults.headers.common['Authorization']; })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+    if (!stored) { setLoading(false); return; }
+    axios.defaults.headers.common['Authorization'] = `Bearer ${stored}`;
+
+    // Optimistically restore the cached session so a brief backend outage
+    // (e.g. a dev restart) doesn't bounce the user to /login on reload.
+    const cachedRaw = localStorage.getItem(USER_KEY);
+    if (cachedRaw) {
+      try {
+        const cached = JSON.parse(cachedRaw) as AuthUser;
+        setToken(stored);
+        setUser(cached);
+      } catch { /* ignore corrupt cache */ }
     }
+
+    axios.get<AuthUser>('/api/auth/me', { timeout: 10000 })
+      .then(async (res) => {
+        setToken(stored);
+        setUser(res.data);
+        localStorage.setItem(USER_KEY, JSON.stringify(res.data));
+        if (res.data.restaurantId) {
+          const f = await fetchFeatures(res.data.restaurantId);
+          setFeatures(f);
+        }
+      })
+      .catch((e: unknown) => {
+        // Only sign out on a genuine auth rejection. Network / server-down
+        // errors keep the cached session so the user stays logged in across
+        // backend restarts.
+        const status = (e as { response?: { status?: number } })?.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          delete axios.defaults.headers.common['Authorization'];
+          setToken(null);
+          setUser(null);
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const refreshFeatures = useCallback(async () => {
@@ -113,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!localStorage.getItem(TOKEN_KEY)) return;
     try {
       const res = await axios.get<AuthUser>('/api/auth/me', { timeout: 10000 });
+      localStorage.setItem(USER_KEY, JSON.stringify(res.data));
       setUser((prev) => {
         if (!prev) return res.data;
         const next = res.data.permissions ?? [];
@@ -122,9 +146,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ...prev, role: res.data.role, permissions: next };
       });
     } catch (e: unknown) {
-      // Token invalid or user removed → sign out cleanly.
+      // Token invalid or user removed → sign out cleanly. Network / server-down
+      // errors are ignored so a backend blip doesn't log the user out.
       if ((e as { response?: { status?: number } })?.response?.status === 401) {
         localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
         delete axios.defaults.headers.common['Authorization'];
         setToken(null);
         setUser(null);
@@ -170,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function applyToken(t: string, u: AuthUser) {
     localStorage.setItem(TOKEN_KEY, t);
+    localStorage.setItem(USER_KEY, JSON.stringify(u));
     axios.defaults.headers.common['Authorization'] = `Bearer ${t}`;
     setToken(t);
     setUser(u);
@@ -184,6 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     delete axios.defaults.headers.common['Authorization'];
     setToken(null);
     setUser(null);

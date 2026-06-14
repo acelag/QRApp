@@ -360,7 +360,7 @@ export function TakeawayMenuPage() {
     <WelcomeScreen
       restaurantName={restaurantInfo.name}
       logo={restaurantInfo.logo}
-      themeColor={restaurantInfo.themeColor ?? '#f97316'}
+      themeColor={restaurantInfo.themeColor ?? '#2a7344'}
       heroUrl={restaurantInfo.welcomeImageUrl}
       heading={restaurantInfo.welcomeHeading}
       tagline={restaurantInfo.welcomeTagline || t('customer.scanEnjoy')}

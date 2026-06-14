@@ -23,8 +23,8 @@ function fmt_datetime(iso: string) {
   });
 }
 
-// Core component  -  no sidebar, no <main> wrapper
-export function ShiftCloseReport() {
+// Standalone panel (used inside the tabbed Reports page)  -  no sidebar, no AdminHeader
+export function ShiftCloseReportPanel() {
   const { fmt } = useCurrency();
   const today = new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD
   const [date, setDate]       = useState(today);
@@ -56,26 +56,24 @@ export function ShiftCloseReport() {
 
   return (
     <>
-      {/* Header  -  hidden on print */}
-      <div className="print:hidden">
-        <AdminHeader title="Shift Close Report" backTo="/admin">
-          <input
-            type="date"
-            value={date}
-            max={today}
-            onChange={(e) => setDate(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-300 shrink-0"
-          />
-          <button onClick={() => load(date)} className="text-gray-400 hover:text-gray-600 shrink-0">
-            <RefreshCw size={18} />
-          </button>
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shrink-0"
-          >
-            <Printer size={15} /> Print / Save PDF
-          </button>
-        </AdminHeader>
+      {/* Toolbar  -  hidden on print */}
+      <div className="print:hidden px-3 sm:px-4 lg:px-6 pt-4 flex items-center gap-2 flex-wrap">
+        <input
+          type="date"
+          value={date}
+          max={today}
+          onChange={(e) => setDate(e.target.value)}
+          className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-300 shrink-0"
+        />
+        <button onClick={() => load(date)} title="Refresh" className="text-gray-400 hover:text-gray-600 shrink-0 p-1.5">
+          <RefreshCw size={18} />
+        </button>
+        <button
+          onClick={handlePrint}
+          className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shrink-0 ml-auto"
+        >
+          <Printer size={15} /> Print / Save PDF
+        </button>
       </div>
 
       {loading ? (
@@ -299,7 +297,10 @@ export function ShiftCloseReportPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-        <ShiftCloseReport />
+        <div className="print:hidden">
+          <AdminHeader title="Shift Close Report" backTo="/admin" />
+        </div>
+        <ShiftCloseReportPanel />
       </main>
     </div>
   );

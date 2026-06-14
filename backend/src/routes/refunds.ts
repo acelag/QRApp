@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { recordAudit, auditFromReq } from '../lib/audit';
 
 const router = Router();
 router.use(authenticate);
@@ -86,6 +87,11 @@ router.post('/', async (req: AuthRequest, res, next) => {
        Number(amount), reason.trim(), refundMethod,
        userId, userName ?? 'Staff', now],
     );
+
+    void recordAudit(auditFromReq(req, 'refund.create', {
+      entityType: 'refund', entityId: id,
+      summary: `Refund ${Number(amount).toFixed(2)} via ${refundMethod} — ${reason.trim()}${orderId ? ` (order ${orderId.slice(0, 8)})` : ''}`,
+    }));
 
     res.status(201).json({
       id,
