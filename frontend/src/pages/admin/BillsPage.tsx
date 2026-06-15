@@ -2,7 +2,7 @@
 import {
   CheckCircle2, Clock, Loader2, Receipt, RefreshCw,
   Printer, ShoppingBag, Table2, Users, GitMerge, Unlink, RotateCcw,
-  Download, MessageCircle,
+  Download, MessageCircle, BedDouble,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Session } from '../../services/sessionService';
@@ -31,7 +31,7 @@ function elapsed(iso: string) {
   return `${d}d ${h % 24}h`;
 }
 
-type Tab = 'table' | 'takeaway' | 'refunds';
+type Tab = 'table' | 'takeaway' | 'room' | 'refunds';
 
 export function BillsPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
@@ -40,6 +40,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
   const [tab, setTab] = useState<Tab>('table');
   const [sessions, setSessions]             = useState<Session[]>([]);
   const [takeawayOrders, setTakeawayOrders] = useState<Order[]>([]);
+  const [roomOrders, setRoomOrders]         = useState<Order[]>([]);
   const [refunds, setRefunds]               = useState<Refund[]>([]);
   const [loading, setLoading]               = useState(true);
   const [paying, setPaying]                 = useState<string | null>(null);
@@ -73,11 +74,10 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
         orderService.getOrders(),
       ]);
       setSessions(sess);
-      setTakeawayOrders(
-        orders
-          .filter((o) => o.orderType === 'takeaway')
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-      );
+      const sorted = (list: Order[]) =>
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setTakeawayOrders(sorted(orders.filter((o) => o.orderType === 'takeaway')));
+      setRoomOrders(sorted(orders.filter((o) => o.orderType === 'room-service')));
     } catch {
       toast.error('Failed to load bills');
     } finally {
@@ -251,6 +251,10 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
   const paidTodayTakeaway = takeawayOrders.filter(
     (o) => !!o.paymentMethod && new Date(o.createdAt).toDateString() === todayDateStr,
   );
+  const activeRoom    = roomOrders.filter((o) => !o.paymentMethod);
+  const paidTodayRoom = roomOrders.filter(
+    (o) => !!o.paymentMethod && new Date(o.createdAt).toDateString() === todayDateStr,
+  );
 
   // Single pass: build per-session/per-order refund totals and today's list
   const { refundedBySession, refundedByOrder, todayRefunds } = useMemo(() => {
@@ -300,6 +304,15 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
           >
             <ShoppingBag size={13} /> Takeaway
             {activeTakeaway.length > 0 && <span className="ml-1 text-xs opacity-75">({activeTakeaway.length})</span>}
+          </button>
+          <button
+            onClick={() => setTab('room')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              tab === 'room' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <BedDouble size={13} /> Room
+            {activeRoom.length > 0 && <span className="ml-1 text-xs opacity-75">({activeRoom.length})</span>}
           </button>
           {canRefund && (
             <button
@@ -761,8 +774,141 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
               </section>
             )}
           </>
+        ) : tab === 'room' ? (
+          <>
+            {/* Active room orders */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
+                <h2 className="font-semibold text-gray-700 text-sm">Active Room Orders ({activeRoom.length})</h2>
+              </div>
+              {activeRoom.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-gray-400">
+                  <BedDouble size={32} className="mx-auto mb-2 text-gray-300" />
+                  No active room orders
+                </div>
+              ) : (
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
+                  {activeRoom.map((order) => (
+                    <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="px-5 py-3 bg-blue-50 border-b border-blue-100">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+                              <BedDouble size={18} />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="inline-block font-mono font-bold text-sm text-blue-700 bg-white/70 px-2 py-0.5 rounded-md tracking-wide">
+                                #{order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                              </span>
+                              {order.roomNumber && <p className="text-xs text-blue-600 mt-0.5">Room {order.roomNumber}</p>}
+                              {order.customerName && <p className="text-xs text-gray-500 truncate">{order.customerName}</p>}
+                            </div>
+                          </div>
+                          <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
+                            order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700'
+                            : order.status === 'preparing' ? 'bg-blue-100 text-blue-700'
+                            : order.status === 'cancelled' ? 'bg-red-100 text-red-600'
+                            : 'bg-green-100 text-green-700'
+                          }`}>{order.status}</span>
+                        </div>
+                        <div className="flex items-end justify-between gap-2 mt-2.5">
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <Clock size={11} className="shrink-0" /> {elapsed(order.createdAt)} ago
+                          </span>
+                          <span className="text-2xl font-extrabold text-blue-600 leading-none tabular-nums">{fmt(order.totalAmount)}</span>
+                        </div>
+                      </div>
+                      <div className="px-5 py-3 border-b border-gray-100">
+                        <ul className="space-y-1">
+                          {order.items.map((item, i) => (
+                            <li key={i} className="text-sm flex justify-between">
+                              <span className="text-gray-700"><span className="font-semibold text-xs text-gray-700 bg-gray-100 rounded px-1.5 py-0.5">{item.quantity}x</span> {item.name}</span>
+                              <span className="text-gray-600 tabular-nums shrink-0">{fmt(item.price * item.quantity)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="px-5 py-3 flex gap-2.5">
+                        <button
+                          onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
+                          className="flex items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-xl hover:bg-gray-50 transition-colors shrink-0"
+                        >
+                          <Printer size={16} /> Print
+                        </button>
+                        <button
+                          onClick={() => setPaymentTarget({ type: 'order', order })}
+                          disabled={payingOrder === order.id}
+                          className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-all"
+                        >
+                          {payingOrder === order.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                          {payingOrder === order.id ? 'Processing…' : 'Mark Paid'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Paid today — room */}
+            {paidTodayRoom.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-green-500" /> Paid Today ({paidTodayRoom.length})
+                </h2>
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-3 lg:gap-4">
+                  {paidTodayRoom.map((order) => {
+                    const refundedAmt = refundedByOrder[order.id] ?? 0;
+                    return (
+                      <div key={order.id} className="break-inside-avoid mb-3 lg:mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center shrink-0">
+                              <BedDouble size={16} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-700 text-sm truncate">
+                                {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                              </p>
+                              {order.roomNumber && <p className="text-xs text-gray-400">Room {order.roomNumber}</p>}
+                              <p className="text-xs text-gray-400 whitespace-nowrap">
+                                {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="text-right">
+                              <p className="font-bold text-gray-700 whitespace-nowrap">{fmt(order.totalAmount)}</p>
+                              <div className="flex items-center gap-1 justify-end mt-0.5 flex-wrap">
+                                {order.paymentMethod && (
+                                  <span className="text-xs text-gray-500">
+                                    {paymentMethodIcon(order.paymentMethod)} {paymentMethodLabel(order.paymentMethod)}
+                                  </span>
+                                )}
+                                {refundedAmt > 0
+                                  ? <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full">↩ {fmt(refundedAmt)}</span>
+                                  : <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Paid</span>
+                                }
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => window.open(`/receipt/${order.id}`, '_blank', 'width=400,height=600')}
+                              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              <Printer size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </>
         ) : (
-          /* â"€â"€ Refunds tab â"€â"€ */
+          /* Refunds tab */
           <section className="space-y-4">
             {todayRefunds.length > 0 && (
               <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 flex items-center justify-between">
