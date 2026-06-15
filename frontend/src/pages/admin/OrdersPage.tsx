@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw, Plus } from 'lucide-react';
+import { RefreshCw, Plus, Search, X } from 'lucide-react';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -34,6 +34,7 @@ export function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [addItemsOrder, setAddItemsOrder] = useState<Order | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   useOrderSoundAlert(orders);
 
@@ -115,6 +116,19 @@ export function OrdersPage() {
     ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled')
     : orders.filter((o) => o.status === tab);
 
+  const displayed = search.trim()
+    ? filtered.filter((o) => {
+        const q = search.toLowerCase();
+        return (
+          (o.orderNumber ?? '').toLowerCase().includes(q) ||
+          (o.tableNumber != null ? `table ${o.tableNumber}` : '').includes(q) ||
+          (o.roomNumber  != null ? `room ${o.roomNumber}`   : '').includes(q) ||
+          (o.orderType === 'takeaway' && 'takeaway'.includes(q)) ||
+          (o.customerName ?? '').toLowerCase().includes(q)
+        );
+      })
+    : filtered;
+
   // Keep selected order valid when filter changes
   useEffect(() => {
     if (selectedOrderId && !filtered.find((o) => o.id === selectedOrderId)) {
@@ -165,6 +179,23 @@ export function OrdersPage() {
             <Plus size={16} /> New Order
           </Link>
         </div>
+        <div className="px-3 sm:px-4 lg:px-6 pb-3">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by order no., table, customer…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-8 py-2 bg-gray-100 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-colors"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Mobile layout: full card grid */}
@@ -174,11 +205,11 @@ export function OrdersPage() {
           <div className="flex justify-center pt-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : displayed.length === 0 ? (
           <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
         ) : (
           <div className="columns-1 sm:columns-2 gap-3">
-            {filtered.map((order) => (
+            {displayed.map((order) => (
               <div key={order.id} className="break-inside-avoid mb-3">
                 <OrderCard
                   order={order}
@@ -207,11 +238,11 @@ export function OrdersPage() {
               <div className="flex justify-center pt-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
               </div>
-            ) : filtered.length === 0 ? (
+            ) : displayed.length === 0 ? (
               <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
             ) : (
               <div className="space-y-1.5">
-                {filtered.map((order) => (
+                {displayed.map((order) => (
                   <button
                     key={order.id}
                     onClick={() => setSelectedOrderId(order.id)}
@@ -253,7 +284,7 @@ export function OrdersPage() {
         <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
           {selectedOrderId ? (
             (() => {
-              const order = filtered.find((o) => o.id === selectedOrderId);
+              const order = displayed.find((o) => o.id === selectedOrderId);
               if (!order) return <p className="text-gray-300 text-sm">Order not found</p>;
               return (
                 <div className="w-full">
@@ -275,7 +306,7 @@ export function OrdersPage() {
             })()
           ) : (
             <div className="flex items-center justify-center h-full text-gray-300 text-sm">
-              {filtered.length > 0 ? 'Select an order to view details' : ''}
+              {displayed.length > 0 ? 'Select an order to view details' : ''}
             </div>
           )}
         </div>
