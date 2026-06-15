@@ -66,6 +66,7 @@ import { StockPage } from './pages/admin/StockPage';
 import { StockReportPage } from './pages/admin/StockReportPage';
 import { LoyaltyPage } from './pages/admin/LoyaltyPage';
 import { FloorPlanPage } from './pages/admin/FloorPlanPage';
+import { FloorPage } from './pages/admin/FloorPage';
 
 function OfflineSyncManager() {
   const isOnline = useOnlineStatus();
@@ -212,6 +213,7 @@ export default function App() {
             <Route path="/admin/menu-setup" element={<ProtectedRoute roles={['admin','manager']} permission="menu"><MenuSetupPage /></ProtectedRoute>} />
             <Route path="/admin/locations" element={<ProtectedRoute roles={['admin','manager']} permission="locations"><LocationsPage /></ProtectedRoute>} />
             <Route path="/admin/floor-plan" element={<ProtectedRoute roles={['admin','manager']} permission="locations"><FloorPlanPage /></ProtectedRoute>} />
+            <Route path="/admin/floor" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="locations"><FloorPage /></ProtectedRoute>} />
             <Route path="/admin/reservations" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="locations"><ReservationsPage /></ProtectedRoute>} />
             <Route path="/receipt/:orderId" element={<ProtectedRoute roles={['admin','manager','cashier']}><ReceiptPage /></ProtectedRoute>} />
             <Route path="/kitchen-ticket/:orderId" element={<ProtectedRoute><KitchenTicketPage /></ProtectedRoute>} />

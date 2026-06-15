@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Save, Pencil, Eye, ToggleLeft, ToggleRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
@@ -33,7 +33,7 @@ function elapsed(started: string | null): string {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 }
 
-export function FloorPlanPage() {
+export function FloorPlanPage({ embedded = false }: { embedded?: boolean }) {
   const { fmt } = useCurrency();
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +44,6 @@ export function FloorPlanPage() {
   const [saving, setSaving] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
 
-  // â”€â”€ Load tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     tableService.getTables().then((data) => {
       setTables(data.filter((t) => t.active));
@@ -58,7 +57,6 @@ export function FloorPlanPage() {
     }).catch(() => toast.error('Failed to load tables'));
   }, []);
 
-  // â”€â”€ Poll live status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const load = () =>
       tableService.getStatus().then((rows) => {
@@ -71,7 +69,6 @@ export function FloorPlanPage() {
     return () => clearInterval(id);
   }, []);
 
-  // â”€â”€ Global drag handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const onMouseMove = useCallback((e: MouseEvent) => {
     if (!drag || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -110,7 +107,6 @@ export function FloorPlanPage() {
     };
   }, [drag, onMouseMove, onMouseUp, onTouchMove]);
 
-  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function startDrag(e: React.MouseEvent | React.TouchEvent, id: string) {
     if (!editMode) return;
     e.preventDefault();
@@ -121,10 +117,8 @@ export function FloorPlanPage() {
   }
 
   function placeOnCanvas(id: string) {
-    // Auto-place unplaced table at a free spot (cascade right/down from 10%)
     const placed = Object.values(positions);
     let x = 15, y = 15;
-    // Nudge until we find a non-overlapping position
     for (let attempt = 0; attempt < 30; attempt++) {
       const collision = placed.some((p) => Math.abs(p.x - x) < 14 && Math.abs(p.y - y) < 14);
       if (!collision) break;
@@ -166,177 +160,165 @@ export function FloorPlanPage() {
     }
   }
 
-  // â”€â”€ Partitioning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const placed = tables.filter((t) => positions[t.id] != null);
+  const placed   = tables.filter((t) => positions[t.id] != null);
   const unplaced = tables.filter((t) => positions[t.id] == null);
+
+  const actionButtons = (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setEditMode((v) => !v)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+          editMode
+            ? 'bg-orange-100 text-orange-700 border border-orange-300'
+            : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+        }`}
+      >
+        {editMode ? <><Pencil size={14} /> Editing</> : <><Eye size={14} /> Live View</>}
+      </button>
+      {editMode && (
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-60 transition-colors"
+        >
+          <Save size={14} /> {saving ? 'Saving...' : 'Save Layout'}
+        </button>
+      )}
+    </div>
+  );
+
+  const body = (
+    <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      {!editMode && (
+        <div className="flex items-center gap-4 flex-wrap text-xs text-gray-500">
+          {Object.entries(STATUS_STYLE).map(([key, s]) => (
+            <span key={key} className="flex items-center gap-1.5 capitalize">
+              <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
+              {key}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div
+        ref={canvasRef}
+        className={`relative w-full rounded-2xl border-2 overflow-hidden select-none ${
+          editMode ? 'border-orange-300 bg-orange-50/30' : 'border-gray-200 bg-white'
+        }`}
+        style={{
+          aspectRatio: '4 / 3',
+          backgroundImage: editMode ? 'radial-gradient(circle, #d1d5db 1px, transparent 1px)' : undefined,
+          backgroundSize: editMode ? '32px 32px' : undefined,
+        }}
+      >
+        {placed.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 text-sm gap-2">
+            <span className="text-4xl">🪑</span>
+            <span>{editMode ? 'Click tables below to place them on the floor' : 'No tables placed yet - switch to Edit mode'}</span>
+          </div>
+        )}
+
+        {placed.map((table) => {
+          const pos = positions[table.id];
+          const st = statuses[table.id];
+          const style = st ? STATUS_STYLE[st.status] : STATUS_STYLE.free;
+          const isRound = pos.shape === 'round';
+          const isDraggingThis = drag?.id === table.id;
+
+          return (
+            <div
+              key={table.id}
+              className={`absolute flex flex-col items-center justify-center border-2 shadow-sm transition-shadow select-none
+                ${isRound ? 'rounded-full' : 'rounded-xl'}
+                ${style.bg} ${style.border} ${style.text}
+                ${editMode ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-default'}
+                ${isDraggingThis ? 'shadow-xl ring-2 ring-orange-400 z-10 scale-105' : ''}
+              `}
+              style={{
+                left: `${pos.x}%`, top: `${pos.y}%`,
+                transform: 'translate(-50%, -50%)',
+                width: isRound ? '4.5rem' : '5.5rem',
+                height: isRound ? '4.5rem' : '4.5rem',
+              }}
+              onMouseDown={(e) => startDrag(e, table.id)}
+              onTouchStart={(e) => startDrag(e, table.id)}
+            >
+              {!editMode && st && (
+                <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${style.dot}`} />
+              )}
+              <span className="font-bold text-sm leading-none">T{table.number}</span>
+              <span className="text-[10px] opacity-70 mt-0.5">{table.seats} seats</span>
+              {!editMode && st && st.status !== 'free' && (
+                <span className="text-[9px] opacity-60 mt-0.5 text-center px-1 leading-tight">
+                  {st.orderCount > 0 && `${st.orderCount} ord`}
+                  {st.sessionTotal > 0 && `  .  ${fmt(st.sessionTotal)}`}
+                </span>
+              )}
+              {!editMode && st && st.sessionStarted && (
+                <span className="text-[9px] opacity-50 leading-none">{elapsed(st.sessionStarted)}</span>
+              )}
+              {editMode && (
+                <div
+                  className="absolute -bottom-6 flex items-center gap-1"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                >
+                  <button onClick={() => toggleShape(table.id)} className="text-[9px] bg-white border border-gray-200 rounded px-1 py-0.5 text-gray-500 hover:bg-gray-100" title="Toggle shape">
+                    {pos.shape === 'rect' ? <ToggleLeft size={11} /> : <ToggleRight size={11} />}
+                  </button>
+                  <button onClick={() => removeFromCanvas(table.id)} className="text-[9px] bg-white border border-red-200 rounded px-1 py-0.5 text-red-400 hover:bg-red-50" title="Remove from floor">
+                    x
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {editMode && unplaced.length > 0 && (
+        <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Unplaced tables - click to add to floor
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {unplaced.map((t) => (
+              <button key={t.id} onClick={() => placeOnCanvas(t.id)} className="flex flex-col items-center justify-center w-16 h-14 rounded-xl border-2 border-dashed border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors">
+                <span className="font-bold text-sm">T{t.number}</span>
+                <span className="text-[10px] opacity-70">{t.seats} seats</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!editMode && unplaced.length > 0 && (
+        <p className="text-xs text-gray-400 text-center">
+          {unplaced.length} table{unplaced.length > 1 ? 's' : ''} not yet placed - switch to <span className="font-medium">Edit mode</span> to position them.
+        </p>
+      )}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="h-full overflow-y-auto bg-gray-50">
+        <div className="px-3 sm:px-4 lg:px-6 py-3 bg-white border-b border-gray-100">
+          {actionButtons}
+        </div>
+        {body}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
         <AdminHeader title="Floor Plan" backTo="/admin">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setEditMode((v) => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                editMode
-                  ? 'bg-orange-100 text-orange-700 border border-orange-300'
-                  : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-              }`}
-            >
-              {editMode ? <><Pencil size={14} /> Editing</> : <><Eye size={14} /> Live View</>}
-            </button>
-            {editMode && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-60 transition-colors"
-              >
-                <Save size={14} /> {saving ? 'Saving…' : 'Save Layout'}
-              </button>
-            )}
-          </div>
+          {actionButtons}
         </AdminHeader>
-
-        <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
-
-          {/* Legend */}
-          {!editMode && (
-            <div className="flex items-center gap-4 flex-wrap text-xs text-gray-500">
-              {Object.entries(STATUS_STYLE).map(([key, s]) => (
-                <span key={key} className="flex items-center gap-1.5 capitalize">
-                  <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
-                  {key}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Canvas */}
-          <div
-            ref={canvasRef}
-            className={`relative w-full rounded-2xl border-2 overflow-hidden select-none ${
-              editMode
-                ? 'border-orange-300 bg-orange-50/30'
-                : 'border-gray-200 bg-white'
-            }`}
-            style={{
-              aspectRatio: '4 / 3',
-              backgroundImage: editMode
-                ? 'radial-gradient(circle, #d1d5db 1px, transparent 1px)'
-                : undefined,
-              backgroundSize: editMode ? '32px 32px' : undefined,
-            }}
-          >
-            {placed.length === 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 text-sm gap-2">
-                <span className="text-4xl">🪑</span>
-                <span>{editMode ? 'Click tables below to place them on the floor' : 'No tables placed yet  -  switch to Edit mode'}</span>
-              </div>
-            )}
-
-            {placed.map((table) => {
-              const pos = positions[table.id];
-              const st = statuses[table.id];
-              const style = st ? STATUS_STYLE[st.status] : STATUS_STYLE.free;
-              const isRound = pos.shape === 'round';
-              const isDraggingThis = drag?.id === table.id;
-
-              return (
-                <div
-                  key={table.id}
-                  className={`absolute flex flex-col items-center justify-center border-2 shadow-sm transition-shadow select-none
-                    ${isRound ? 'rounded-full' : 'rounded-xl'}
-                    ${style.bg} ${style.border} ${style.text}
-                    ${editMode ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-default'}
-                    ${isDraggingThis ? 'shadow-xl ring-2 ring-orange-400 z-10 scale-105' : ''}
-                  `}
-                  style={{
-                    left: `${pos.x}%`,
-                    top: `${pos.y}%`,
-                    transform: 'translate(-50%, -50%)',
-                    width: isRound ? '4.5rem' : '5.5rem',
-                    height: isRound ? '4.5rem' : '4.5rem',
-                  }}
-                  onMouseDown={(e) => startDrag(e, table.id)}
-                  onTouchStart={(e) => startDrag(e, table.id)}
-                >
-                  {/* Status dot */}
-                  {!editMode && st && (
-                    <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${style.dot}`} />
-                  )}
-
-                  <span className="font-bold text-sm leading-none">T{table.number}</span>
-                  <span className="text-[10px] opacity-70 mt-0.5">{table.seats} seats</span>
-
-                  {/* Live info in view mode */}
-                  {!editMode && st && st.status !== 'free' && (
-                    <span className="text-[9px] opacity-60 mt-0.5 text-center px-1 leading-tight">
-                      {st.orderCount > 0 && `${st.orderCount} ord`}
-                      {st.sessionTotal > 0 && `  .  ${fmt(st.sessionTotal)}`}
-                    </span>
-                  )}
-                  {!editMode && st && st.sessionStarted && (
-                    <span className="text-[9px] opacity-50 leading-none">{elapsed(st.sessionStarted)}</span>
-                  )}
-
-                  {/* Edit controls */}
-                  {editMode && (
-                    <div
-                      className="absolute -bottom-6 flex items-center gap-1"
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onTouchStart={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        onClick={() => toggleShape(table.id)}
-                        className="text-[9px] bg-white border border-gray-200 rounded px-1 py-0.5 text-gray-500 hover:bg-gray-100"
-                        title="Toggle shape"
-                      >
-                        {pos.shape === 'rect' ? <ToggleLeft size={11} /> : <ToggleRight size={11} />}
-                      </button>
-                      <button
-                        onClick={() => removeFromCanvas(table.id)}
-                        className="text-[9px] bg-white border border-red-200 rounded px-1 py-0.5 text-red-400 hover:bg-red-50"
-                        title="Remove from floor"
-                      >
-                        x
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Unplaced shelf */}
-          {editMode && unplaced.length > 0 && (
-            <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                Unplaced tables  -  click to add to floor
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {unplaced.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => placeOnCanvas(t.id)}
-                    className="flex flex-col items-center justify-center w-16 h-14 rounded-xl border-2 border-dashed border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
-                  >
-                    <span className="font-bold text-sm">T{t.number}</span>
-                    <span className="text-[10px] opacity-70">{t.seats} seats</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* View-mode: unplaced notice */}
-          {!editMode && unplaced.length > 0 && (
-            <p className="text-xs text-gray-400 text-center">
-              {unplaced.length} table{unplaced.length > 1 ? 's' : ''} not yet placed on floor plan  - 
-              switch to <span className="font-medium">Edit mode</span> to position them.
-            </p>
-          )}
-        </div>
+        {body}
       </main>
     </div>
   );

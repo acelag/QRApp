@@ -4,7 +4,7 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import {
   Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag,
-  QrCode, MapPin, CalendarDays, LayoutGrid, MonitorPlay, ChefHat,
+  QrCode, MapPin, MonitorPlay, ChefHat,
   Receipt, CreditCard, Users, Warehouse, BarChart2,
   Settings, Star, ArrowLeft, Clock, Box,
 } from 'lucide-react';
@@ -40,10 +40,8 @@ const TOP_NAV: NavEntry[] = [
   { type: 'item',  label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard', color: 'bg-blue-50   text-blue-600'   },
   { type: 'item',  label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders',    color: 'bg-orange-50 text-orange-600' },
   { type: 'item',  label: 'Menu',      icon: UtensilsCrossed, to: '/admin/menu',      color: 'bg-green-50  text-green-600'  },
-  { type: 'item',  label: 'QR',           icon: QrCode,       to: '/admin/locations',    color: 'bg-purple-50 text-purple-600' },
-  { type: 'item',  label: 'Floor Plan',   icon: MapPin,       to: '/admin/floor-plan',   color: 'bg-purple-50 text-purple-600' },
-  { type: 'item',  label: 'Reservations', icon: CalendarDays, to: '/admin/reservations', color: 'bg-purple-50 text-purple-600' },
-  { type: 'item',  label: 'Table Status', icon: LayoutGrid,   to: '/admin/table-status', color: 'bg-purple-50 text-purple-600' },
+  { type: 'item',  label: 'QR',    icon: QrCode, to: '/admin/locations', color: 'bg-purple-50 text-purple-600' },
+  { type: 'item',  label: 'Floor', icon: MapPin, to: '/admin/floor',     color: 'bg-purple-50 text-purple-600' },
   {
     type: 'group', label: 'Displays', icon: MonitorPlay, color: 'bg-red-50 text-red-600',
     children: [

@@ -40,7 +40,7 @@ const emptyForm = (date: string): FormState => ({
   id: null, type: 'table', tableId: '', roomId: '', customerName: '', customerPhone: '', partySize: '2', reservedAt: `${date}T19:00`, notes: '',
 });
 
-export function ReservationsPage() {
+export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [date, setDate] = useState(todayStr());
   const [monthCursor, setMonthCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
@@ -196,28 +196,33 @@ export function ReservationsPage() {
     );
   };
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-        <AdminHeader title="Reservations" backTo="/admin">
-          {/* View toggle */}
-          <div className="flex items-center bg-gray-100 rounded-xl p-0.5">
-            <button onClick={() => setView('calendar')} title="Calendar" className={`p-1.5 rounded-lg transition-colors ${view === 'calendar' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><CalendarDays size={16} /></button>
-            <button onClick={() => setView('list')} title="List" className={`p-1.5 rounded-lg transition-colors ${view === 'list' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><List size={16} /></button>
-          </div>
-          {view === 'list' && (
-            <div className="relative">
-              <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="pl-9 pr-3 py-1.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-300" />
-            </div>
-          )}
-          <button onClick={() => openNew()} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
-            <Plus size={14} /> New
-          </button>
-        </AdminHeader>
+  const headerActions = (
+    <>
+      <div className="flex items-center bg-gray-100 rounded-xl p-0.5">
+        <button onClick={() => setView('calendar')} title="Calendar" className={`p-1.5 rounded-lg transition-colors ${view === 'calendar' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><CalendarDays size={16} /></button>
+        <button onClick={() => setView('list')} title="List" className={`p-1.5 rounded-lg transition-colors ${view === 'list' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><List size={16} /></button>
+      </div>
+      {view === 'list' && (
+        <div className="relative">
+          <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="pl-9 pr-3 py-1.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-300" />
+        </div>
+      )}
+      <button onClick={() => openNew()} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
+        <Plus size={14} /> New
+      </button>
+    </>
+  );
 
-        <div className="bg-white shadow-sm">
+  const innerContent = (
+    <>
+      {embedded && (
+        <div className="px-3 sm:px-4 lg:px-6 py-2.5 bg-white border-b border-gray-100 flex items-center gap-2 flex-wrap">
+          {headerActions}
+        </div>
+      )}
+
+      <div className="bg-white shadow-sm">
           {/* Type filter (tables / rooms) */}
           <div className="px-3 sm:px-4 lg:px-6 pb-2 flex items-center gap-2">
             <div className="inline-flex bg-gray-100 rounded-full p-0.5 text-xs font-medium">
@@ -385,6 +390,21 @@ export function ReservationsPage() {
             </div>
           </div>
         )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="h-full overflow-y-auto bg-gray-50">{innerContent}</div>;
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+        <AdminHeader title="Reservations" backTo="/admin">
+          {headerActions}
+        </AdminHeader>
+        {innerContent}
       </main>
     </div>
   );
