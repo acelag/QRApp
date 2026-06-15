@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import {
   Plus, Trash2, QrCode, Printer,
   BedDouble, Table2, ShoppingBag, Download, Copy, Check,
@@ -9,6 +10,8 @@ import { tableService } from '../../services/tableService';
 import { roomService } from '../../services/roomService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+
+const API_BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 
@@ -85,8 +88,24 @@ export function LocationsPage() {
   // Copy-to-clipboard feedback
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
-  const origin      = window.location.origin;
-  const takeawayUrl = user?.restaurantId ? `${origin}/takeaway/${user.restaurantId}` : '';
+  const origin = window.location.origin;
+
+  // user.restaurantId can be null in production if the DB row has no restaurant_id set.
+  // Fall back to fetching the restaurants list (works for super_admin and linked admins).
+  const [resolvedRestaurantId, setResolvedRestaurantId] = useState<string | null>(
+    user?.restaurantId ?? null,
+  );
+
+  useEffect(() => {
+    if (!user?.restaurantId) {
+      axios
+        .get<{ id: string }[]>(`${API_BASE}/restaurants`)
+        .then((r) => { if (r.data[0]?.id) setResolvedRestaurantId(r.data[0].id); })
+        .catch(() => {});
+    }
+  }, [user?.restaurantId]);
+
+  const takeawayUrl = resolvedRestaurantId ? `${origin}/takeaway/${resolvedRestaurantId}` : '';
 
   function switchTab(tab: Tab) {
     setActiveTab(tab);
