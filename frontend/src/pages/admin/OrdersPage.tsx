@@ -18,19 +18,29 @@ import { PullToRefresh } from '../../components/PullToRefresh';
 export function OrdersPage() {
   const { t } = useTranslation();
 
-  const STATUS_TABS: { label: string; value: OrderStatus | 'all' | 'takeaway' }[] = [
-    { label: t('orders.tabAll'),       value: 'all' },
-    { label: t('orders.tabTakeaway'),  value: 'takeaway' },
-    { label: t('orders.tabPending'),   value: 'pending' },
-    { label: t('orders.tabPreparing'), value: 'preparing' },
-    { label: t('orders.tabReady'),     value: 'ready' },
-    { label: t('orders.tabCancelled'), value: 'cancelled' },
+  type TypeTab   = 'all' | 'dine-in' | 'takeaway' | 'room-service';
+  type StatusTab = 'all' | OrderStatus;
+
+  const TYPE_TABS: { label: string; value: TypeTab }[] = [
+    { label: 'All',      value: 'all'          },
+    { label: 'Dining',   value: 'dine-in'      },
+    { label: 'Takeaway', value: 'takeaway'     },
+    { label: 'Room',     value: 'room-service' },
+  ];
+
+  const STATUS_CHIPS: { label: string; value: StatusTab }[] = [
+    { label: 'All',       value: 'all'       },
+    { label: 'Pending',   value: 'pending'   },
+    { label: 'Preparing', value: 'preparing' },
+    { label: 'Ready',     value: 'ready'     },
+    { label: 'Cancelled', value: 'cancelled' },
   ];
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
-  const [tab, setTab] = useState<OrderStatus | 'all' | 'takeaway'>('all');
+  const [typeTab,   setTypeTab]   = useState<TypeTab>('all');
+  const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [loading, setLoading] = useState(true);
   const [addItemsOrder, setAddItemsOrder] = useState<Order | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -110,11 +120,16 @@ export function OrdersPage() {
     }
   }
 
-  const filtered = tab === 'all'
-    ? orders.filter((o) => o.status !== 'cancelled')
-    : tab === 'takeaway'
-    ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled')
-    : orders.filter((o) => o.status === tab);
+  const byType = orders.filter((o) => {
+    if (typeTab === 'dine-in')      return o.orderType !== 'takeaway' && o.orderType !== 'room-service';
+    if (typeTab === 'takeaway')     return o.orderType === 'takeaway';
+    if (typeTab === 'room-service') return o.orderType === 'room-service';
+    return true;
+  });
+
+  const filtered = byType.filter((o) =>
+    statusTab === 'all' ? o.status !== 'cancelled' : o.status === statusTab,
+  );
 
   const displayed = search.trim()
     ? filtered.filter((o) => {
@@ -134,7 +149,7 @@ export function OrdersPage() {
     { key: 'dine-in',      label: 'Dine In',      dot: 'bg-orange-400', orders: displayed.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service') },
     { key: 'room-service', label: 'Room Service',  dot: 'bg-blue-400',   orders: displayed.filter((o) => o.orderType === 'room-service') },
   ].filter((g) => g.orders.length > 0);
-  const showGroups = orderGroups.length > 1;
+  const showGroups = typeTab === 'all' && orderGroups.length > 1;
 
   // Keep selected order valid when filter changes
   useEffect(() => {
@@ -143,7 +158,7 @@ export function OrdersPage() {
     } else if (!selectedOrderId && filtered.length > 0) {
       setSelectedOrderId(filtered[0].id);
     }
-  }, [tab, filtered.length]);
+  }, [typeTab, statusTab, filtered.length]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -155,38 +170,72 @@ export function OrdersPage() {
         </button>
       </AdminHeader>
       <div className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2">
-          <div className="flex gap-2 overflow-x-auto flex-1">
-            {STATUS_TABS.map((t) => {
-              const count = t.value === 'all' ? null
-                : t.value === 'takeaway' ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
-                : orders.filter((o) => o.status === t.value).length;
+        {/* Level 1 — order type */}
+        <div className="px-3 sm:px-4 lg:px-6 pt-3 pb-2 flex items-center gap-2 border-b border-gray-100">
+          <div className="flex gap-1.5 overflow-x-auto flex-1">
+            {TYPE_TABS.map((tt) => {
+              const count =
+                tt.value === 'all'          ? null
+                : tt.value === 'dine-in'    ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.status !== 'cancelled').length
+                : tt.value === 'takeaway'   ? orders.filter((o) => o.orderType === 'takeaway'     && o.status !== 'cancelled').length
+                : orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length;
+              const active = typeTab === tt.value;
               return (
                 <button
-                  key={t.value}
-                  onClick={() => setTab(t.value)}
-                  className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    tab === t.value
-                      ? t.value === 'takeaway' ? 'bg-purple-600 text-white'
-                        : t.value === 'cancelled' ? 'bg-red-500 text-white'
-                        : 'bg-orange-500 text-white'
+                  key={tt.value}
+                  onClick={() => setTypeTab(tt.value)}
+                  className={`shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    active
+                      ? tt.value === 'takeaway'     ? 'bg-purple-600 text-white'
+                      : tt.value === 'room-service' ? 'bg-blue-600 text-white'
+                      : 'bg-orange-500 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {t.label}
-                  {count !== null && <span className="ml-1 text-xs opacity-75">({count})</span>}
+                  {tt.label}
+                  {count !== null && count > 0 && (
+                    <span className="ml-1.5 text-xs opacity-80">({count})</span>
+                  )}
                 </button>
               );
             })}
           </div>
           <Link
             to="/admin/new-order"
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors shrink-0"
           >
-            <Plus size={16} /> New Order
+            <Plus size={15} /> New
           </Link>
         </div>
-        <div className="px-3 sm:px-4 lg:px-6 pb-3">
+
+        {/* Level 2 — order status */}
+        <div className="px-3 sm:px-4 lg:px-6 py-2 flex gap-1.5 overflow-x-auto border-b border-gray-100">
+          {STATUS_CHIPS.map((sc) => {
+            const count = sc.value === 'all' ? null : byType.filter((o) => o.status === sc.value).length;
+            const active = statusTab === sc.value;
+            return (
+              <button
+                key={sc.value}
+                onClick={() => setStatusTab(sc.value)}
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  active
+                    ? sc.value === 'ready'     ? 'bg-green-500 text-white'
+                    : sc.value === 'preparing' ? 'bg-blue-500 text-white'
+                    : sc.value === 'pending'   ? 'bg-yellow-500 text-white'
+                    : sc.value === 'cancelled' ? 'bg-red-500 text-white'
+                    : 'bg-gray-800 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {sc.label}
+                {count !== null && <span className="ml-1 opacity-75">({count})</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search */}
+        <div className="px-3 sm:px-4 lg:px-6 py-2.5">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
