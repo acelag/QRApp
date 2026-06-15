@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2, Rocket,
   Users, Settings, ChefHat, MonitorPlay,
   Receipt, QrCode, Tag, CreditCard, UserCheck, Trophy,
-  Package, Calendar, CalendarDays, FileText, Wallet, Warehouse,
+  Package, Calendar, CalendarDays, FileText, Warehouse,
   LayoutGrid, ChevronDown, ChevronRight, Menu, X, MapPin, Star,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -77,16 +77,7 @@ const NAV: NavEntry[] = [
       { label: 'Ready Display',   icon: MonitorPlay,  to: '/admin/ready-display', featureKey: 'readyDisplay',   perm: 'readyDisplay' },
     ],
   },
-  {
-    type: 'group',
-    label: 'Finance',
-    icon: Wallet,
-    children: [
-      { label: 'Bills',         icon: Receipt,    to: '/admin/bills',       featureKey: 'bills',       perm: 'bills' },
-      { label: 'Room Charges',  icon: CreditCard, to: '/admin/room-charges',featureKey: 'roomCharges', perm: 'roomCharges' },
-      { label: 'Promo Codes',   icon: Tag,        to: '/admin/promo-codes', featureKey: 'promoCodes',  perm: 'promoCodes' },
-    ],
-  },
+  { type: 'item', label: 'Finance', icon: Receipt, to: '/admin/finance', perm: 'bills' },
   {
     type: 'group',
     label: 'Staff',
@@ -98,15 +89,8 @@ const NAV: NavEntry[] = [
       { label: 'Roster',            icon: CalendarDays, to: '/admin/roster',          featureKey: 'roster',           perm: 'roster' },
     ],
   },
-  {
-    type: 'group',
-    label: 'Inventory',
-    icon: Warehouse,
-    children: [
-      { label: 'Stock',   icon: Package, to: '/admin/stock',   perm: 'stock' },
-      { label: 'Loyalty', icon: Star,    to: '/admin/loyalty', adminOnly: true },
-    ],
-  },
+  { type: 'item', label: 'Stock',   icon: Warehouse, to: '/admin/stock',   perm: 'stock' },
+  { type: 'item', label: 'Loyalty', icon: Star,      to: '/admin/loyalty', adminOnly: true },
   {
     type: 'group',
     label: 'Reports',
@@ -256,6 +240,11 @@ export function AdminSidebar() {
                       {activeCount}
                     </span>
                   )}
+                  {entry.to === '/admin/stock' && lowStockCount > 0 && (
+                    <span className="text-xs font-bold bg-amber-400 text-white rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none">
+                      {lowStockCount}
+                    </span>
+                  )}
                 </Link>
               );
             }
@@ -344,6 +333,11 @@ export function AdminSidebar() {
                     {entry.badge && activeCount > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold bg-orange-500 text-white rounded-full min-w-[16px] px-1 py-0 text-center leading-4">
                         {activeCount}
+                      </span>
+                    )}
+                    {entry.to === '/admin/stock' && lowStockCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold bg-amber-400 text-white rounded-full min-w-[16px] px-1 py-0 text-center leading-4">
+                        {lowStockCount}
                       </span>
                     )}
                   </Link>
