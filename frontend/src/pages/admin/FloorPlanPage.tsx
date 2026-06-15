@@ -267,7 +267,7 @@ export function FloorPlanPage() {
                   )}
 
                   <span className="font-bold text-sm leading-none">T{table.number}</span>
-                  <span className="text-[10px] opacity-70 mt-0.5">{table.seats}â‘†</span>
+                  <span className="text-[10px] opacity-70 mt-0.5">{table.seats} seats</span>
 
                   {/* Live info in view mode */}
                   {!editMode && st && st.status !== 'free' && (
@@ -322,7 +322,7 @@ export function FloorPlanPage() {
                     className="flex flex-col items-center justify-center w-16 h-14 rounded-xl border-2 border-dashed border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
                   >
                     <span className="font-bold text-sm">T{t.number}</span>
-                    <span className="text-[10px] opacity-70">{t.seats}â‘†</span>
+                    <span className="text-[10px] opacity-70">{t.seats} seats</span>
                   </button>
                 ))}
               </div>
