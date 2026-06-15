@@ -45,14 +45,9 @@ const TOP_NAV: NavEntry[] = [
   { type: 'item',  label: 'Kitchen',        icon: ChefHat,     to: '/kitchen',              color: 'bg-red-50    text-red-600'    },
   { type: 'item',  label: 'Ready Display',  icon: MonitorPlay, to: '/admin/ready-display',  color: 'bg-red-50    text-red-600'    },
   { type: 'item', label: 'Finance', icon: Receipt, to: '/admin/finance', color: 'bg-teal-50 text-teal-600' },
-  { type: 'item', label: 'Staff', icon: Users, to: '/admin/users', color: 'bg-indigo-50 text-indigo-600' },
-  {
-    type: 'group', label: 'Inventory', icon: Warehouse, color: 'bg-amber-50 text-amber-600',
-    children: [
-      { label: 'Stock',   icon: Warehouse, to: '/admin/stock',   color: 'bg-amber-50 text-amber-600' },
-      { label: 'Loyalty', icon: Star,      to: '/admin/loyalty', color: 'bg-amber-50 text-amber-600' },
-    ],
-  },
+  { type: 'item', label: 'Staff',   icon: Users,     to: '/admin/users',   color: 'bg-indigo-50 text-indigo-600' },
+  { type: 'item', label: 'Stock',   icon: Warehouse, to: '/admin/stock',   color: 'bg-amber-50  text-amber-600'  },
+  { type: 'item', label: 'Loyalty', icon: Star,      to: '/admin/loyalty', color: 'bg-amber-50  text-amber-600'  },
   { type: 'item', label: 'Reports', icon: BarChart2, to: '/admin/reports', color: 'bg-gray-100 text-gray-600' },
   { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings', color: 'bg-gray-100 text-gray-600' },
 ];
