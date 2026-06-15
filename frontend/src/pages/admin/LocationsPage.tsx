@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Plus, Trash2, QrCode, Printer,
@@ -59,10 +60,13 @@ function openPrintWindow(html: string, title = 'QR Codes') {
 
 export function LocationsPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<Tab>(
-    () => (localStorage.getItem('locations-tab') as Tab) ?? 'tables',
-  );
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const fromUrl = searchParams.get('tab') as Tab | null;
+    if (fromUrl === 'tables' || fromUrl === 'rooms') return fromUrl;
+    return (localStorage.getItem('locations-tab') as Tab) ?? 'tables';
+  });
 
   // â”€â”€ Tables state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [tables, setTables]         = useState<Table[]>([]);
