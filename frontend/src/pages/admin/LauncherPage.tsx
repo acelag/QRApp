@@ -41,14 +41,9 @@ const TOP_NAV: NavEntry[] = [
   { type: 'item',  label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders',    color: 'bg-orange-50 text-orange-600' },
   { type: 'item',  label: 'Menu',      icon: UtensilsCrossed, to: '/admin/menu',      color: 'bg-green-50  text-green-600'  },
   { type: 'item',  label: 'QR',    icon: QrCode, to: '/admin/locations', color: 'bg-purple-50 text-purple-600' },
-  { type: 'item',  label: 'Floor', icon: MapPin, to: '/admin/floor',     color: 'bg-purple-50 text-purple-600' },
-  {
-    type: 'group', label: 'Displays', icon: MonitorPlay, color: 'bg-red-50 text-red-600',
-    children: [
-      { label: 'Kitchen Display', icon: ChefHat,     to: '/kitchen',             color: 'bg-red-50 text-red-600' },
-      { label: 'Ready Display',   icon: MonitorPlay, to: '/admin/ready-display', color: 'bg-red-50 text-red-600' },
-    ],
-  },
+  { type: 'item',  label: 'Floor',          icon: MapPin,      to: '/admin/floor',         color: 'bg-purple-50 text-purple-600' },
+  { type: 'item',  label: 'Kitchen',        icon: ChefHat,     to: '/kitchen',              color: 'bg-red-50    text-red-600'    },
+  { type: 'item',  label: 'Ready Display',  icon: MonitorPlay, to: '/admin/ready-display',  color: 'bg-red-50    text-red-600'    },
   {
     type: 'group', label: 'Finance', icon: Receipt, color: 'bg-teal-50 text-teal-600',
     children: [
