@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BedDouble, CheckCircle2, Printer, RefreshCw } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -10,12 +10,12 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import { printService } from '../../services/printService';
 
-export function RoomChargesPage() {
+export function RoomChargesPage({ embedded = false }: { embedded?: boolean }) {
   const { fmt } = useCurrency();
-  const [orders, setOrders]           = useState<Order[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [settling, setSettling]       = useState<Order | null>(null);
-  const [settings, setSettings]       = useState<RestaurantSettings | null>(null);
+  const [orders, setOrders]     = useState<Order[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [settling, setSettling] = useState<Order | null>(null);
+  const [settings, setSettings] = useState<RestaurantSettings | null>(null);
 
   useEffect(() => { restaurantService.getMyRestaurant().then(setSettings).catch(() => {}); }, []);
 
@@ -64,25 +64,26 @@ export function RoomChargesPage() {
     setSettling(null);
   }
 
-  // Group by room number
   const byRoom = orders.reduce<Record<string, Order[]>>((acc, o) => {
     const key = String(o.roomNumber ?? 'Unknown');
     (acc[key] ??= []).push(o);
     return acc;
   }, {});
-
   const rooms = Object.entries(byRoom).sort(([a], [b]) => Number(a) - Number(b));
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Room Charges" backTo="/admin">
-        <button onClick={fetchOrders} className="text-gray-400 hover:text-gray-600">
-          <RefreshCw size={18} />
-        </button>
-      </AdminHeader>
+  const refreshBtn = (
+    <button onClick={fetchOrders} className="text-gray-400 hover:text-gray-600">
+      <RefreshCw size={18} />
+    </button>
+  );
 
+  const body = (
+    <>
+      {embedded && (
+        <div className="px-3 sm:px-4 lg:px-6 py-2.5 bg-white border-b border-gray-100 flex items-center gap-2">
+          {refreshBtn}
+        </div>
+      )}
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
         {loading ? (
           <div className="flex justify-center pt-12">
@@ -99,7 +100,6 @@ export function RoomChargesPage() {
             const total = roomOrders.reduce((s, o) => s + o.totalAmount, 0);
             return (
               <div key={roomNum} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                {/* Room header */}
                 <div className="flex items-center gap-3 px-5 py-4 bg-blue-50 border-b border-blue-100">
                   <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
                     <BedDouble size={18} className="text-white" />
@@ -113,8 +113,6 @@ export function RoomChargesPage() {
                     <p className="text-xs text-blue-500">total pending</p>
                   </div>
                 </div>
-
-                {/* Orders */}
                 <div className="divide-y divide-gray-50">
                   {roomOrders.map((order) => (
                     <div key={order.id} className="px-5 py-3">
@@ -126,18 +124,13 @@ export function RoomChargesPage() {
                           </p>
                           <ul className="mt-1 space-y-0.5">
                             {order.items.map((item, i) => (
-                              <li key={i} className="text-xs text-gray-500">
-                                {item.quantity}x {item.name}
-                              </li>
+                              <li key={i} className="text-xs text-gray-500">{item.quantity}x {item.name}</li>
                             ))}
                           </ul>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-semibold text-gray-800">{fmt(order.totalAmount)}</p>
-                          <button
-                            onClick={() => setSettling(order)}
-                            className="mt-1.5 text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-medium hover:bg-blue-700 transition-colors"
-                          >
+                          <button onClick={() => setSettling(order)} className="mt-1.5 text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-medium hover:bg-blue-700 transition-colors">
                             Settle
                           </button>
                         </div>
@@ -145,23 +138,16 @@ export function RoomChargesPage() {
                     </div>
                   ))}
                 </div>
-
-                {/* Settle all button */}
                 {roomOrders.length > 1 && (
                   <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
                     <p className="text-xs text-gray-500 mb-2">Settle all {roomOrders.length} orders for Room {roomNum}:</p>
                     <div className="flex gap-2 flex-wrap">
                       {['cash', 'card', 'online'].map((method) => (
-                          <button
-                            key={method}
-                            onClick={async () => {
-                              for (const o of roomOrders) await handleSettle(o, method);
-                            }}
-                            className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-xl font-medium hover:border-blue-300 hover:bg-blue-50 transition-colors"
-                          >
-                            {paymentMethodLabel(method)}
-                          </button>
-                        ))}
+                        <button key={method} onClick={async () => { for (const o of roomOrders) await handleSettle(o, method); }}
+                          className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-xl font-medium hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                          {paymentMethodLabel(method)}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -170,17 +156,30 @@ export function RoomChargesPage() {
           })
         )}
       </div>
-
-      {/* Settle modal for a single order */}
       {settling && (
         <PaymentMethodModal
-          title={`Settle  -  ${settling.orderNumber ?? settling.id.slice(0, 8)}`}
-          subtitle={`Room ${settling.roomNumber}  .  ${fmt(settling.totalAmount)}`}
+          title={`Settle - ${settling.orderNumber ?? settling.id.slice(0, 8)}`}
+          subtitle={`Room ${settling.roomNumber} . ${fmt(settling.totalAmount)}`}
           total={settling.totalAmount}
           onConfirm={(method: PaymentMethod) => handleSettle(settling, method)}
           onClose={() => setSettling(null)}
         />
       )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="h-full overflow-y-auto bg-gray-50">{body}</div>;
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+        <AdminHeader title="Room Charges" backTo="/admin">
+          {refreshBtn}
+        </AdminHeader>
+        {body}
       </main>
     </div>
   );

@@ -32,7 +32,7 @@ function elapsed(iso: string) {
 
 type Tab = 'table' | 'takeaway' | 'refunds';
 
-export function BillsPage() {
+export function BillsPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const canRefund = user?.role === 'admin' || user?.role === 'manager';
 
@@ -225,19 +225,22 @@ export function BillsPage() {
     return { refundedBySession: bySession, refundedByOrder: byOrder, todayRefunds: todayList };
   }, [refunds]);
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Bills" backTo="/admin">
-        <button
-          onClick={() => { load(); if (canRefund) loadRefunds(); }}
-          className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
-        >
-          <RefreshCw size={18} />
-        </button>
-      </AdminHeader>
+  const refreshBtn = (
+    <button
+      onClick={() => { load(); if (canRefund) loadRefunds(); }}
+      className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+    >
+      <RefreshCw size={18} />
+    </button>
+  );
 
+  const innerContent = (
+    <>
+      {embedded && (
+        <div className="px-3 sm:px-4 lg:px-6 py-2.5 bg-white border-b border-gray-100 flex items-center gap-2">
+          {refreshBtn}
+        </div>
+      )}
       <div className="bg-white shadow-sm sticky top-0 z-30">
         <div className="px-3 sm:px-4 lg:px-6 py-3 flex gap-2 flex-wrap">
           <button
@@ -787,6 +790,21 @@ export function BillsPage() {
           onClose={() => setRefundTarget(null)}
         />
       )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="h-full overflow-y-auto bg-gray-50">{innerContent}</div>;
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+      <AdminHeader title="Bills" backTo="/admin">
+        {refreshBtn}
+      </AdminHeader>
+      {innerContent}
       </main>
     </div>
   );

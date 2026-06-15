@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import {
-  Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag,
+  Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed,
   QrCode, MapPin, MonitorPlay, ChefHat,
-  Receipt, CreditCard, Users, Warehouse, BarChart2,
+  Receipt, Users, Warehouse, BarChart2,
   Settings, Star, ArrowLeft, Clock, Box,
 } from 'lucide-react';
 
@@ -44,14 +44,7 @@ const TOP_NAV: NavEntry[] = [
   { type: 'item',  label: 'Floor',          icon: MapPin,      to: '/admin/floor',         color: 'bg-purple-50 text-purple-600' },
   { type: 'item',  label: 'Kitchen',        icon: ChefHat,     to: '/kitchen',              color: 'bg-red-50    text-red-600'    },
   { type: 'item',  label: 'Ready Display',  icon: MonitorPlay, to: '/admin/ready-display',  color: 'bg-red-50    text-red-600'    },
-  {
-    type: 'group', label: 'Finance', icon: Receipt, color: 'bg-teal-50 text-teal-600',
-    children: [
-      { label: 'Bills',        icon: Receipt,    to: '/admin/bills',        color: 'bg-teal-50 text-teal-600' },
-      { label: 'Room Charges', icon: CreditCard, to: '/admin/room-charges', color: 'bg-teal-50 text-teal-600' },
-      { label: 'Promo Codes',  icon: Tag,        to: '/admin/promo-codes',  color: 'bg-teal-50 text-teal-600' },
-    ],
-  },
+  { type: 'item', label: 'Finance', icon: Receipt, to: '/admin/finance', color: 'bg-teal-50 text-teal-600' },
   { type: 'item', label: 'Staff', icon: Users, to: '/admin/users', color: 'bg-indigo-50 text-indigo-600' },
   {
     type: 'group', label: 'Inventory', icon: Warehouse, color: 'bg-amber-50 text-amber-600',

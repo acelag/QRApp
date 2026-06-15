@@ -15,7 +15,7 @@ const EMPTY_FORM = {
   expiresAt: '',
 };
 
-export function PromoCodesPage() {
+export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
   const { fmt } = useCurrency();
   const [codes, setCodes]       = useState<PromoCode[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -92,19 +92,22 @@ export function PromoCodesPage() {
   const activeCodes   = codes.filter((c) => c.active);
   const inactiveCodes = codes.filter((c) => !c.active);
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Promo Codes" backTo="/admin" icon={Tag}>
-        <button
-          onClick={() => { setShowForm((v) => !v); setForm(EMPTY_FORM); }}
-          className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-2xl text-sm font-semibold hover:bg-orange-600 transition-colors"
-        >
-          <Plus size={15} /> New Code
-        </button>
-      </AdminHeader>
+  const newCodeBtn = (
+    <button
+      onClick={() => { setShowForm((v) => !v); setForm(EMPTY_FORM); }}
+      className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-2xl text-sm font-semibold hover:bg-orange-600 transition-colors"
+    >
+      <Plus size={15} /> New Code
+    </button>
+  );
 
+  const innerContent = (
+    <>
+      {embedded && (
+        <div className="px-3 sm:px-4 lg:px-6 py-2.5 bg-white border-b border-gray-100 flex items-center justify-end gap-2">
+          {newCodeBtn}
+        </div>
+      )}
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-5 max-w-3xl">
         {/* â”€â”€ Create form â”€â”€ */}
         {showForm && (
@@ -272,6 +275,21 @@ export function PromoCodesPage() {
           </>
         )}
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="h-full overflow-y-auto bg-gray-50">{innerContent}</div>;
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
+      <AdminHeader title="Promo Codes" backTo="/admin" icon={Tag}>
+        {newCodeBtn}
+      </AdminHeader>
+      {innerContent}
       </main>
     </div>
   );
