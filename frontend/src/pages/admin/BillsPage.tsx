@@ -2,6 +2,7 @@
 import {
   CheckCircle2, Clock, Loader2, Receipt, RefreshCw,
   Printer, ShoppingBag, Table2, Users, GitMerge, Unlink, RotateCcw,
+  Download, MessageCircle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Session } from '../../services/sessionService';
@@ -54,6 +55,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
   const [refundTarget, setRefundTarget]     = useState<{
     label: string; maxAmount: number; orderId?: string; sessionId?: string;
   } | null>(null);
+  const [sessionPhones, setSessionPhones]   = useState<Record<string, string>>({});
 
   const { fmt } = useCurrency();
 
@@ -199,6 +201,44 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
     } finally {
       setUnmerging(null);
     }
+  }
+
+  async function handlePrintSession(sessionId: string) {
+    const result = await printService.sessionReceipt(sessionId);
+    if (result.success) {
+      toast.success('Receipt sent to printer');
+    } else {
+      window.open(`/session-receipt/${sessionId}`, '_blank', 'width=400,height=600');
+    }
+  }
+
+  function buildSessionWhatsApp(session: Session, phone: string): string {
+    const lines: string[] = [];
+    lines.push(`🧾 Table Bill — Table ${session.tableNumber}`);
+    if (billingSettings?.name) lines.push(billingSettings.name);
+    lines.push('');
+    for (const item of session.billItems ?? []) {
+      lines.push(`• ${item.quantity}× ${item.name} — ${fmt(item.total)}`);
+    }
+    lines.push('');
+    const subtotal = session.totalAmount ?? 0;
+    const charges = billingSettings
+      ? computeCharges(subtotal, { serviceChargePct: billingSettings.serviceChargePct, taxPct: billingSettings.taxPct })
+      : { serviceCharge: 0, tax: 0, grandTotal: subtotal };
+    lines.push(`Subtotal: ${fmt(subtotal)}`);
+    if (charges.serviceCharge > 0) lines.push(`Service Charge: ${fmt(charges.serviceCharge)}`);
+    if (charges.tax > 0)           lines.push(`Tax: ${fmt(charges.tax)}`);
+    lines.push(`*Total: ${fmt(charges.grandTotal)}*`, '', 'Thank you! 🙏');
+    const text = encodeURIComponent(lines.join('\n'));
+    const digits = phone.replace(/\D/g, '');
+    const e164 = phone.trim().startsWith('+') ? digits : digits.startsWith('0') ? `94${digits.slice(1)}` : digits;
+    return `https://wa.me/${e164}?text=${text}`;
+  }
+
+  function handleSendSessionWhatsApp(session: Session) {
+    const phone = (sessionPhones[session.id] ?? '').trim();
+    if (!phone) { toast.error('Enter a mobile number first'); return; }
+    window.open(buildSessionWhatsApp(session, phone), '_blank', 'noopener,noreferrer');
   }
 
   const todayDateStr = new Date().toDateString();
@@ -409,14 +449,41 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
                       )}
 
                       <div className="px-5 py-4 space-y-2">
-                        <div className="grid grid-cols-3 gap-2">
-                          <button
-                            onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
-                            disabled={(session.billItems ?? []).length === 0}
-                            className="flex items-center justify-center gap-1.5 border border-gray-200 text-gray-600 font-semibold py-2.5 px-2 rounded-2xl hover:bg-gray-50 transition-colors disabled:opacity-40 text-sm"
-                          >
-                            <Printer size={15} /> Print
-                          </button>
+                        {(session.billItems ?? []).length > 0 && (
+                          <div className="space-y-2 pb-1 border-b border-gray-100">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handlePrintSession(session.id)}
+                                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-900 text-white font-semibold py-2.5 px-3 rounded-xl hover:bg-gray-800 transition-colors text-sm"
+                              >
+                                <Printer size={15} /> Print Bill
+                              </button>
+                              <button
+                                onClick={() => window.open(`/session-receipt/${session.id}`, '_blank', 'width=400,height=600')}
+                                className="flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 font-semibold py-2.5 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                              >
+                                <Download size={15} /> PDF
+                              </button>
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="tel"
+                                value={sessionPhones[session.id] ?? ''}
+                                onChange={(e) => setSessionPhones((p) => ({ ...p, [session.id]: e.target.value }))}
+                                placeholder="Send to mobile — 07X XXX XXXX"
+                                className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-300"
+                              />
+                              <button
+                                onClick={() => handleSendSessionWhatsApp(session)}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 transition-colors whitespace-nowrap"
+                              >
+                                <MessageCircle size={15} /> Send
+                              </button>
+                            </div>
+                            <p className="text-[11px] text-gray-400 pb-1">Print, save as PDF, or send the bill to the customer's phone via WhatsApp.</p>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
                           <button
                             onClick={() => setSplitSession(session)}
                             disabled={(session.billItems ?? []).length === 0}
