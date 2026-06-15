@@ -129,6 +129,13 @@ export function OrdersPage() {
       })
     : filtered;
 
+  const orderGroups = [
+    { key: 'takeaway',     label: 'Takeaway',     dot: 'bg-purple-400', orders: displayed.filter((o) => o.orderType === 'takeaway') },
+    { key: 'dine-in',      label: 'Dine In',      dot: 'bg-orange-400', orders: displayed.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service') },
+    { key: 'room-service', label: 'Room Service',  dot: 'bg-blue-400',   orders: displayed.filter((o) => o.orderType === 'room-service') },
+  ].filter((g) => g.orders.length > 0);
+  const showGroups = orderGroups.length > 1;
+
   // Keep selected order valid when filter changes
   useEffect(() => {
     if (selectedOrderId && !filtered.find((o) => o.id === selectedOrderId)) {
@@ -207,6 +214,35 @@ export function OrdersPage() {
           </div>
         ) : displayed.length === 0 ? (
           <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
+        ) : showGroups ? (
+          <div className="space-y-5">
+            {orderGroups.map((g) => (
+              <div key={g.key}>
+                <div className="flex items-center gap-2 px-1 mb-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${g.dot}`} />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{g.label}</span>
+                  <span className="text-xs text-gray-400">({g.orders.length})</span>
+                </div>
+                <div className="columns-1 sm:columns-2 gap-3">
+                  {g.orders.map((order) => (
+                    <div key={order.id} className="break-inside-avoid mb-3">
+                      <OrderCard
+                        order={order}
+                        onStatusChange={handleStatusChange}
+                        onAssignWaiter={handleAssignWaiter}
+                        onAddItems={setAddItemsOrder}
+                        onCancel={handleCancel}
+                        onRemoveItem={handleRemoveItem}
+                        onUpdateItemQty={handleUpdateItemQty}
+                        waiters={waiters}
+                        showActions
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="columns-1 sm:columns-2 gap-3">
             {displayed.map((order) => (
@@ -240,6 +276,53 @@ export function OrdersPage() {
               </div>
             ) : displayed.length === 0 ? (
               <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
+            ) : showGroups ? (
+              <div className="space-y-4">
+                {orderGroups.map((g) => (
+                  <div key={g.key}>
+                    <div className="flex items-center gap-1.5 px-1 mb-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${g.dot}`} />
+                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{g.label}</span>
+                      <span className="text-xs text-gray-300">({g.orders.length})</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {g.orders.map((order) => (
+                        <button
+                          key={order.id}
+                          onClick={() => setSelectedOrderId(order.id)}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
+                            selectedOrderId === order.id
+                              ? 'bg-orange-50 border-orange-200'
+                              : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-semibold text-gray-900 truncate">
+                              {order.orderNumber ?? `#${order.id.slice(0, 6)}`}
+                            </span>
+                            <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                              order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
+                              order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
+                              order.status === 'ready'     ? 'bg-green-100 text-green-700' :
+                              'bg-red-100 text-red-600'
+                            }`}>{order.status}</span>
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                            <span>
+                              {order.orderType === 'takeaway' ? 'Takeaway' :
+                               order.tableNumber ? `Table ${order.tableNumber}` :
+                               order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
+                            </span>
+                            {order.customerName && (
+                              <span className="truncate">{order.customerName}</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="space-y-1.5">
                 {displayed.map((order) => (
