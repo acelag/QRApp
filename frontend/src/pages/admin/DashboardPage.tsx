@@ -568,38 +568,6 @@ export function DashboardPage() {
                 )}
               </div>
 
-              {/* Quick Actions */}
-              <div className="space-y-2">
-                <Link
-                  to="/admin/new-order"
-                  className="flex items-center gap-3 bg-orange-500 hover:bg-orange-600 transition-colors rounded-2xl px-4 py-3.5 shadow-sm"
-                >
-                  <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <ShoppingBag size={15} className="text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-white">New Order</p>
-                    <p className="text-[11px] text-orange-100">Dine-in or takeaway</p>
-                  </div>
-                </Link>
-                <Link
-                  to="/admin/orders"
-                  className="relative flex items-center gap-3 bg-gray-800 hover:bg-gray-900 transition-colors rounded-2xl px-4 py-3.5 shadow-sm"
-                >
-                  <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <ChefHat size={15} className="text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-white">Live Orders</p>
-                    <p className="text-[11px] text-gray-400">Manage kitchen queue</p>
-                  </div>
-                  {activeOrders.length > 0 && (
-                    <span className="bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[20px] px-1.5 py-0.5 text-center leading-none flex-shrink-0">
-                      {activeOrders.length}
-                    </span>
-                  )}
-                </Link>
-              </div>
 
             </div>
           </div>

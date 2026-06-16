@@ -175,7 +175,7 @@ export function OrdersPage() {
           <div className="flex gap-1.5 overflow-x-auto flex-1">
             {TYPE_TABS.map((tt) => {
               const count =
-                tt.value === 'all'          ? null
+                tt.value === 'all'          ? orders.filter((o) => o.status !== 'cancelled').length
                 : tt.value === 'dine-in'    ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.status !== 'cancelled').length
                 : tt.value === 'takeaway'   ? orders.filter((o) => o.orderType === 'takeaway'     && o.status !== 'cancelled').length
                 : orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length;
@@ -193,7 +193,7 @@ export function OrdersPage() {
                   }`}
                 >
                   {tt.label}
-                  {count !== null && count > 0 && (
+                  {count !== null && (
                     <span className="ml-1.5 text-xs opacity-80">({count})</span>
                   )}
                 </button>

@@ -14,7 +14,7 @@ const NavModeContext = createContext<NavModeContextValue>({
 
 export function NavModeProvider({ children }: { children: React.ReactNode }) {
   const [navMode, setNavModeState] = useState<NavMode>(
-    () => (localStorage.getItem('qra-nav-mode') as NavMode | null) ?? 'sidebar'
+    () => (localStorage.getItem('qra-nav-mode') as NavMode | null) ?? 'launcher'
   );
 
   function setNavMode(mode: NavMode) {
