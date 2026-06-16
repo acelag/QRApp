@@ -1,8 +1,9 @@
 ﻿import { useEffect, useState, useRef } from 'react';
 import {
   Star, Users, ChevronDown, ChevronRight, Plus, Minus,
-  Check, X, Loader2, Search,
+  Check, X, Loader2, Search, ArrowLeft,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { loyaltyService } from '../../services/loyaltyService';
 import type { LoyaltyConfig, LoyaltyAccount, LoyaltyTransaction } from '../../services/loyaltyService';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -400,9 +401,13 @@ function MembersPanel() {
 // â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function LoyaltyPage() {
+  const navigate = useNavigate();
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
       <div className="flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+          <ArrowLeft size={18} />
+        </button>
         <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center">
           <Star size={20} className="text-amber-500 fill-amber-400" />
         </div>
