@@ -17,7 +17,8 @@ export function NotificationBell({ theme = 'light' }: Props) {
     if (!pushService.isSupported()) { setState('unsupported'); return; }
     if (pushService.permissionState() === 'denied') { setState('denied'); return; }
 
-    pushService.getSubscription()
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+    Promise.race([pushService.getSubscription(), timeout])
       .then((sub) => setState(sub ? 'on' : 'off'))
       .catch(() => setState('off'));
   }, []);

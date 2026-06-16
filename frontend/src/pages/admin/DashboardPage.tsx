@@ -1,9 +1,9 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShoppingBag, TrendingUp, TrendingDown, XCircle, Banknote,
   Star, Clock, Receipt, ChefHat, CheckCircle2,
-  AlertTriangle, Utensils, Search, ArrowUpRight,
+  AlertTriangle, Utensils, Search, ArrowUpRight, Bot,
 } from 'lucide-react';
 import { stockService, type StockItem } from '../../services/stockService';
 import { AdminSidebar } from '../../components/AdminSidebar';
@@ -57,6 +57,8 @@ export function DashboardPage() {
   const [heatmap,    setHeatmap]    = useState<HeatmapCell[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
+  const [botRunning, setBotRunning] = useState(false);
+  const [botLoading, setBotLoading] = useState(false);
 
   useOrderSoundAlert(orders);
 
@@ -207,6 +209,33 @@ export function DashboardPage() {
       hero:    false,
     },
   ];
+
+  // ── sim bot ──────────────────────────────────────────────────────────────────
+  const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const check = () =>
+      fetch(`${API}/api/dev/sim-bot/status`)
+        .then((r) => r.json())
+        .then((d) => setBotRunning(d.running))
+        .catch(() => {});
+    check();
+    const id = setInterval(check, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  const toggleBot = useCallback(async () => {
+    setBotLoading(true);
+    try {
+      const action = botRunning ? 'stop' : 'start';
+      const res = await fetch(`${API}/api/dev/sim-bot/${action}`, { method: 'POST' });
+      const data = await res.json();
+      setBotRunning(data.running);
+    } catch { /* ignore */ } finally {
+      setBotLoading(false);
+    }
+  }, [botRunning]);
 
   // â”€â”€ render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
@@ -573,6 +602,24 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Sim Bot toggle — dev only */}
+      {import.meta.env.DEV && (
+        <button
+          onClick={toggleBot}
+          disabled={botLoading}
+          title={botRunning ? 'Stop sim bot' : 'Start sim bot'}
+          className={`fixed bottom-5 left-5 z-50 flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold shadow-lg transition-colors ${
+            botRunning
+              ? 'bg-green-500 hover:bg-green-600 text-white'
+              : 'bg-gray-700 hover:bg-gray-800 text-white'
+          } ${botLoading ? 'opacity-60 cursor-wait' : ''}`}
+        >
+          <Bot size={14} />
+          {botLoading ? '...' : botRunning ? 'Bot ON' : 'Bot OFF'}
+          <span className={`w-2 h-2 rounded-full ${botRunning ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
+        </button>
+      )}
     </div>
   );
 }
