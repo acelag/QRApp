@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-const isRemote = (process.env.DATABASE_URL ?? '').includes('.render.com');
+const isRemote = (process.env.DATABASE_URL ?? '').includes('.render.com') || (process.env.DATABASE_URL ?? '').includes('.neon.tech');
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
