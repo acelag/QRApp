@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import {
   ShoppingBag, TrendingUp, TrendingDown, XCircle, Banknote,
-  Star, Clock, Receipt, ChefHat, CheckCircle2,
+  Star, Clock, Receipt, CheckCircle2,
   AlertTriangle, Utensils, Search, ArrowUpRight, Bot,
 } from 'lucide-react';
 import { stockService, type StockItem } from '../../services/stockService';
