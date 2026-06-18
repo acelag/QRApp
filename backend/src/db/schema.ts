@@ -585,5 +585,37 @@ export async function createSchema(): Promise<void> {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_restaurant ON audit_logs (restaurant_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action)`);
 
+  // ── Modifier Groups ─────────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS modifier_groups (
+      id           VARCHAR(36)  NOT NULL PRIMARY KEY,
+      menu_item_id VARCHAR(36)  NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+      name         VARCHAR(255) NOT NULL,
+      type         VARCHAR(10)  NOT NULL DEFAULT 'multi',
+      required     BOOLEAN      NOT NULL DEFAULT FALSE,
+      sort_order   INT          NOT NULL DEFAULT 0
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS modifier_options (
+      id         VARCHAR(36)   NOT NULL PRIMARY KEY,
+      group_id   VARCHAR(36)   NOT NULL REFERENCES modifier_groups(id) ON DELETE CASCADE,
+      name       VARCHAR(255)  NOT NULL,
+      price      DECIMAL(10,2) NOT NULL DEFAULT 0,
+      available  BOOLEAN       NOT NULL DEFAULT TRUE,
+      sort_order INT           NOT NULL DEFAULT 0
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS order_item_modifiers (
+      id                 VARCHAR(36)   NOT NULL PRIMARY KEY,
+      order_item_id      VARCHAR(36)   NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+      modifier_option_id VARCHAR(36)   NULL,
+      group_name         VARCHAR(255)  NOT NULL,
+      option_name        VARCHAR(255)  NOT NULL,
+      price              DECIMAL(10,2) NOT NULL DEFAULT 0
+    );
+  `);
+
   console.log('✓ Schema ready');
 }

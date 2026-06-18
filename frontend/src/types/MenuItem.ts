@@ -17,6 +17,23 @@ export interface Topping {
   available: boolean;
 }
 
+export interface ModifierOption {
+  id: string;
+  name: string;
+  price: number;
+  available: boolean;
+  sortOrder: number;
+}
+
+export interface ModifierGroup {
+  id: string;
+  name: string;
+  type: 'single' | 'multi';
+  required: boolean;
+  sortOrder: number;
+  options: ModifierOption[];
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -33,6 +50,7 @@ export interface MenuItem {
   sortOrder?: number;
   tags?: string[];
   toppings?: Topping[];
+  modifierGroups?: ModifierGroup[];
   prepTimeMins?: number | null;
   scheduleId?: string | null;
   calories?: number | null;

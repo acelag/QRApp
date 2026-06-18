@@ -11,24 +11,32 @@ const router = Router();
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
 
 interface SelectedTopping { id: string; name: string; price: number; }
+interface SelectedModifier { groupName: string; optionId: string; optionName: string; price: number; }
 interface CartItem {
   menuItemId: string; name: string; price: number; quantity: number;
   notes?: string; size?: 'regular' | 'large';
   toppings?: SelectedTopping[];
+  modifiers?: SelectedModifier[];
   comboId?: string;
 }
 
 const ITEMS_SQL = `
   SELECT oi.*,
     COALESCE(
-      json_agg(
+      json_agg(DISTINCT
         json_build_object('id', oit.topping_id, 'name', oit.name, 'price', oit.price::float)
-        ORDER BY oit.name
       ) FILTER (WHERE oit.id IS NOT NULL),
       '[]'::json
-    ) AS toppings
+    ) AS toppings,
+    COALESCE(
+      json_agg(DISTINCT
+        json_build_object('groupName', oim.group_name, 'optionId', oim.modifier_option_id, 'optionName', oim.option_name, 'price', oim.price::float)
+      ) FILTER (WHERE oim.id IS NOT NULL),
+      '[]'::json
+    ) AS modifiers
   FROM order_items oi
   LEFT JOIN order_item_toppings oit ON oit.order_item_id = oi.id
+  LEFT JOIN order_item_modifiers oim ON oim.order_item_id = oi.id
   WHERE oi.order_id = $1
   GROUP BY oi.id
 `;
@@ -37,14 +45,20 @@ const ITEMS_SQL = `
 const ITEMS_BULK_SQL = `
   SELECT oi.*,
     COALESCE(
-      json_agg(
+      json_agg(DISTINCT
         json_build_object('id', oit.topping_id, 'name', oit.name, 'price', oit.price::float)
-        ORDER BY oit.name
       ) FILTER (WHERE oit.id IS NOT NULL),
       '[]'::json
-    ) AS toppings
+    ) AS toppings,
+    COALESCE(
+      json_agg(DISTINCT
+        json_build_object('groupName', oim.group_name, 'optionId', oim.modifier_option_id, 'optionName', oim.option_name, 'price', oim.price::float)
+      ) FILTER (WHERE oim.id IS NOT NULL),
+      '[]'::json
+    ) AS modifiers
   FROM order_items oi
   LEFT JOIN order_item_toppings oit ON oit.order_item_id = oi.id
+  LEFT JOIN order_item_modifiers oim ON oim.order_item_id = oi.id
   WHERE oi.order_id = ANY($1)
   GROUP BY oi.id
 `;
@@ -77,6 +91,7 @@ function mapOrderRow(o: Record<string, unknown>, itemRows: Record<string, unknow
       notes: i.notes ?? undefined, size: (i.size as string | null) ?? undefined,
       comboId: (i.combo_id as string | null) ?? undefined,
       toppings: ((i.toppings as SelectedTopping[] | null) ?? []).filter((t) => t.id != null),
+      modifiers: ((i.modifiers as SelectedModifier[] | null) ?? []),
     })),
   };
 }
@@ -162,7 +177,8 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
 
   const subtotal = items.reduce((s, i) => {
     const toppingsTotal = (i.toppings ?? []).reduce((t, tp) => t + tp.price, 0);
-    return s + (i.price + toppingsTotal) * i.quantity;
+    const modifiersTotal = (i.modifiers ?? []).reduce((t, m) => t + m.price, 0);
+    return s + (i.price + toppingsTotal + modifiersTotal) * i.quantity;
   }, 0);
 
   // Promo code validation will happen inside the transaction (with FOR UPDATE lock)
@@ -283,6 +299,12 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
         await client.query(
           `INSERT INTO order_item_toppings (id,order_item_id,topping_id,name,price) VALUES ($1,$2,$3,$4,$5)`,
           [uuid(), orderItemId, topping.id, topping.name, topping.price],
+        );
+      }
+      for (const mod of (item.modifiers ?? [])) {
+        await client.query(
+          `INSERT INTO order_item_modifiers (id,order_item_id,modifier_option_id,group_name,option_name,price) VALUES ($1,$2,$3,$4,$5,$6)`,
+          [uuid(), orderItemId, mod.optionId ?? null, mod.groupName, mod.optionName, mod.price],
         );
       }
       // Check stock before decrementing to prevent overselling

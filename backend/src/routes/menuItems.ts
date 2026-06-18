@@ -55,7 +55,23 @@ const ITEMS_WITH_TOPPINGS_SQL = `
         DISTINCT jsonb_build_object('id', t.id, 'name', t.name, 'price', t.price::float, 'available', t.available)
       ) FILTER (WHERE t.id IS NOT NULL),
       '[]'::json
-    ) AS toppings
+    ) AS toppings,
+    COALESCE(
+      (SELECT json_agg(
+        jsonb_build_object(
+          'id', mg.id, 'name', mg.name, 'type', mg.type,
+          'required', mg.required, 'sortOrder', mg.sort_order,
+          'options', (
+            SELECT COALESCE(json_agg(
+              jsonb_build_object('id', mo.id, 'name', mo.name, 'price', mo.price::float, 'available', mo.available, 'sortOrder', mo.sort_order)
+              ORDER BY mo.sort_order, mo.name
+            ), '[]'::json)
+            FROM modifier_options mo WHERE mo.group_id = mg.id
+          )
+        ) ORDER BY mg.sort_order, mg.name
+      ) FROM modifier_groups mg WHERE mg.menu_item_id = mi.id),
+      '[]'::json
+    ) AS modifier_groups
   FROM menu_items mi
   LEFT JOIN menu_item_toppings t ON t.menu_item_id = mi.id
 `;
@@ -76,6 +92,7 @@ const toItem = (row: Record<string, unknown>) => ({
   sortOrder:        Number(row.sort_order ?? 0),
   tags:             (() => { try { return JSON.parse((row.tags as string | null) ?? '[]') as string[]; } catch { return []; } })(),
   toppings:         (row.toppings as { id: string; name: string; price: number; available: boolean }[] | null) ?? [],
+  modifierGroups:   (row.modifier_groups as unknown[] | null) ?? [],
   prepTimeMins:     row.prep_time_mins != null ? Number(row.prep_time_mins) : null,
   scheduleId:       (row.schedule_id as string | null) ?? null,
   calories:         row.calories != null ? Number(row.calories) : null,
@@ -435,6 +452,121 @@ router.delete('/:itemId/toppings/:toppingId', authenticate, requireRole('admin',
     `DELETE FROM menu_item_toppings t USING menu_items mi
      WHERE t.id = $1 AND t.menu_item_id = mi.id AND mi.restaurant_id = $2`,
     [req.params.toppingId, req.user!.restaurantId],
+  );
+  if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  res.status(204).send();
+});
+
+// ── Modifier Group CRUD ───────────────────────────────────────────────────────
+
+router.get('/:itemId/modifier-groups', optionalAuthenticate, async (req, res) => {
+  const groups = await pool.query(
+    `SELECT mg.*, json_agg(
+       jsonb_build_object('id', mo.id, 'name', mo.name, 'price', mo.price::float, 'available', mo.available, 'sortOrder', mo.sort_order)
+       ORDER BY mo.sort_order, mo.name
+     ) FILTER (WHERE mo.id IS NOT NULL) AS options
+     FROM modifier_groups mg
+     LEFT JOIN modifier_options mo ON mo.group_id = mg.id
+     WHERE mg.menu_item_id = $1
+     GROUP BY mg.id ORDER BY mg.sort_order, mg.name`,
+    [req.params.itemId],
+  );
+  res.json(groups.rows.map((g: Record<string, unknown>) => ({
+    id: g.id, name: g.name, type: g.type, required: g.required, sortOrder: Number(g.sort_order),
+    options: (g.options as unknown[] | null) ?? [],
+  })));
+});
+
+router.post('/:itemId/modifier-groups', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { name, type = 'multi', required = false } = req.body as { name: string; type?: string; required?: boolean };
+  if (!name?.trim()) { res.status(400).json({ error: 'name is required' }); return; }
+  const item = await pool.query('SELECT id FROM menu_items WHERE id = $1 AND restaurant_id = $2', [req.params.itemId, req.user!.restaurantId]);
+  if (!item.rows.length) { res.status(404).json({ error: 'Menu item not found' }); return; }
+  const countRes = await pool.query('SELECT COUNT(*) FROM modifier_groups WHERE menu_item_id = $1', [req.params.itemId]);
+  const sortOrder = Number((countRes.rows[0] as Record<string, unknown>).count);
+  const id = uuid();
+  await pool.query(
+    'INSERT INTO modifier_groups (id, menu_item_id, name, type, required, sort_order) VALUES ($1,$2,$3,$4,$5,$6)',
+    [id, req.params.itemId, name.trim(), type === 'single' ? 'single' : 'multi', Boolean(required), sortOrder],
+  );
+  res.status(201).json({ id, name: name.trim(), type, required: Boolean(required), sortOrder, options: [] });
+});
+
+router.patch('/:itemId/modifier-groups/:groupId', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { name, type, required } = req.body as { name?: string; type?: string; required?: boolean };
+  const existing = await pool.query(
+    `SELECT mg.* FROM modifier_groups mg JOIN menu_items mi ON mi.id = mg.menu_item_id
+     WHERE mg.id = $1 AND mi.restaurant_id = $2`,
+    [req.params.groupId, req.user!.restaurantId],
+  );
+  if (!existing.rows.length) { res.status(404).json({ error: 'Modifier group not found' }); return; }
+  const r = existing.rows[0] as Record<string, unknown>;
+  await pool.query(
+    'UPDATE modifier_groups SET name=$1, type=$2, required=$3 WHERE id=$4',
+    [name?.trim() ?? r.name, type ?? r.type, required !== undefined ? required : r.required, req.params.groupId],
+  );
+  const updated = await pool.query('SELECT * FROM modifier_groups WHERE id = $1', [req.params.groupId]);
+  const u = updated.rows[0] as Record<string, unknown>;
+  res.json({ id: u.id, name: u.name, type: u.type, required: u.required, sortOrder: Number(u.sort_order) });
+});
+
+router.delete('/:itemId/modifier-groups/:groupId', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const result = await pool.query(
+    `DELETE FROM modifier_groups mg USING menu_items mi
+     WHERE mg.id = $1 AND mg.menu_item_id = mi.id AND mi.restaurant_id = $2`,
+    [req.params.groupId, req.user!.restaurantId],
+  );
+  if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
+  res.status(204).send();
+});
+
+// ── Modifier Option CRUD ──────────────────────────────────────────────────────
+
+router.post('/:itemId/modifier-groups/:groupId/options', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { name, price = 0, available = true } = req.body as { name: string; price?: number; available?: boolean };
+  if (!name?.trim()) { res.status(400).json({ error: 'name is required' }); return; }
+  const group = await pool.query(
+    `SELECT mg.id FROM modifier_groups mg JOIN menu_items mi ON mi.id = mg.menu_item_id
+     WHERE mg.id = $1 AND mi.restaurant_id = $2`,
+    [req.params.groupId, req.user!.restaurantId],
+  );
+  if (!group.rows.length) { res.status(404).json({ error: 'Modifier group not found' }); return; }
+  const countRes = await pool.query('SELECT COUNT(*) FROM modifier_options WHERE group_id = $1', [req.params.groupId]);
+  const sortOrder = Number((countRes.rows[0] as Record<string, unknown>).count);
+  const id = uuid();
+  const priceVal = Math.max(0, Number(price) || 0);
+  await pool.query(
+    'INSERT INTO modifier_options (id, group_id, name, price, available, sort_order) VALUES ($1,$2,$3,$4,$5,$6)',
+    [id, req.params.groupId, name.trim(), priceVal, available, sortOrder],
+  );
+  res.status(201).json({ id, name: name.trim(), price: priceVal, available, sortOrder });
+});
+
+router.patch('/:itemId/modifier-groups/:groupId/options/:optionId', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { name, price, available } = req.body as { name?: string; price?: number; available?: boolean };
+  const existing = await pool.query(
+    `SELECT mo.* FROM modifier_options mo
+     JOIN modifier_groups mg ON mg.id = mo.group_id
+     JOIN menu_items mi ON mi.id = mg.menu_item_id
+     WHERE mo.id = $1 AND mi.restaurant_id = $2`,
+    [req.params.optionId, req.user!.restaurantId],
+  );
+  if (!existing.rows.length) { res.status(404).json({ error: 'Option not found' }); return; }
+  const r = existing.rows[0] as Record<string, unknown>;
+  await pool.query(
+    'UPDATE modifier_options SET name=$1, price=$2, available=$3 WHERE id=$4',
+    [name?.trim() ?? r.name, price !== undefined ? Math.max(0, Number(price) || 0) : Number(r.price), available !== undefined ? available : r.available, req.params.optionId],
+  );
+  const updated = await pool.query('SELECT * FROM modifier_options WHERE id = $1', [req.params.optionId]);
+  const u = updated.rows[0] as Record<string, unknown>;
+  res.json({ id: u.id, name: u.name, price: Number(u.price), available: u.available, sortOrder: Number(u.sort_order) });
+});
+
+router.delete('/:itemId/modifier-groups/:groupId/options/:optionId', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const result = await pool.query(
+    `DELETE FROM modifier_options mo USING modifier_groups mg, menu_items mi
+     WHERE mo.id = $1 AND mo.group_id = mg.id AND mg.menu_item_id = mi.id AND mi.restaurant_id = $2`,
+    [req.params.optionId, req.user!.restaurantId],
   );
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.status(204).send();

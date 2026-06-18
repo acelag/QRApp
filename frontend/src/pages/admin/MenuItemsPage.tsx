@@ -5,7 +5,7 @@ import { CombosPanel } from './CombosPage';
 import { MenuSchedulesPanel } from './MenuSchedulesPage';
 import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List, FlaskConical } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
-import type { Topping } from '../../types/MenuItem';
+import type { Topping, ModifierGroup, ModifierOption } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { tagService, tagPillCls } from '../../services/tagService';
 import type { Tag, TagCategory } from '../../services/tagService';
@@ -75,6 +75,11 @@ export function MenuItemsPage() {
   const [newTopping, setNewTopping] = useState<Record<string, { name: string; price: string }>>({});
   const [editingTopping, setEditingTopping] = useState<{ itemId: string; toppingId: string; name: string; price: string } | null>(null);
   const [savingTopping, setSavingTopping] = useState(false);
+  // Modifier groups
+  const [expandedModifiers, setExpandedModifiers] = useState<string | null>(null);
+  const [newModGroup, setNewModGroup] = useState<Record<string, { name: string; type: 'single' | 'multi'; required: boolean }>>({});
+  const [newModOption, setNewModOption] = useState<Record<string, { name: string; price: string }>>({});
+  const [savingMod, setSavingMod] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [form, setForm] = useState<Omit<MenuItem, 'id'>>(EMPTY);
@@ -328,6 +333,63 @@ export function MenuItemsPage() {
     } catch {
       toast.error('Failed to delete topping');
     }
+  }
+
+  // ── Modifier group handlers ───────────────────────────────────────────────
+
+  async function addModGroup(itemId: string) {
+    const data = newModGroup[itemId];
+    if (!data?.name?.trim()) return;
+    setSavingMod(true);
+    try {
+      const g = await menuService.createModifierGroup(itemId, { name: data.name.trim(), type: data.type ?? 'multi', required: data.required ?? false });
+      setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, modifierGroups: [...(i.modifierGroups ?? []), { ...g, options: [] }] } : i));
+      setNewModGroup((prev) => ({ ...prev, [itemId]: { name: '', type: 'multi', required: false } }));
+    } catch { toast.error('Failed to add modifier group'); }
+    finally { setSavingMod(false); }
+  }
+
+  async function deleteModGroup(itemId: string, groupId: string) {
+    if (!confirm('Delete this modifier group and all its options?')) return;
+    try {
+      await menuService.deleteModifierGroup(itemId, groupId);
+      setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, modifierGroups: (i.modifierGroups ?? []).filter((g) => g.id !== groupId) } : i));
+    } catch { toast.error('Failed to delete modifier group'); }
+  }
+
+  async function addModOption(itemId: string, groupId: string) {
+    const data = newModOption[groupId];
+    if (!data?.name?.trim()) return;
+    setSavingMod(true);
+    try {
+      const opt = await menuService.createModifierOption(itemId, groupId, { name: data.name.trim(), price: parseFloat(data.price) || 0 });
+      setItems((prev) => prev.map((i) => i.id === itemId ? {
+        ...i,
+        modifierGroups: (i.modifierGroups ?? []).map((g) => g.id === groupId ? { ...g, options: [...g.options, opt] } : g),
+      } : i));
+      setNewModOption((prev) => ({ ...prev, [groupId]: { name: '', price: '' } }));
+    } catch { toast.error('Failed to add option'); }
+    finally { setSavingMod(false); }
+  }
+
+  async function deleteModOption(itemId: string, groupId: string, optionId: string) {
+    try {
+      await menuService.deleteModifierOption(itemId, groupId, optionId);
+      setItems((prev) => prev.map((i) => i.id === itemId ? {
+        ...i,
+        modifierGroups: (i.modifierGroups ?? []).map((g) => g.id === groupId ? { ...g, options: g.options.filter((o) => o.id !== optionId) } : g),
+      } : i));
+    } catch { toast.error('Failed to delete option'); }
+  }
+
+  async function toggleModOption(itemId: string, groupId: string, opt: ModifierOption) {
+    try {
+      const updated = await menuService.updateModifierOption(itemId, groupId, opt.id, { available: !opt.available });
+      setItems((prev) => prev.map((i) => i.id === itemId ? {
+        ...i,
+        modifierGroups: (i.modifierGroups ?? []).map((g) => g.id === groupId ? { ...g, options: g.options.map((o) => o.id === updated.id ? updated : o) } : g),
+      } : i));
+    } catch { toast.error('Failed to update option'); }
   }
 
   // Derived filtered list (used in grid view only; reorder mode shows all)
@@ -671,14 +733,122 @@ export function MenuItemsPage() {
                 )}
 
                 {/* Extras toggle */}
+                <div className="mt-1 flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setExpandedToppings(expandedToppings === item.id ? null : item.id)}
-                  className="mt-1 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors self-start"
+                  className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                 >
                   Extras ({(item.toppings ?? []).length})
                   {expandedToppings === item.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                 </button>
+                <button
+                  onClick={() => setExpandedModifiers(expandedModifiers === item.id ? null : item.id)}
+                  className="flex items-center gap-1 text-xs text-purple-500 hover:text-purple-600 px-2 py-1 rounded-lg hover:bg-purple-50 transition-colors"
+                >
+                  Modifiers ({(item.modifierGroups ?? []).length})
+                  {expandedModifiers === item.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                </button>
+                </div>
               </div>
+
+              {/* Modifier groups panel */}
+              {expandedModifiers === item.id && (
+                <div className="border-t border-gray-100 bg-purple-50/40 px-4 py-3 space-y-4">
+                  <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Modifier Groups</p>
+                  <p className="text-xs text-gray-500">Groups let customers choose size, sauce, extras etc. Single-select = radio, Multi-select = checkboxes.</p>
+
+                  {(item.modifierGroups ?? []).length === 0 && (
+                    <p className="text-xs text-gray-400">No modifier groups yet.</p>
+                  )}
+
+                  {(item.modifierGroups ?? []).map((group) => (
+                    <div key={group.id} className="bg-white rounded-xl border border-purple-100 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-semibold text-gray-800">{group.name}</span>
+                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">{group.type === 'single' ? 'Single' : 'Multi'}</span>
+                          {group.required && <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Required</span>}
+                        </div>
+                        <button onClick={() => deleteModGroup(item.id, group.id)} className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
+                      </div>
+
+                      {/* Options */}
+                      <div className="space-y-1.5 pl-2">
+                        {group.options.map((opt) => (
+                          <div key={opt.id} className="flex items-center gap-2 text-sm">
+                            <span className={`flex-1 ${opt.available ? 'text-gray-700' : 'text-gray-400 line-through'}`}>{opt.name}</span>
+                            <span className="text-orange-600 font-medium text-xs">{opt.price > 0 ? `+${fmt(opt.price)}` : 'Free'}</span>
+                            <button onClick={() => toggleModOption(item.id, group.id, opt)} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${opt.available ? 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-600' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>
+                              {opt.available ? 'ON' : 'OFF'}
+                            </button>
+                            <button onClick={() => deleteModOption(item.id, group.id, opt.id)} className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+                          </div>
+                        ))}
+
+                        {/* Add option */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <input
+                            value={newModOption[group.id]?.name ?? ''}
+                            onChange={(e) => setNewModOption((p) => ({ ...p, [group.id]: { ...p[group.id], name: e.target.value } }))}
+                            onKeyDown={(e) => e.key === 'Enter' && addModOption(item.id, group.id)}
+                            placeholder="Option name (e.g. Large)"
+                            className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-purple-300"
+                          />
+                          <input
+                            type="number" min="0" step="0.01"
+                            value={newModOption[group.id]?.price ?? ''}
+                            onChange={(e) => setNewModOption((p) => ({ ...p, [group.id]: { ...p[group.id], price: e.target.value } }))}
+                            onKeyDown={(e) => e.key === 'Enter' && addModOption(item.id, group.id)}
+                            placeholder="+Price"
+                            className="w-20 text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-purple-300"
+                          />
+                          <button
+                            onClick={() => addModOption(item.id, group.id)}
+                            disabled={savingMod || !newModOption[group.id]?.name?.trim()}
+                            className="bg-purple-500 text-white px-2.5 py-1.5 rounded-lg text-xs hover:bg-purple-600 disabled:opacity-50 flex items-center gap-1"
+                          ><Plus size={12} /> Add</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Add new group */}
+                  <div className="bg-white rounded-xl border border-dashed border-purple-200 p-3 space-y-2">
+                    <p className="text-xs font-medium text-gray-500">Add New Group</p>
+                    <input
+                      value={newModGroup[item.id]?.name ?? ''}
+                      onChange={(e) => setNewModGroup((p) => ({ ...p, [item.id]: { ...p[item.id], name: e.target.value } }))}
+                      onKeyDown={(e) => e.key === 'Enter' && addModGroup(item.id)}
+                      placeholder="Group name (e.g. Choose Size, Sauce, Extras)"
+                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-purple-300"
+                    />
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <select
+                        value={newModGroup[item.id]?.type ?? 'multi'}
+                        onChange={(e) => setNewModGroup((p) => ({ ...p, [item.id]: { ...p[item.id], type: e.target.value as 'single' | 'multi' } }))}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none"
+                      >
+                        <option value="multi">Multi-select (checkboxes)</option>
+                        <option value="single">Single-select (radio)</option>
+                      </select>
+                      <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newModGroup[item.id]?.required ?? false}
+                          onChange={(e) => setNewModGroup((p) => ({ ...p, [item.id]: { ...p[item.id], required: e.target.checked } }))}
+                          className="rounded"
+                        />
+                        Required
+                      </label>
+                      <button
+                        onClick={() => addModGroup(item.id)}
+                        disabled={savingMod || !newModGroup[item.id]?.name?.trim()}
+                        className="bg-purple-500 text-white px-3 py-1.5 rounded-xl text-xs hover:bg-purple-600 disabled:opacity-50 flex items-center gap-1 ml-auto"
+                      ><Plus size={13} /> Add Group</button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Toppings panel */}
               {expandedToppings === item.id && (

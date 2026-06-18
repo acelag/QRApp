@@ -19,9 +19,10 @@ interface Props {
 export function MenuCard({ item, view = 'grid', categoryName, isFavourite = false, onToggleFavourite }: Props) {
   const { addItem, items } = useCart();
   const { fmt } = useCurrency();
-  const hasLarge    = item.largePrice != null && item.largePrice > 0;
-  const hasToppings = (item.toppings ?? []).some((t) => t.available);
-  const isLowStock  = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= LOW_STOCK_THRESHOLD;
+  const hasLarge      = item.largePrice != null && item.largePrice > 0;
+  const hasToppings   = (item.toppings ?? []).some((t) => t.available);
+  const hasModifiers  = (item.modifierGroups ?? []).some((g) => g.options.some((o) => o.available));
+  const isLowStock    = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= LOW_STOCK_THRESHOLD;
   const [showDetail, setShowDetail] = useState(false);
 
   const regPrice = effectivePrice(item, 'regular');
@@ -35,7 +36,7 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
   function handleQuickAdd(e: React.MouseEvent) {
     e.stopPropagation();
     if (!item.available) return;
-    if (hasToppings || hasLarge) { setShowDetail(true); }
+    if (hasToppings || hasLarge || hasModifiers) { setShowDetail(true); }
     else { addItem(item, undefined); }
   }
 
@@ -164,9 +165,9 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
                 <Heart size={13} className={isFavourite ? 'fill-red-500 text-red-500' : 'text-gray-400'} />
               </button>
             )}
-            {(hasToppings || hasLarge) && (
+            {(hasToppings || hasLarge || hasModifiers) && (
               <span className="bg-orange-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                {hasToppings ? '+ Extras' : 'R / L'}
+                {hasModifiers ? 'Customise' : hasToppings ? '+ Extras' : 'R / L'}
               </span>
             )}
           </div>

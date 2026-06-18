@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { Category, MenuItem } from '../types';
-import type { Topping } from '../types/MenuItem';
+import type { Topping, ModifierGroup, ModifierOption } from '../types/MenuItem';
 
 export interface RecipeIngredient {
   id: string;
@@ -67,6 +67,28 @@ export const menuService = {
 
   deleteTopping: (menuItemId: string, toppingId: string) =>
     axios.delete(`${BASE}/menu-items/${menuItemId}/toppings/${toppingId}`),
+
+  // Modifier Groups
+  getModifierGroups: (menuItemId: string) =>
+    axios.get<ModifierGroup[]>(`${BASE}/menu-items/${menuItemId}/modifier-groups`).then((r) => r.data),
+
+  createModifierGroup: (menuItemId: string, data: { name: string; type: 'single' | 'multi'; required: boolean }) =>
+    axios.post<ModifierGroup>(`${BASE}/menu-items/${menuItemId}/modifier-groups`, data).then((r) => r.data),
+
+  updateModifierGroup: (menuItemId: string, groupId: string, data: Partial<{ name: string; type: string; required: boolean }>) =>
+    axios.patch<ModifierGroup>(`${BASE}/menu-items/${menuItemId}/modifier-groups/${groupId}`, data).then((r) => r.data),
+
+  deleteModifierGroup: (menuItemId: string, groupId: string) =>
+    axios.delete(`${BASE}/menu-items/${menuItemId}/modifier-groups/${groupId}`),
+
+  createModifierOption: (menuItemId: string, groupId: string, data: { name: string; price: number; available?: boolean }) =>
+    axios.post<ModifierOption>(`${BASE}/menu-items/${menuItemId}/modifier-groups/${groupId}/options`, data).then((r) => r.data),
+
+  updateModifierOption: (menuItemId: string, groupId: string, optionId: string, data: Partial<{ name: string; price: number; available: boolean }>) =>
+    axios.patch<ModifierOption>(`${BASE}/menu-items/${menuItemId}/modifier-groups/${groupId}/options/${optionId}`, data).then((r) => r.data),
+
+  deleteModifierOption: (menuItemId: string, groupId: string, optionId: string) =>
+    axios.delete(`${BASE}/menu-items/${menuItemId}/modifier-groups/${groupId}/options/${optionId}`),
 
   // Recipe / ingredient mapping
   getRecipe: (menuItemId: string) =>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Plus, Minus, Flame, ShoppingCart, UtensilsCrossed, ZoomIn } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 import type { MenuItem } from '../types/MenuItem';
-import type { SelectedTopping } from '../types/Order';
+import type { SelectedTopping, SelectedModifier } from '../types/Order';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -12,7 +12,7 @@ import { tagPillCls } from '../services/tagService';
 interface Props {
   item: MenuItem;
   onClose: () => void;
-  onAdd?: (toppings: SelectedTopping[], size: 'regular' | 'large' | undefined, notes: string, qty: number) => void;
+  onAdd?: (toppings: SelectedTopping[], size: 'regular' | 'large' | undefined, notes: string, qty: number, modifiers?: SelectedModifier[]) => void;
 }
 
 export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Props) {
@@ -23,12 +23,15 @@ export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Prop
   const hasLarge      = (item.largePrice ?? 0) > 0;
   const hasToppings   = (item.toppings ?? []).some((t) => t.available);
   const availableTops = (item.toppings ?? []).filter((t) => t.available);
+  const activeGroups  = (item.modifierGroups ?? []).filter((g) => g.options.some((o) => o.available));
   const isLowStock    = item.trackStock && item.available && item.stock != null && item.stock > 0 && item.stock <= 5;
   const regDisc       = item.discountPct > 0;
   const lrgDisc       = (item.largeDiscountPct ?? 0) > 0;
 
   const [size, setSize]       = useState<'regular' | 'large'>(hasLarge ? 'regular' : 'regular');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // modifierSelections: groupId -> Set of optionIds
+  const [modifierSelections, setModifierSelections] = useState<Record<string, Set<string>>>({});
   const [notes, setNotes]     = useState('');
   const [qty, setQty]         = useState(1);
   const [lightbox, setLightbox] = useState(false);
@@ -37,7 +40,17 @@ export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Prop
   const basePrice    = effectivePrice(item, activeSize);
   const selToppings  = availableTops.filter((t) => selected.has(t.id));
   const topsTotal    = selToppings.reduce((s, t) => s + t.price, 0);
-  const itemTotal    = (basePrice + topsTotal) * qty;
+
+  const selModifiers: SelectedModifier[] = activeGroups.flatMap((g) => {
+    const sel = modifierSelections[g.id] ?? new Set<string>();
+    return g.options.filter((o) => o.available && sel.has(o.id)).map((o) => ({
+      groupId: g.id, groupName: g.name, optionId: o.id, optionName: o.name, price: o.price,
+    }));
+  });
+  const modTotal     = selModifiers.reduce((s, m) => s + m.price, 0);
+  const itemTotal    = (basePrice + topsTotal + modTotal) * qty;
+
+  const requiredUnmet = activeGroups.filter((g) => g.required && !(modifierSelections[g.id]?.size));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -47,14 +60,27 @@ export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Prop
     });
   }
 
+  function toggleModifier(groupId: string, optionId: string, isSingle: boolean) {
+    setModifierSelections((prev) => {
+      const cur = new Set(prev[groupId] ?? []);
+      if (isSingle) {
+        return { ...prev, [groupId]: new Set(cur.has(optionId) ? [] : [optionId]) };
+      }
+      const next = new Set(cur);
+      next.has(optionId) ? next.delete(optionId) : next.add(optionId);
+      return { ...prev, [groupId]: next };
+    });
+  }
+
   function handleAdd() {
     if (!item.available) return;
+    if (requiredUnmet.length > 0) return;
     const toppings = selToppings.map((t) => ({ id: t.id, name: t.name, price: t.price }));
     if (onAddOverride) {
-      onAddOverride(toppings, activeSize, notes.trim(), qty);
+      onAddOverride(toppings, activeSize, notes.trim(), qty, selModifiers.length ? selModifiers : undefined);
     } else {
       for (let i = 0; i < qty; i++) {
-        addItem(item, activeSize, i === 0 ? (notes.trim() || undefined) : undefined, toppings);
+        addItem(item, activeSize, i === 0 ? (notes.trim() || undefined) : undefined, toppings, selModifiers.length ? selModifiers : undefined);
       }
     }
     onClose();
@@ -233,6 +259,57 @@ export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Prop
             </div>
           )}
 
+          {/* ── Modifier Groups ──────────────────────────────────────────── */}
+          {activeGroups.map((group) => {
+            const isSingle = group.type === 'single';
+            const sel = modifierSelections[group.id] ?? new Set<string>();
+            const availOpts = group.options.filter((o) => o.available);
+            return (
+              <div key={group.id}>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    {group.name}
+                  </p>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${group.required ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'}`}>
+                    {group.required ? 'Required' : isSingle ? 'Pick one' : 'Optional'}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {availOpts.map((opt) => {
+                    const isSel = sel.has(opt.id);
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => toggleModifier(group.id, opt.id, isSingle)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-colors text-left ${
+                          isSel ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200 hover:bg-orange-50/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 flex items-center justify-center transition-colors ${
+                            isSingle
+                              ? `rounded-full border-2 ${isSel ? 'border-orange-500 bg-orange-500' : 'border-gray-300'}`
+                              : `rounded border-2 ${isSel ? 'border-orange-500 bg-orange-500' : 'border-gray-300'}`
+                          }`}>
+                            {isSel && (
+                              <svg viewBox="0 0 10 8" fill="none" className="w-3 h-3">
+                                <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </div>
+                          <span className="font-medium text-gray-800 text-sm">{opt.name}</span>
+                        </div>
+                        <span className={`text-sm font-semibold ${opt.price > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+                          {opt.price > 0 ? `+${fmt(opt.price)}` : 'Free'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
           {/* ── Special instructions ─────────────────────────────────────── */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Special Instructions</p>
@@ -268,12 +345,19 @@ export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Prop
             </div>
           </div>
 
+          {/* Required unmet warning */}
+          {requiredUnmet.length > 0 && (
+            <p className="text-xs text-red-500 text-center -mb-1">
+              Please select: {requiredUnmet.map((g) => g.name).join(', ')}
+            </p>
+          )}
+
           {/* Total + add */}
           <button
             onClick={handleAdd}
-            disabled={!item.available}
+            disabled={!item.available || requiredUnmet.length > 0}
             className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl font-semibold text-sm transition-colors ${
-              item.available
+              item.available && requiredUnmet.length === 0
                 ? 'bg-orange-500 text-white hover:bg-orange-600 active:scale-[0.98]'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}

@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from 'react';
-import type { CartItem, SelectedTopping } from '../types';
+import type { CartItem, SelectedTopping, SelectedModifier } from '../types';
 import type { MenuItem } from '../types';
 import { effectivePrice } from '../types/MenuItem';
 
@@ -8,8 +8,11 @@ type Size = 'regular' | 'large';
 const toppingKey = (toppings?: SelectedTopping[]) =>
   (toppings ?? []).map((t) => t.id).sort().join(',');
 
-const itemKey = (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) =>
-  `${menuItemId}|${size ?? 'regular'}|${toppingKey(toppings)}`;
+const modifierKey = (modifiers?: SelectedModifier[]) =>
+  (modifiers ?? []).map((m) => m.optionId).sort().join(',');
+
+const itemKey = (menuItemId: string, size?: Size, toppings?: SelectedTopping[], modifiers?: SelectedModifier[]) =>
+  `${menuItemId}|${size ?? 'regular'}|${toppingKey(toppings)}|${modifierKey(modifiers)}`;
 
 // ── Persistence ──────────────────────────────────────────────────────────────
 
@@ -53,11 +56,11 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: { menuItem: MenuItem; size?: Size; notes?: string; toppings?: SelectedTopping[] } }
+  | { type: 'ADD_ITEM'; payload: { menuItem: MenuItem; size?: Size; notes?: string; toppings?: SelectedTopping[]; modifiers?: SelectedModifier[] } }
   | { type: 'ADD_COMBO'; payload: { comboId: string; name: string; price: number; comboItems: string[] } }
-  | { type: 'REMOVE_ITEM'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[] } }
-  | { type: 'UPDATE_QTY'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; quantity: number } }
-  | { type: 'UPDATE_NOTES'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; notes: string } }
+  | { type: 'REMOVE_ITEM'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; modifiers?: SelectedModifier[] } }
+  | { type: 'UPDATE_QTY'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; modifiers?: SelectedModifier[]; quantity: number } }
+  | { type: 'UPDATE_NOTES'; payload: { menuItemId: string; size?: Size; toppings?: SelectedTopping[]; modifiers?: SelectedModifier[]; notes: string } }
   | { type: 'BULK_ADD'; payload: { items: CartItem[] } }
   | { type: 'SET_TABLE'; payload: { tableId: string; tableNumber: number } }
   | { type: 'SET_SESSION'; payload: { sessionId: string } }
@@ -68,11 +71,11 @@ type CartAction =
   | { type: 'CLEAR' };
 
 interface CartContextValue extends CartState {
-  addItem: (menuItem: MenuItem, size?: Size, notes?: string, toppings?: SelectedTopping[]) => void;
+  addItem: (menuItem: MenuItem, size?: Size, notes?: string, toppings?: SelectedTopping[], modifiers?: SelectedModifier[]) => void;
   addCombo: (comboId: string, name: string, price: number, comboItems: string[]) => void;
-  removeItem: (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) => void;
-  updateQty: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], quantity?: number) => void;
-  updateNotes: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], notes?: string) => void;
+  removeItem: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], modifiers?: SelectedModifier[]) => void;
+  updateQty: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], quantity?: number, modifiers?: SelectedModifier[]) => void;
+  updateNotes: (menuItemId: string, size?: Size, toppings?: SelectedTopping[], notes?: string, modifiers?: SelectedModifier[]) => void;
   bulkAdd: (items: CartItem[]) => void;
   setTable: (tableId: string, tableNumber: number) => void;
   setSession: (sessionId: string) => void;
@@ -95,15 +98,15 @@ const INITIAL_STATE: CartState = {
 function reducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { menuItem, size, notes, toppings } = action.payload;
-      const key = itemKey(menuItem.id, size, toppings);
+      const { menuItem, size, notes, toppings, modifiers } = action.payload;
+      const key = itemKey(menuItem.id, size, toppings, modifiers);
       const price = effectivePrice(menuItem, size);
-      const existing = state.items.find((i) => itemKey(i.menuItemId, i.size, i.toppings) === key);
+      const existing = state.items.find((i) => itemKey(i.menuItemId, i.size, i.toppings, i.modifiers) === key);
       if (existing) {
         return {
           ...state,
           items: state.items.map((i) =>
-            itemKey(i.menuItemId, i.size, i.toppings) === key ? { ...i, quantity: i.quantity + 1 } : i
+            itemKey(i.menuItemId, i.size, i.toppings, i.modifiers) === key ? { ...i, quantity: i.quantity + 1 } : i
           ),
         };
       }
@@ -111,7 +114,7 @@ function reducer(state: CartState, action: CartAction): CartState {
         ...state,
         items: [
           ...state.items,
-          { menuItemId: menuItem.id, name: menuItem.name, price, quantity: 1, notes, size, toppings },
+          { menuItemId: menuItem.id, name: menuItem.name, price, quantity: 1, notes, size, toppings, modifiers },
         ],
       };
     }
@@ -133,35 +136,35 @@ function reducer(state: CartState, action: CartAction): CartState {
       };
     }
     case 'REMOVE_ITEM': {
-      const key = itemKey(action.payload.menuItemId, action.payload.size, action.payload.toppings);
-      return { ...state, items: state.items.filter((i) => itemKey(i.menuItemId, i.size, i.toppings) !== key) };
+      const key = itemKey(action.payload.menuItemId, action.payload.size, action.payload.toppings, action.payload.modifiers);
+      return { ...state, items: state.items.filter((i) => itemKey(i.menuItemId, i.size, i.toppings, i.modifiers) !== key) };
     }
     case 'UPDATE_QTY': {
-      const key = itemKey(action.payload.menuItemId, action.payload.size, action.payload.toppings);
+      const key = itemKey(action.payload.menuItemId, action.payload.size, action.payload.toppings, action.payload.modifiers);
       if ((action.payload.quantity ?? 0) <= 0) {
-        return { ...state, items: state.items.filter((i) => itemKey(i.menuItemId, i.size, i.toppings) !== key) };
+        return { ...state, items: state.items.filter((i) => itemKey(i.menuItemId, i.size, i.toppings, i.modifiers) !== key) };
       }
       return {
         ...state,
         items: state.items.map((i) =>
-          itemKey(i.menuItemId, i.size, i.toppings) === key ? { ...i, quantity: action.payload.quantity! } : i
+          itemKey(i.menuItemId, i.size, i.toppings, i.modifiers) === key ? { ...i, quantity: action.payload.quantity! } : i
         ),
       };
     }
     case 'UPDATE_NOTES': {
-      const key = itemKey(action.payload.menuItemId, action.payload.size, action.payload.toppings);
+      const key = itemKey(action.payload.menuItemId, action.payload.size, action.payload.toppings, action.payload.modifiers);
       return {
         ...state,
         items: state.items.map((i) =>
-          itemKey(i.menuItemId, i.size, i.toppings) === key ? { ...i, notes: action.payload.notes } : i
+          itemKey(i.menuItemId, i.size, i.toppings, i.modifiers) === key ? { ...i, notes: action.payload.notes } : i
         ),
       };
     }
     case 'BULK_ADD': {
       const merged = [...state.items];
       for (const newItem of action.payload.items) {
-        const key = itemKey(newItem.menuItemId, newItem.size, newItem.toppings);
-        const idx = merged.findIndex((i) => itemKey(i.menuItemId, i.size, i.toppings) === key);
+        const key = itemKey(newItem.menuItemId, newItem.size, newItem.toppings, newItem.modifiers);
+        const idx = merged.findIndex((i) => itemKey(i.menuItemId, i.size, i.toppings, i.modifiers) === key);
         if (idx >= 0) {
           merged[idx] = { ...merged[idx], quantity: merged[idx].quantity + newItem.quantity };
         } else {
@@ -195,7 +198,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const total = state.items.reduce((sum, i) => {
     const toppingsTotal = (i.toppings ?? []).reduce((t, tp) => t + tp.price, 0);
-    return sum + (i.price + toppingsTotal) * i.quantity;
+    const modifiersTotal = (i.modifiers ?? []).reduce((t, m) => t + m.price, 0);
+    return sum + (i.price + toppingsTotal + modifiersTotal) * i.quantity;
   }, 0);
   const itemCount = state.items.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -231,16 +235,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ...state,
         total,
         itemCount,
-        addItem: (menuItem, size, notes, toppings) =>
-          dispatch({ type: 'ADD_ITEM', payload: { menuItem, size, notes, toppings } }),
+        addItem: (menuItem, size, notes, toppings, modifiers) =>
+          dispatch({ type: 'ADD_ITEM', payload: { menuItem, size, notes, toppings, modifiers } }),
         addCombo: (comboId, name, price, comboItems) =>
           dispatch({ type: 'ADD_COMBO', payload: { comboId, name, price, comboItems } }),
-        removeItem: (menuItemId, size, toppings) =>
-          dispatch({ type: 'REMOVE_ITEM', payload: { menuItemId, size, toppings } }),
-        updateQty: (menuItemId, size, toppings, quantity) =>
-          dispatch({ type: 'UPDATE_QTY', payload: { menuItemId, size, toppings, quantity: quantity ?? 0 } }),
-        updateNotes: (menuItemId, size, toppings, notes) =>
-          dispatch({ type: 'UPDATE_NOTES', payload: { menuItemId, size, toppings, notes: notes ?? '' } }),
+        removeItem: (menuItemId, size, toppings, modifiers) =>
+          dispatch({ type: 'REMOVE_ITEM', payload: { menuItemId, size, toppings, modifiers } }),
+        updateQty: (menuItemId, size, toppings, quantity, modifiers) =>
+          dispatch({ type: 'UPDATE_QTY', payload: { menuItemId, size, toppings, modifiers, quantity: quantity ?? 0 } }),
+        updateNotes: (menuItemId, size, toppings, notes, modifiers) =>
+          dispatch({ type: 'UPDATE_NOTES', payload: { menuItemId, size, toppings, modifiers, notes: notes ?? '' } }),
         bulkAdd: (items) =>
           dispatch({ type: 'BULK_ADD', payload: { items } }),
         setTable: (tableId, tableNumber) =>

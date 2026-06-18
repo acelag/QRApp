@@ -7,6 +7,14 @@ export interface SelectedTopping {
   price: number;
 }
 
+export interface SelectedModifier {
+  groupId?: string;
+  groupName: string;
+  optionId: string;
+  optionName: string;
+  price: number;
+}
+
 export interface CartItem {
   menuItemId: string;
   name: string;
@@ -15,6 +23,7 @@ export interface CartItem {
   notes?: string;
   size?: 'regular' | 'large';
   toppings?: SelectedTopping[];
+  modifiers?: SelectedModifier[];
   /** Set when this cart item is a combo/bundle deal */
   comboId?: string;
   /** Display names of items included in the combo */
@@ -30,6 +39,7 @@ export interface OrderItem {
   notes?: string;
   size?: 'regular' | 'large';
   toppings?: SelectedTopping[];
+  modifiers?: SelectedModifier[];
   comboId?: string;
 }
 
