@@ -6,7 +6,7 @@ import { CombosPanel } from './CombosPage';
 import { MenuSchedulesPanel } from './MenuSchedulesPage';
 import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List, FlaskConical } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
-import type { Topping, ModifierGroup, ModifierOption } from '../../types/MenuItem';
+import type { Topping, ModifierOption } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
 import { tagService, tagPillCls } from '../../services/tagService';
 import type { Tag, TagCategory } from '../../services/tagService';
