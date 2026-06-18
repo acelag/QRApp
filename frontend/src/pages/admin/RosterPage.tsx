@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useConfirm } from '../../components/ConfirmModal';
 import {
   ChevronLeft, ChevronRight, Plus, X, Trash2,
   Users, Calendar, CheckCircle2, Loader2,
@@ -61,6 +62,7 @@ const STATUS_CYCLE: ShiftStatus[] = ['scheduled', 'confirmed', 'absent'];
 // ── Standalone panel (used inside the tabbed Staff page) ────────────────────
 
 export function RosterPanel() {
+  const { confirm, modal } = useConfirm();
   const [weekStart, setWeekStart] = useState<Date>(() => getMonday(new Date()));
   const [shifts,    setShifts]    = useState<Shift[]>([]);
   const [users,     setUsers]     = useState<StaffUser[]>([]);
@@ -148,7 +150,8 @@ export function RosterPanel() {
   }
 
   async function deleteShift(id: string) {
-    if (!confirm('Delete this shift?')) return;
+    const ok = await confirm({ title: 'Delete this shift?', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await rosterService.deleteShift(id);
       setShifts((p) => p.filter((s) => s.id !== id));
@@ -172,6 +175,7 @@ export function RosterPanel() {
 
   return (
     <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      {modal}
 
       {/* Mini toolbar: week nav + Add Shift */}
       <div className="flex items-center justify-between gap-3 flex-wrap">

@@ -1,4 +1,5 @@
 ﻿import { useEffect, useReducer, useRef, useState } from 'react';
+import { useConfirm } from '../../components/ConfirmModal';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Tag, X, LayoutGrid, List, Search } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
@@ -56,6 +57,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
 }
 
 export function NewOrderPage() {
+  const { confirm, modal } = useConfirm();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { fmt } = useCurrency();
@@ -105,9 +107,12 @@ export function NewOrderPage() {
   }, []);
 
   // Clear cart and selection when switching mode
-  function switchMode(m: OrderMode) {
+  async function switchMode(m: OrderMode) {
     if (m === mode) return;
-    if (cart.length > 0 && !window.confirm('Switching order type will clear your current cart. Continue?')) return;
+    if (cart.length > 0) {
+      const ok = await confirm({ title: 'Switching order type will clear your current cart. Continue?', danger: false });
+      if (!ok) return;
+    }
     setMode(m);
     dispatch({ type: 'CLEAR' });
     setSelectedTable(null);
@@ -213,6 +218,7 @@ export function NewOrderPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       {/* Header */}

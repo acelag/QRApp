@@ -1,6 +1,8 @@
 ﻿import { useEffect, useState } from 'react';
 import { Plus, Trash2, ToggleLeft, ToggleRight, Tag, Loader2, Percent, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../components/ConfirmModal';
+import { EmptyState } from '../../components/EmptyState';
 import { promoCodeService, type PromoCode } from '../../services/promoCodeService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
@@ -16,6 +18,7 @@ const EMPTY_FORM = {
 };
 
 export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
+  const { confirm, modal } = useConfirm();
   const { fmt } = useCurrency();
   const [codes, setCodes]       = useState<PromoCode[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -72,7 +75,8 @@ export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
   }
 
   async function handleDelete(code: PromoCode) {
-    if (!confirm(`Delete promo code "${code.code}"?`)) return;
+    const ok = await confirm({ title: `Delete promo code "${code.code}"?`, confirmLabel: 'Delete' });
+    if (!ok) return;
     setDeleting((s) => new Set(s).add(code.id));
     try {
       await promoCodeService.remove(code.id);
@@ -103,6 +107,7 @@ export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
 
   const innerContent = (
     <>
+      {modal}
       {embedded && (
         <div className="px-3 sm:px-4 lg:px-6 py-2.5 bg-white border-b border-gray-100 flex items-center justify-end gap-2">
           {newCodeBtn}
@@ -230,11 +235,7 @@ export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
             <Loader2 size={28} className="animate-spin text-orange-500" />
           </div>
         ) : codes.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-14 text-center text-gray-400">
-            <Tag size={36} className="mx-auto mb-3 text-gray-200" />
-            <p className="font-medium">No promo codes yet</p>
-            <p className="text-sm mt-1">Create your first discount code to get started</p>
-          </div>
+          <EmptyState icon={Tag} title="No promo codes yet" description="Create your first discount code to get started" />
         ) : (
           <>
             {/* Active codes */}

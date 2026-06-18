@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useConfirm } from '../../components/ConfirmModal';
 import { Pencil, Trash2, X, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import { menuService } from '../../services/menuService';
@@ -10,6 +11,7 @@ import toast from 'react-hot-toast';
 
 // ── Standalone panel (used inside the tabbed Menu page) ─────────────────────
 export function MenuSetupPanel() {
+  const { confirm, modal } = useConfirm();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -79,7 +81,9 @@ export function MenuSetupPanel() {
   async function deleteCategory(cat: Category) {
     const inUse = items.some((i) => i.category === cat.id);
     if (inUse) { toast.error(`"${cat.name}" is used by menu items — remove those items first`); return; }
-    if (!confirm(`Delete category "${cat.name}"?`)) return;
+    const ok = await confirm({ title: `Delete category "${cat.name}"?`, confirmLabel: 'Delete' });
+
+    if (!ok) return;
     try {
       await menuService.deleteCategory(cat.id);
       setCategories((p) => p.filter((c) => c.id !== cat.id));
@@ -110,7 +114,8 @@ export function MenuSetupPanel() {
   }
 
   async function deleteTag(tag: Tag) {
-    if (!confirm(`Delete tag "${tag.label}"? It will be removed from all menu items.`)) return;
+    const ok = await confirm({ title: `Delete tag "${tag.label}"? It will be removed from all menu items.`, confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await tagService.deleteTag(tag.id);
       setTags((prev) => prev.filter((t) => t.id !== tag.id));
@@ -121,6 +126,7 @@ export function MenuSetupPanel() {
 
   return (
     <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-5xl">
+      {modal}
       {/* Categories */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
         <h2 className="font-semibold text-gray-700 mb-1 text-sm">Categories</h2>

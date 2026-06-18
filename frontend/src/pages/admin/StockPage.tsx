@@ -3,6 +3,8 @@ import {
   Plus, Package, ArrowDownCircle, ArrowUpCircle, Pencil, Trash2,
   AlertTriangle,X, History, Search,
 } from 'lucide-react';
+import { useConfirm } from '../../components/ConfirmModal';
+import { EmptyState } from '../../components/EmptyState';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
@@ -278,6 +280,7 @@ function HistoryDrawer({ item, onClose }: HistoryDrawerProps) {
 
 // â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function StockPage() {
+  const { confirm, modal } = useConfirm();
   const { fmt } = useCurrency();
   const [items,   setItems]   = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -335,7 +338,8 @@ export function StockPage() {
   }
 
   async function handleDelete(item: StockItem) {
-    if (!confirm(`Delete "${item.name}"? This will also delete all movement history.`)) return;
+    const ok = await confirm({ title: `Delete "${item.name}"? This will also delete all movement history.`, confirmLabel: 'Delete' });
+    if (!ok) return;
     setDeletingId(item.id);
     try {
       await stockService.remove(item.id);
@@ -370,6 +374,7 @@ export function StockPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
 
@@ -485,15 +490,7 @@ export function StockPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
             </div>
           ) : displayed.length === 0 ? (
-            <div className="text-center py-16">
-              <Package size={40} className="mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-400 font-medium">{items.length === 0 ? 'No stock items yet' : 'No items match your search'}</p>
-              {items.length === 0 && (
-                <button onClick={() => setShowAdd(true)} className="mt-4 text-sm text-orange-500 font-semibold hover:underline">
-                  Add your first item →
-                </button>
-              )}
-            </div>
+            <EmptyState icon={Package} title={items.length === 0 ? 'No stock items yet' : 'No items match your search'} description={items.length === 0 ? 'Add your first item to get started' : 'Try a different search term'} />
           ) : (
             <div className="space-y-6">
               {categories.map(cat => (

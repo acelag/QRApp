@@ -3,6 +3,8 @@ import {
   Plus, Loader2, X, Phone, Users, Pencil, Trash2,
   CalendarDays, MapPin, BedDouble, List, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { useConfirm } from '../../components/ConfirmModal';
+import { EmptyState } from '../../components/EmptyState';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
@@ -41,6 +43,7 @@ const emptyForm = (date: string): FormState => ({
 });
 
 export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
+  const { confirm, modal } = useConfirm();
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [date, setDate] = useState(todayStr());
   const [monthCursor, setMonthCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
@@ -128,7 +131,8 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
     try { await reservationService.update(r.id, { status }); } catch { toast.error('Failed to update'); load(); }
   }
   async function remove(r: Reservation) {
-    if (!confirm(`Delete reservation for ${r.customerName}?`)) return;
+    const ok = await confirm({ title: `Delete reservation for ${r.customerName}?`, confirmLabel: 'Delete' });
+    if (!ok) return;
     try { await reservationService.remove(r.id); setItems((p) => p.filter((x) => x.id !== r.id)); toast.success('Deleted'); }
     catch { toast.error('Failed to delete'); }
   }
@@ -216,6 +220,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
 
   const innerContent = (
     <>
+      {modal}
       {embedded && (
         <div className="px-3 sm:px-4 lg:px-6 py-2.5 bg-white border-b border-gray-100 flex items-center gap-2 flex-wrap">
           {headerActions}
@@ -283,9 +288,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
             {loading ? (
               <div className="flex justify-center py-16"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
             ) : visibleItems.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-12 text-center text-gray-400">
-                <CalendarDays size={32} className="mx-auto mb-2 text-gray-300" /> No reservations for this day
-              </div>
+              <EmptyState icon={CalendarDays} title="No reservations" description="No reservations for this day" />
             ) : (
               <div className="space-y-2.5">
                 {visibleItems.map((r) => (

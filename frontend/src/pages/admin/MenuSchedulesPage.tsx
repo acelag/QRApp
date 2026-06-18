@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useConfirm } from '../../components/ConfirmModal';
 import {
   Plus, Clock, Pencil, Trash2, X, Check,
   Info, Loader2, ToggleLeft, ToggleRight,
@@ -41,6 +42,7 @@ const EMPTY: ScheduleInput = { name: '', days: 'daily', startTime: '08:00', endT
 
 // ── Standalone panel (used inside the tabbed Menu page) ─────────────────────
 export function MenuSchedulesPanel() {
+  const { confirm, modal } = useConfirm();
   const [schedules, setSchedules] = useState<MenuSchedule[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -115,7 +117,8 @@ export function MenuSchedulesPanel() {
   }
 
   async function deleteSchedule(s: MenuSchedule) {
-    if (!confirm(`Delete "${s.name}"? It will be removed from ${s.itemCount} item${s.itemCount !== 1 ? 's' : ''}.`)) return;
+    const ok = await confirm({ title: `Delete "${s.name}"? It will be removed from ${s.itemCount} item${s.itemCount !== 1 ? 's' : ''}.`, confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await menuScheduleService.deleteSchedule(s.id);
       setSchedules((p) => p.filter((x) => x.id !== s.id));
@@ -149,6 +152,7 @@ export function MenuSchedulesPanel() {
 
   return (
     <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+      {modal}
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500 italic">Control when items appear on the customer menu.</p>

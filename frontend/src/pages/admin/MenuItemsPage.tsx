@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from 'react';
+import { useConfirm } from '../../components/ConfirmModal';
 import { Link } from 'react-router-dom';
 import { MenuSetupPanel } from './MenuSetupPage';
 import { CombosPanel } from './CombosPage';
@@ -66,6 +67,7 @@ const MENU_TABS: { id: MenuTab; label: string }[] = [
 ];
 
 export function MenuItemsPage() {
+  const { confirm, modal } = useConfirm();
   const [activeTab, setActiveTab] = useState<MenuTab>('items');
   const { fmt } = useCurrency();
   const { user } = useAuth();
@@ -240,7 +242,8 @@ export function MenuItemsPage() {
   }
 
   async function del(id: string) {
-    if (!confirm('Delete this item?')) return;
+    const ok = await confirm({ title: 'Delete this item?', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await menuService.deleteItem(id);
       setItems((p) => p.filter((i) => i.id !== id));
@@ -324,7 +327,8 @@ export function MenuItemsPage() {
   }
 
   async function deleteTopping(itemId: string, toppingId: string) {
-    if (!confirm('Delete this topping?')) return;
+    const ok = await confirm({ title: 'Delete this topping?', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await menuService.deleteTopping(itemId, toppingId);
       setItems((prev) => prev.map((i) => i.id === itemId
@@ -350,7 +354,8 @@ export function MenuItemsPage() {
   }
 
   async function deleteModGroup(itemId: string, groupId: string) {
-    if (!confirm('Delete this modifier group and all its options?')) return;
+    const ok = await confirm({ title: 'Delete this modifier group and all its options?', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await menuService.deleteModifierGroup(itemId, groupId);
       setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, modifierGroups: (i.modifierGroups ?? []).filter((g) => g.id !== groupId) } : i));
@@ -412,6 +417,7 @@ export function MenuItemsPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Menu" backTo="/admin">

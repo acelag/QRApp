@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
+import { useConfirm } from '../../components/ConfirmModal';
 import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase, Check, Copy, Users, BarChart2, CalendarDays } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -48,6 +49,7 @@ const BADGE_CLS: Record<UserRole, string> = {
 };
 
 export function UsersPage() {
+  const { confirm, modal } = useConfirm();
   const { user: me, features } = useAuth();
   const assignable = assignablePermissions(features);
   const assignableKeys = new Set<string>(assignable.map((p) => p.key));
@@ -143,7 +145,8 @@ export function UsersPage() {
   }
 
   async function del(u: User) {
-    if (!confirm(`Delete user "${u.name}"? This cannot be undone.`)) return;
+    const ok = await confirm({ title: `Delete user "${u.name}"? This cannot be undone.`, confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await axios.delete(`/api/users/${u.id}`);
       setUsers((p) => p.filter((x) => x.id !== u.id));
@@ -156,6 +159,7 @@ export function UsersPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Manage Staff" backTo="/admin/settings">

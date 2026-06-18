@@ -15,6 +15,7 @@ import toast from 'react-hot-toast';
 const API_BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
+import { useConfirm } from '../../components/ConfirmModal';
 
 type Tab = 'tables' | 'rooms';
 
@@ -59,6 +60,7 @@ function openPrintWindow(html: string, title = 'QR Codes') {
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function LocationsPage() {
+  const { confirm, modal } = useConfirm();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
 
@@ -158,7 +160,8 @@ export function LocationsPage() {
   }
 
   async function delTable(id: string, num: number) {
-    if (!confirm(`Delete Table ${num}?`)) return;
+    const ok = await confirm({ title: `Delete Table ${num}?`, confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await tableService.deleteTable(id);
       setTables((p) => p.filter((t) => t.id !== id));
@@ -200,7 +203,8 @@ export function LocationsPage() {
   }
 
   async function delRoom(id: string, num: number) {
-    if (!confirm(`Delete Room ${num}?`)) return;
+    const ok = await confirm({ title: `Delete Room ${num}?`, confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await roomService.deleteRoom(id);
       setRooms((p) => p.filter((r) => r.id !== id));
@@ -229,6 +233,7 @@ export function LocationsPage() {
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
 

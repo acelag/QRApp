@@ -1,11 +1,14 @@
 ﻿import { useEffect, useState } from 'react';
 import { Plus, Trash2, UserCheck, Loader2, X } from 'lucide-react';
+import { useConfirm } from '../../components/ConfirmModal';
+import { EmptyState } from '../../components/EmptyState';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 
 export function WaitersPage() {
+  const { confirm, modal } = useConfirm();
   const [waiters, setWaiters]   = useState<Waiter[]>([]);
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -37,7 +40,8 @@ export function WaitersPage() {
   }
 
   async function handleDelete(w: Waiter) {
-    if (!confirm(`Remove waiter "${w.name}"?`)) return;
+    const ok = await confirm({ title: `Remove waiter "${w.name}"?`, confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       await waiterService.deleteWaiter(w.id);
       setWaiters((p) => p.filter((x) => x.id !== w.id));
@@ -49,6 +53,7 @@ export function WaitersPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Waiters" backTo="/admin">
@@ -66,11 +71,7 @@ export function WaitersPage() {
             <Loader2 size={28} className="animate-spin text-orange-500" />
           </div>
         ) : waiters.length === 0 ? (
-          <div className="text-center pt-16 text-gray-400">
-            <UserCheck size={40} className="mx-auto mb-3 opacity-40" />
-            <p className="font-semibold text-gray-600">No waiters yet</p>
-            <p className="text-sm mt-1">Add staff who can be assigned to orders</p>
-          </div>
+          <EmptyState icon={UserCheck} title="No waiters yet" description="Add staff who can be assigned to orders" />
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
             {waiters.map((w) => (
