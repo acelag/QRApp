@@ -5,6 +5,9 @@ const isRemote = (process.env.DATABASE_URL ?? '').includes('.render.com') || (pr
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: isRemote ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 // A transient drop on an idle pooled connection (common with remote/managed

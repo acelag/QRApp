@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
@@ -18,7 +18,7 @@ import { offlineQueue } from './services/offlineQueue';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { stockService } from './services/stockService';
 
-
+// Customer pages — small, load eagerly (on critical render path)
 import { LoginPage } from './pages/LoginPage';
 import { MenuPage } from './pages/customer/MenuPage';
 import { CartPage } from './pages/customer/CartPage';
@@ -28,46 +28,58 @@ import { PhoneLookupPage } from './pages/customer/PhoneLookupPage';
 import { WelcomePage } from './pages/customer/WelcomePage';
 import { TakeawayMenuPage } from './pages/customer/TakeawayMenuPage';
 import { RoomMenuPage } from './pages/customer/RoomMenuPage';
-import { DashboardPage } from './pages/admin/DashboardPage';
-import { LauncherPage } from './pages/admin/LauncherPage';
-import { OrdersPage } from './pages/admin/OrdersPage';
-import { MenuItemsPage } from './pages/admin/MenuItemsPage';
-import { MenuSetupPage } from './pages/admin/MenuSetupPage';
-import { BillingPage } from './pages/admin/BillingPage';
-import { PlansAdminPage } from './pages/admin/PlansAdminPage';
-import { LandingPage } from './pages/marketing/LandingPage';
-import { PricingPage } from './pages/marketing/PricingPage';
-import { SignupPage } from './pages/marketing/SignupPage';
-import { MockCheckoutPage } from './pages/marketing/MockCheckoutPage';
-import { KitchenPage } from './pages/admin/KitchenPage';
-import { ReceiptPage } from './pages/admin/ReceiptPage';
-import { KitchenTicketPage } from './pages/admin/KitchenTicketPage';
-import { SettingsPage } from './pages/admin/SettingsPage';
-import { UsersPage } from './pages/admin/UsersPage';
-import { BillsPage } from './pages/admin/BillsPage';
-import { SessionReceiptPage } from './pages/admin/SessionReceiptPage';
-import { RestaurantsPage } from './pages/admin/RestaurantsPage';
-import { NewOrderPage } from './pages/admin/NewOrderPage';
-import { ReadyDisplayPage } from './pages/admin/ReadyDisplayPage';
-import { ReportsPage } from './pages/admin/ReportsPage';
-import { AuditLogsPage } from './pages/admin/AuditLogsPage';
-import { PromoCodesPage } from './pages/admin/PromoCodesPage';
-import { RoomChargesPage } from './pages/admin/RoomChargesPage';
-import { WaitersPage } from './pages/admin/WaitersPage';
-import { StaffPerformancePage } from './pages/admin/StaffPerformancePage';
-import { TableStatusPage } from './pages/admin/TableStatusPage';
-import { LocationsPage } from './pages/admin/LocationsPage';
-import { ReservationsPage } from './pages/admin/ReservationsPage';
-import { ShiftCloseReportPage } from './pages/admin/ShiftCloseReportPage';
-import { RosterPage } from './pages/admin/RosterPage';
-import { MenuSchedulesPage } from './pages/admin/MenuSchedulesPage';
-import { CombosPage } from './pages/admin/CombosPage';
-import { StockPage } from './pages/admin/StockPage';
-import { StockReportPage } from './pages/admin/StockReportPage';
-import { LoyaltyPage } from './pages/admin/LoyaltyPage';
-import { FloorPlanPage } from './pages/admin/FloorPlanPage';
-import { FloorPage } from './pages/admin/FloorPage';
-import { FinancePage } from './pages/admin/FinancePage';
+
+// Marketing pages
+const LandingPage          = lazy(() => import('./pages/marketing/LandingPage').then(m => ({ default: m.LandingPage })));
+const PricingPage          = lazy(() => import('./pages/marketing/PricingPage').then(m => ({ default: m.PricingPage })));
+const SignupPage           = lazy(() => import('./pages/marketing/SignupPage').then(m => ({ default: m.SignupPage })));
+const MockCheckoutPage     = lazy(() => import('./pages/marketing/MockCheckoutPage').then(m => ({ default: m.MockCheckoutPage })));
+
+// Admin pages — all lazy loaded so kitchen/waiter roles don't download unused code
+const DashboardPage        = lazy(() => import('./pages/admin/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const LauncherPage         = lazy(() => import('./pages/admin/LauncherPage').then(m => ({ default: m.LauncherPage })));
+const OrdersPage           = lazy(() => import('./pages/admin/OrdersPage').then(m => ({ default: m.OrdersPage })));
+const MenuItemsPage        = lazy(() => import('./pages/admin/MenuItemsPage').then(m => ({ default: m.MenuItemsPage })));
+const MenuSetupPage        = lazy(() => import('./pages/admin/MenuSetupPage').then(m => ({ default: m.MenuSetupPage })));
+const BillingPage          = lazy(() => import('./pages/admin/BillingPage').then(m => ({ default: m.BillingPage })));
+const PlansAdminPage       = lazy(() => import('./pages/admin/PlansAdminPage').then(m => ({ default: m.PlansAdminPage })));
+const KitchenPage          = lazy(() => import('./pages/admin/KitchenPage').then(m => ({ default: m.KitchenPage })));
+const ReceiptPage          = lazy(() => import('./pages/admin/ReceiptPage').then(m => ({ default: m.ReceiptPage })));
+const KitchenTicketPage    = lazy(() => import('./pages/admin/KitchenTicketPage').then(m => ({ default: m.KitchenTicketPage })));
+const SettingsPage         = lazy(() => import('./pages/admin/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const UsersPage            = lazy(() => import('./pages/admin/UsersPage').then(m => ({ default: m.UsersPage })));
+const BillsPage            = lazy(() => import('./pages/admin/BillsPage').then(m => ({ default: m.BillsPage })));
+const SessionReceiptPage   = lazy(() => import('./pages/admin/SessionReceiptPage').then(m => ({ default: m.SessionReceiptPage })));
+const RestaurantsPage      = lazy(() => import('./pages/admin/RestaurantsPage').then(m => ({ default: m.RestaurantsPage })));
+const NewOrderPage         = lazy(() => import('./pages/admin/NewOrderPage').then(m => ({ default: m.NewOrderPage })));
+const ReadyDisplayPage     = lazy(() => import('./pages/admin/ReadyDisplayPage').then(m => ({ default: m.ReadyDisplayPage })));
+const ReportsPage          = lazy(() => import('./pages/admin/ReportsPage').then(m => ({ default: m.ReportsPage })));
+const AuditLogsPage        = lazy(() => import('./pages/admin/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
+const PromoCodesPage       = lazy(() => import('./pages/admin/PromoCodesPage').then(m => ({ default: m.PromoCodesPage })));
+const RoomChargesPage      = lazy(() => import('./pages/admin/RoomChargesPage').then(m => ({ default: m.RoomChargesPage })));
+const WaitersPage          = lazy(() => import('./pages/admin/WaitersPage').then(m => ({ default: m.WaitersPage })));
+const StaffPerformancePage = lazy(() => import('./pages/admin/StaffPerformancePage').then(m => ({ default: m.StaffPerformancePage })));
+const TableStatusPage      = lazy(() => import('./pages/admin/TableStatusPage').then(m => ({ default: m.TableStatusPage })));
+const LocationsPage        = lazy(() => import('./pages/admin/LocationsPage').then(m => ({ default: m.LocationsPage })));
+const ReservationsPage     = lazy(() => import('./pages/admin/ReservationsPage').then(m => ({ default: m.ReservationsPage })));
+const ShiftCloseReportPage = lazy(() => import('./pages/admin/ShiftCloseReportPage').then(m => ({ default: m.ShiftCloseReportPage })));
+const RosterPage           = lazy(() => import('./pages/admin/RosterPage').then(m => ({ default: m.RosterPage })));
+const MenuSchedulesPage    = lazy(() => import('./pages/admin/MenuSchedulesPage').then(m => ({ default: m.MenuSchedulesPage })));
+const CombosPage           = lazy(() => import('./pages/admin/CombosPage').then(m => ({ default: m.CombosPage })));
+const StockPage            = lazy(() => import('./pages/admin/StockPage').then(m => ({ default: m.StockPage })));
+const StockReportPage      = lazy(() => import('./pages/admin/StockReportPage').then(m => ({ default: m.StockReportPage })));
+const LoyaltyPage          = lazy(() => import('./pages/admin/LoyaltyPage').then(m => ({ default: m.LoyaltyPage })));
+const FloorPlanPage        = lazy(() => import('./pages/admin/FloorPlanPage').then(m => ({ default: m.FloorPlanPage })));
+const FloorPage            = lazy(() => import('./pages/admin/FloorPage').then(m => ({ default: m.FloorPage })));
+const FinancePage          = lazy(() => import('./pages/admin/FinancePage').then(m => ({ default: m.FinancePage })));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <Loader2 size={28} className="animate-spin text-orange-400" />
+    </div>
+  );
+}
 
 function OfflineSyncManager() {
   const isOnline = useOnlineStatus();
@@ -184,6 +196,7 @@ export default function App() {
           <OfflineSyncManager />
           <LowStockChecker />
           <InstallPrompt />
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Root redirect */}
             <Route path="/" element={<RootRedirect />} />
@@ -248,6 +261,7 @@ export default function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </CartProvider>
         </TagsProvider>
         </NavModeProvider>

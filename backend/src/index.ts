@@ -75,10 +75,10 @@ app.use(cors({
 }));
 
 // ── Compression ─────────────────────────────────────────────────────────────
-app.use(compression());
+app.use(compression({ threshold: 1024, level: 6 }));
 
 // ── Body parsing ─────────────────────────────────────────────────────────────
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
 // Auth endpoints: 20 attempts per 15 min window

@@ -52,7 +52,7 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
         >
           <div className="relative shrink-0">
             {item.image ? (
-              <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-2xl" />
+              <img src={item.image} alt={item.name} loading="lazy" className="w-16 h-16 object-cover rounded-2xl" />
             ) : (
               <div className="w-16 h-16 bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl flex items-center justify-center">
                 <UtensilsCrossed size={22} className="text-orange-300" />
@@ -125,7 +125,7 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
         {/* Image */}
         <div className="relative flex-none">
           {item.image ? (
-            <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
+            <img src={item.image} alt={item.name} loading="lazy" className="w-full h-48 object-cover" />
           ) : (
             <div className="w-full h-48 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
               <UtensilsCrossed size={48} className="text-orange-200" />

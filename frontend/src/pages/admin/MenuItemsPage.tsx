@@ -126,18 +126,19 @@ export function MenuItemsPage() {
   }
 
   const load = () =>
-    Promise.all([menuService.getItems(), menuService.getCategories()]).then(([i, c]) => {
+    Promise.all([
+      menuService.getItems(),
+      menuService.getCategories(),
+      tagService.getTagsAdmin().catch(() => [] as Tag[]),
+      menuScheduleService.getSchedules().catch(() => [] as MenuSchedule[]),
+    ]).then(([i, c, t, s]) => {
       setItems(i);
       setCategories(c);
+      setTags(t);
+      setSchedules(s);
     });
 
-  const loadTags = () =>
-    tagService.getTagsAdmin().then(setTags).catch(() => {});
-
-  const loadSchedules = () =>
-    menuScheduleService.getSchedules().then(setSchedules).catch(() => {});
-
-  useEffect(() => { load(); loadTags(); loadSchedules(); }, []);
+  useEffect(() => { load(); }, []);
 
   function openNew() {
     setEditing(null);

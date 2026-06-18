@@ -585,6 +585,20 @@ export async function createSchema(): Promise<void> {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_restaurant ON audit_logs (restaurant_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action)`);
 
+  // ── Performance indexes ─────────────────────────────────────────────────────
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_categories_restaurant ON categories (restaurant_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant ON menu_items (restaurant_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_menu_items_category ON menu_items (category_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_restaurant ON orders (restaurant_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_restaurant_created ON orders (restaurant_id, created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tables_restaurant ON tables (restaurant_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_table_sessions_restaurant ON table_sessions (restaurant_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_combos_restaurant ON combos (restaurant_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_loyalty_accounts_restaurant ON loyalty_accounts (restaurant_id, phone)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_stock_items_restaurant ON stock_items (restaurant_id)`);
+
   // ── Modifier Groups ─────────────────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS modifier_groups (
