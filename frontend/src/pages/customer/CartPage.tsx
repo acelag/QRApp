@@ -204,7 +204,8 @@ export function CartPage() {
         {items.map((item) => {
           const key = cartKey(item.menuItemId, item.size, item.toppings?.map((t) => t.id));
           const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
-          const lineUnit = item.price + toppingsTotal;
+          const modifiersTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
+          const lineUnit = item.price + toppingsTotal + modifiersTotal;
           const itemAllergens = getItemAllergens(item.menuItemId);
           return (
             <div key={key} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -246,9 +247,19 @@ export function CartPage() {
                       ))}
                     </ul>
                   )}
+                  {(item.modifiers ?? []).length > 0 && (
+                    <ul className="mt-1 space-y-0.5">
+                      {item.modifiers!.map((m, mi) => (
+                        <li key={mi} className="text-xs text-blue-500 flex gap-1">
+                          <span>{m.groupName}: <span className="font-medium">{m.optionName}</span></span>
+                          {m.price > 0 && <span className="text-orange-500">+{fmt(m.price)}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <button
-                  onClick={() => removeItem(item.menuItemId, item.size, item.toppings)}
+                  onClick={() => removeItem(item.menuItemId, item.size, item.toppings, item.modifiers)}
                   className="text-red-400 hover:text-red-500 ml-2"
                 >
                   <Trash2 size={16} />
@@ -258,7 +269,7 @@ export function CartPage() {
               <div className="flex items-center justify-between">
                 <QuantitySelector
                   value={item.quantity}
-                  onChange={(q) => updateQty(item.menuItemId, item.size, item.toppings, q)}
+                  onChange={(q) => updateQty(item.menuItemId, item.size, item.toppings, q, item.modifiers)}
                   min={0}
                 />
                 <span className="font-bold text-gray-800">{fmt(lineUnit * item.quantity)}</span>
@@ -273,7 +284,7 @@ export function CartPage() {
                       autoFocus
                       type="text"
                       value={item.notes ?? ''}
-                      onChange={(e) => updateNotes(item.menuItemId, item.size, item.toppings, e.target.value)}
+                      onChange={(e) => updateNotes(item.menuItemId, item.size, item.toppings, e.target.value, item.modifiers)}
                       onBlur={() => setEditingNotes(null)}
                       onKeyDown={(e) => e.key === 'Enter' && setEditingNotes(null)}
                       placeholder={t('customer.notePlaceholder')}

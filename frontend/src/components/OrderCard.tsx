@@ -101,7 +101,8 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     lines.push('');
     for (const i of order.items) {
       const toppingsTotal = (i.toppings ?? []).reduce((s, t) => s + t.price, 0);
-      lines.push(`• ${i.quantity}× ${i.name} — ${fmt((i.price + toppingsTotal) * i.quantity)}`);
+      const modifiersTotal = (i.modifiers ?? []).reduce((s, m) => s + m.price, 0);
+      lines.push(`• ${i.quantity}× ${i.name} — ${fmt((i.price + toppingsTotal + modifiersTotal) * i.quantity)}`);
     }
     lines.push('');
     lines.push(`Subtotal: ${fmt(billNet)}`);
@@ -236,7 +237,8 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       <ul className="px-4 pt-3 pb-3 space-y-2">
         {order.items.map((item, idx) => {
           const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
-          const lineTotal = (item.price + toppingsTotal) * item.quantity;
+          const modifiersTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
+          const lineTotal = (item.price + toppingsTotal + modifiersTotal) * item.quantity;
           const isDone = cooked.has(idx);
           return (
             <li
@@ -317,11 +319,21 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
                 )}
               </div>
               {(item.toppings ?? []).length > 0 && (
-                <ul className={`mt-1 space-y-0.5 transition-opacity ${hidePrices ? 'ml-6' : 'ml-6'} ${isDone ? 'opacity-35' : ''}`}>
+                <ul className={`mt-1 space-y-0.5 transition-opacity ml-6 ${isDone ? 'opacity-35' : ''}`}>
                   {item.toppings!.map((t, ti) => (
                     <li key={ti} className="flex justify-between text-xs text-gray-400">
                       <span>+ {t.name}</span>
                       {!hidePrices && t.price > 0 && <span>+{fmt(t.price)}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {(item.modifiers ?? []).length > 0 && (
+                <ul className={`mt-1 space-y-0.5 ml-6 ${isDone ? 'opacity-35' : ''}`}>
+                  {item.modifiers!.map((m, mi) => (
+                    <li key={mi} className="flex justify-between text-xs text-blue-400">
+                      <span>◆ {m.groupName}: {m.optionName}</span>
+                      {!hidePrices && m.price > 0 && <span>+{fmt(m.price)}</span>}
                     </li>
                   ))}
                 </ul>
