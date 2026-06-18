@@ -1,5 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Plus, Trash2, UserCheck, Loader2, X } from 'lucide-react';
+import { PageSpinner } from '../../components/Spinner';
+import { FormInput } from '../../components/FormInput';
 import { useConfirm } from '../../components/ConfirmModal';
 import { EmptyState } from '../../components/EmptyState';
 import { waiterService, type Waiter } from '../../services/waiterService';
@@ -67,9 +69,7 @@ export function WaitersPage() {
 
       <div className="px-3 sm:px-4 lg:px-6 py-4">
         {loading ? (
-          <div className="flex justify-center pt-16">
-            <Loader2 size={28} className="animate-spin text-orange-500" />
-          </div>
+          <PageSpinner />
         ) : waiters.length === 0 ? (
           <EmptyState icon={UserCheck} title="No waiters yet" description="Add staff who can be assigned to orders" />
         ) : (
@@ -99,14 +99,13 @@ export function WaitersPage() {
               <h2 className="text-lg font-bold text-gray-900">Add Waiter</h2>
               <button onClick={() => setShowForm(false)}><X size={20} className="text-gray-400" /></button>
             </div>
-            <input
+            <FormInput
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
               placeholder="Waiter name"
               autoFocus
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
             />
             <button
               onClick={handleAdd}

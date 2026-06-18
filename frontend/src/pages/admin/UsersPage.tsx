@@ -1,6 +1,9 @@
 ﻿import { useEffect, useState } from 'react';
 import { useConfirm } from '../../components/ConfirmModal';
 import { Plus, Pencil, Trash2, X, Eye, EyeOff, Loader2, ShieldCheck, ChefHat, CreditCard, UserCheck, Briefcase, Check, Copy, Users, BarChart2, CalendarDays } from 'lucide-react';
+import { PageSpinner } from '../../components/Spinner';
+import { FormLabel } from '../../components/FormLabel';
+import { FormInput } from '../../components/FormInput';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -197,9 +200,7 @@ export function UsersPage() {
       {tab === 'users' && (
       <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
         {loading ? (
-          <div className="flex justify-center pt-16">
-            <Loader2 size={28} className="animate-spin text-orange-500" />
-          </div>
+          <PageSpinner />
         ) : (
           <>
             {/* Role filter cards */}
@@ -295,43 +296,41 @@ export function UsersPage() {
             <div className="space-y-4">
             {/* Name */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Display Name</label>
-              <input
+              <FormLabel>Display Name</FormLabel>
+              <FormInput
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. Kitchen Staff"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
               />
             </div>
 
             {/* Username */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Username</label>
-              <input
+              <FormLabel>Username</FormLabel>
+              <FormInput
                 type="text"
                 value={form.username}
                 onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
                 placeholder="e.g. manager1"
                 autoComplete="off"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              <FormLabel>
                 Password
-                {editing && <span className="text-gray-400 font-normal ml-1">(leave blank to keep current)</span>}
-              </label>
+                {editing && <span className="text-gray-400 font-normal ml-1 normal-case">(leave blank to keep current)</span>}
+              </FormLabel>
               <div className="relative">
-                <input
+                <FormInput
                   type={showPwd ? 'text' : 'password'}
                   value={form.password}
                   onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                   placeholder={editing ? 'Leave blank to keep current' : 'Min. 6 characters'}
                   autoComplete="new-password"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
+                  className="pr-11"
                 />
                 <button type="button" onClick={() => setShowPwd((p) => !p)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -416,14 +415,24 @@ export function UsersPage() {
             </div>{/* â”€â”€ end right column â”€â”€ */}
             </div>{/* â”€â”€ end two-column grid â”€â”€ */}
 
-            <button
-              onClick={save}
-              disabled={saving}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-              {saving && <Loader2 size={16} className="animate-spin" />}
-              {editing ? 'Save Changes' : 'Create User'}
-            </button>
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-colors disabled:opacity-60 bg-orange-500 hover:bg-orange-600"
+              >
+                {saving && <Loader2 size={14} className="animate-spin" />}
+                {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create User'}
+              </button>
+            </div>
           </div>
         </div>
       )}

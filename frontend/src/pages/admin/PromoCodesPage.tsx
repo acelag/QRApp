@@ -7,6 +7,10 @@ import { promoCodeService, type PromoCode } from '../../services/promoCodeServic
 import { useCurrency } from '../../context/CurrencyContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
+import { FormLabel } from '../../components/FormLabel';
+import { FormInput } from '../../components/FormInput';
+import { FormActions } from '../../components/FormActions';
+import { PageSpinner } from '../../components/Spinner';
 
 const EMPTY_FORM = {
   code: '',
@@ -124,18 +128,18 @@ export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
               {/* Code + Type */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Code *</label>
-                  <input
+                  <FormLabel required>Code</FormLabel>
+                  <FormInput
                     type="text"
                     placeholder="e.g. SAVE20"
                     value={form.code}
                     onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono font-bold focus:outline-none focus:border-orange-400"
+                    className="font-mono font-bold"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Type *</label>
+                  <FormLabel required>Type</FormLabel>
                   <select
                     value={form.type}
                     onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as 'percentage' | 'fixed' }))}
@@ -150,9 +154,9 @@ export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
               {/* Value + Min Order */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                    {form.type === 'percentage' ? 'Discount %' : 'Discount Amount'} *
-                  </label>
+                  <FormLabel required>
+                    {form.type === 'percentage' ? 'Discount %' : 'Discount Amount'}
+                  </FormLabel>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                       {form.type === 'percentage' ? <Percent size={13} /> : <DollarSign size={13} />}
@@ -171,15 +175,14 @@ export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Min Order (optional)</label>
-                  <input
+                  <FormLabel>Min Order (optional)</FormLabel>
+                  <FormInput
                     type="number"
                     placeholder="0.00"
                     min="0"
                     step="0.01"
                     value={form.minOrder}
                     onChange={(e) => setForm((f) => ({ ...f, minOrder: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-orange-400"
                   />
                 </div>
               </div>
@@ -187,53 +190,37 @@ export function PromoCodesPage({ embedded = false }: { embedded?: boolean }) {
               {/* Max Uses + Expiry */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Max Uses (optional)</label>
-                  <input
+                  <FormLabel>Max Uses (optional)</FormLabel>
+                  <FormInput
                     type="number"
                     placeholder="Unlimited"
                     min="1"
                     step="1"
                     value={form.maxUses}
                     onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-orange-400"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Expiry Date (optional)</label>
-                  <input
+                  <FormLabel>Expiry Date (optional)</FormLabel>
+                  <FormInput
                     type="date"
                     value={form.expiresAt}
                     onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-orange-400"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}
-                  className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-2xl text-sm font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white py-2.5 rounded-2xl text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60"
-                >
-                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                  {saving ? 'Creating…' : 'Create Code'}
-                </button>
-              </div>
+              <FormActions
+                onCancel={() => { setShowForm(false); setForm(EMPTY_FORM); }}
+                saving={saving}
+                saveLabel="Create Code"
+              />
             </form>
           </div>
         )}
 
         {loading ? (
-          <div className="flex justify-center pt-16">
-            <Loader2 size={28} className="animate-spin text-orange-500" />
-          </div>
+          <PageSpinner />
         ) : codes.length === 0 ? (
           <EmptyState icon={Tag} title="No promo codes yet" description="Create your first discount code to get started" />
         ) : (

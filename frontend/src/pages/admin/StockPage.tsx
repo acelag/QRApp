@@ -1,8 +1,10 @@
 ﻿import { useEffect, useState } from 'react';
 import {
   Plus, Package, ArrowDownCircle, ArrowUpCircle, Pencil, Trash2,
-  AlertTriangle,X, History, Search,
+  AlertTriangle, X, History,
 } from 'lucide-react';
+import { PageSpinner } from '../../components/Spinner';
+import { SearchInput } from '../../components/SearchInput';
 import { useConfirm } from '../../components/ConfirmModal';
 import { EmptyState } from '../../components/EmptyState';
 import toast from 'react-hot-toast';
@@ -462,15 +464,12 @@ export function StockPage() {
 
           {/* Search + filter */}
           <div className="flex gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-300 bg-white"
-                placeholder="Search items or category…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
+            <SearchInput
+              className="flex-1 min-w-[200px]"
+              placeholder="Search items or category…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
             <div className="flex rounded-xl border border-gray-200 bg-white overflow-hidden text-sm">
               {(['all', 'low'] as const).map(f => (
                 <button
@@ -486,9 +485,7 @@ export function StockPage() {
 
           {/* Items list */}
           {loading ? (
-            <div className="flex justify-center pt-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
-            </div>
+            <PageSpinner />
           ) : displayed.length === 0 ? (
             <EmptyState icon={Package} title={items.length === 0 ? 'No stock items yet' : 'No items match your search'} description={items.length === 0 ? 'Add your first item to get started' : 'Try a different search term'} />
           ) : (

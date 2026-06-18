@@ -1,8 +1,12 @@
 ﻿import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  Plus, Loader2, X, Phone, Users, Pencil, Trash2,
+  Plus, X, Phone, Users, Pencil, Trash2,
   CalendarDays, MapPin, BedDouble, List, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { FormLabel } from '../../components/FormLabel';
+import { FormInput } from '../../components/FormInput';
+import { FormActions } from '../../components/FormActions';
+import { PageSpinner } from '../../components/Spinner';
 import { useConfirm } from '../../components/ConfirmModal';
 import { EmptyState } from '../../components/EmptyState';
 import toast from 'react-hot-toast';
@@ -269,7 +273,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
         {view === 'calendar' && (
           <div className="p-3 sm:p-4 lg:p-6">
             {loading ? (
-              <div className="flex justify-center py-20"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
+              <PageSpinner />
             ) : typeFilter === 'all' ? (
               <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
                 {renderCalendar(items.filter((r) => r.type === 'table'), 'Tables')}
@@ -286,7 +290,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
         {view === 'list' && (
           <div className="px-3 sm:px-4 lg:px-6 py-4 max-w-3xl">
             {loading ? (
-              <div className="flex justify-center py-16"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
+              <PageSpinner />
             ) : visibleItems.length === 0 ? (
               <EmptyState icon={CalendarDays} title="No reservations" description="No reservations for this day" />
             ) : (
@@ -347,7 +351,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
               </div>
               {form.type === 'table' ? (
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Table *</label>
+                  <FormLabel required>Table</FormLabel>
                   <select className={`${input} bg-white`} value={form.tableId} onChange={(e) => setForm((f) => ({ ...f, tableId: e.target.value }))}>
                     <option value="">Select a table…</option>
                     {tables.map((t) => <option key={t.id} value={t.id}>Table {t.number} ({t.seats} seats)</option>)}
@@ -355,7 +359,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
                 </div>
               ) : (
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Room *</label>
+                  <FormLabel required>Room</FormLabel>
                   <select className={`${input} bg-white`} value={form.roomId} onChange={(e) => setForm((f) => ({ ...f, roomId: e.target.value }))}>
                     <option value="">Select a room…</option>
                     {rooms.map((r) => <option key={r.id} value={r.id}>Room {r.number}{r.name ? `  .  ${r.name}` : ''}</option>)}
@@ -363,31 +367,31 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
                 </div>
               )}
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Customer name *</label>
-                <input className={input} value={form.customerName} onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))} placeholder="e.g. Mr. Perera" />
+                <FormLabel required>Customer name</FormLabel>
+                <FormInput value={form.customerName} onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))} placeholder="e.g. Mr. Perera" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Phone</label>
-                  <input className={input} value={form.customerPhone} onChange={(e) => setForm((f) => ({ ...f, customerPhone: e.target.value }))} placeholder="+94…" />
+                  <FormLabel>Phone</FormLabel>
+                  <FormInput value={form.customerPhone} onChange={(e) => setForm((f) => ({ ...f, customerPhone: e.target.value }))} placeholder="+94…" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Party size</label>
-                  <input type="number" min="1" className={input} value={form.partySize} onChange={(e) => setForm((f) => ({ ...f, partySize: e.target.value }))} />
+                  <FormLabel>Party size</FormLabel>
+                  <FormInput type="number" min="1" value={form.partySize} onChange={(e) => setForm((f) => ({ ...f, partySize: e.target.value }))} />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Date &amp; time *</label>
-                <input type="datetime-local" className={input} value={form.reservedAt} onChange={(e) => setForm((f) => ({ ...f, reservedAt: e.target.value }))} />
+                <FormLabel required>Date &amp; time</FormLabel>
+                <FormInput type="datetime-local" value={form.reservedAt} onChange={(e) => setForm((f) => ({ ...f, reservedAt: e.target.value }))} />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Notes</label>
+                <FormLabel>Notes</FormLabel>
                 <textarea rows={2} className={`${input} resize-none`} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="e.g. window seat, birthday" />
               </div>
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
-                <button onClick={save} disabled={saving} className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                  {saving && <Loader2 size={15} className="animate-spin" />} {form.id ? 'Save changes' : 'Add reservation'}
+              <div className="flex gap-2 justify-end pt-1">
+                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+                <button type="button" onClick={save} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-colors disabled:opacity-60 bg-orange-500 hover:bg-orange-600">
+                  {saving && <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />} {form.id ? 'Save Reservation' : 'Add reservation'}
                 </button>
               </div>
             </div>
