@@ -28,6 +28,7 @@ import { PhoneLookupPage } from './pages/customer/PhoneLookupPage';
 import { WelcomePage } from './pages/customer/WelcomePage';
 import { TakeawayMenuPage } from './pages/customer/TakeawayMenuPage';
 import { RoomMenuPage } from './pages/customer/RoomMenuPage';
+import { BillPage } from './pages/customer/BillPage';
 
 // Marketing pages
 const LandingPage          = lazy(() => import('./pages/marketing/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -213,6 +214,7 @@ export default function App() {
             <Route path="/menu/:tableId" element={<MenuPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+            <Route path="/bill/:sessionId" element={<BillPage />} />
             <Route path="/order-history/:tableId" element={<OrderHistoryPage />} />
             <Route path="/my-orders" element={<PhoneLookupPage />} />
             <Route path="/takeaway/:restaurantId" element={<TakeawayMenuPage />} />

@@ -16,14 +16,14 @@ import { useTags } from '../../context/TagsContext';
 import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
 import type { MenuSchedule } from '../../services/menuScheduleService';
 import { comboService, type Combo } from '../../services/comboService';
-import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown, Heart, ShoppingCart, Trash2 } from 'lucide-react';
+import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown, Heart, ShoppingCart, Trash2, Receipt } from 'lucide-react';
 import { useFavourites } from '../../hooks/useFavourites';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 import { ActiveOrderBanner } from '../../components/ActiveOrderBanner';
 export function MenuPage() {
   const { t } = useTranslation();
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
-  const { setTable, setSession, setRestaurant, tableNumber, tableId, addCombo,
+  const { setTable, setSession, setRestaurant, tableNumber, tableId, sessionId, addCombo,
           checkForSavedCart, restoreCart, discardCart, pendingSavedCart, items: cartItems } = useCart();
   const { loadCurrency, fmt } = useCurrency();
   const { loadTags } = useTags();
@@ -178,6 +178,15 @@ export function MenuPage() {
                   <List size={14} />
                 </button>
               </div>
+              {sessionId && (
+                <Link
+                  to={`/bill/${sessionId}`}
+                  className="flex items-center gap-1.5 text-xs text-orange-500 font-medium bg-orange-50 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors"
+                >
+                  <Receipt size={13} />
+                  {t('bill.viewBill')}
+                </Link>
+              )}
               {tableId && (
                 <Link
                   to={`/order-history/${tableId}`}

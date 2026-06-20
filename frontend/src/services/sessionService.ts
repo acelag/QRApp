@@ -23,6 +23,7 @@ export interface SessionOrder {
 
 export interface Session {
   id: string;
+  restaurantId: string;
   tableId: string;
   tableNumber: number;
   status: 'open' | 'paid';

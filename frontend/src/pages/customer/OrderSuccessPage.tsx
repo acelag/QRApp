@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, RotateCcw, Clock, ChefHat, Bell, PlusCircle, Star } from 'lucide-react';
+import { CheckCircle, RotateCcw, Clock, ChefHat, Bell, PlusCircle, Star, Receipt } from 'lucide-react';
 import type { Order } from '../../types';
 import type { CartItem } from '../../types/Order';
 import { orderService } from '../../services/orderService';
@@ -358,6 +358,16 @@ export function OrderSuccessPage() {
             </div>
           </div>
         </div>
+
+        {/* View full table bill (dine-in sessions) */}
+        {order.orderType === 'dine-in' && order.sessionId && (
+          <Link
+            to={`/bill/${order.sessionId}`}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm border border-orange-200 text-orange-600 bg-orange-50 hover:bg-orange-100 active:scale-[0.98] transition-all"
+          >
+            <Receipt size={16} /> {t('bill.viewFull')}
+          </Link>
+        )}
 
         {/* Actions */}
         {(order.status === 'pending' || order.status === 'preparing') && (

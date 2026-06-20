@@ -190,6 +190,23 @@
     "feedbackThanks": "Thanks for your feedback!",
     "feedbackError": "Could not submit feedback"
   },
+  "bill": {
+    "viewBill": "Bill",
+    "viewFull": "View full table bill",
+    "tableNumber": "Table {{number}}",
+    "runningTitle": "Running bill",
+    "paidTitle": "Bill paid — thank you!",
+    "refresh": "Refresh",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "each": "each",
+    "empty": "No items on your bill yet.",
+    "openedAt": "Opened {{time}}",
+    "liveHint": "This bill updates automatically as you order.",
+    "thankYou": "Thank you for dining with us! 🙏",
+    "notFound": "Bill not found",
+    "notFoundHint": "This session may have ended or the link is invalid."
+  },
   "orders": {
     "title": "Live Orders",
     "noOrders": "No orders",
