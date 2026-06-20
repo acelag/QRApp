@@ -6,6 +6,7 @@ import { pool } from '../db/database';
 let cache = new Map<string, string>();
 
 export const SUBSCRIPTIONS_ENABLED_KEY = 'subscriptions_enabled';
+export const LOGIN_ICON_KEY = 'login_icon';
 
 export async function loadAppSettings(): Promise<void> {
   try {
@@ -37,4 +38,13 @@ export function subscriptionsEnabled(): boolean {
 
 export async function setSubscriptionsEnabled(on: boolean): Promise<void> {
   await setSetting(SUBSCRIPTIONS_ENABLED_KEY, on ? 'true' : 'false');
+}
+
+/** App-wide login/brand icon, stored as a base64 data URL (or null if unset). */
+export function getLoginIcon(): string | null {
+  return cache.get(LOGIN_ICON_KEY) ?? null;
+}
+
+export async function setLoginIcon(dataUrl: string): Promise<void> {
+  await setSetting(LOGIN_ICON_KEY, dataUrl);
 }

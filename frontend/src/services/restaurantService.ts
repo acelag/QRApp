@@ -171,6 +171,10 @@ export const restaurantService = {
   getBrandingBySlug: (slug: string): Promise<LoginBranding> =>
     axios.get<LoginBranding>(`${BASE}/restaurants/by-slug/${encodeURIComponent(slug)}/branding`).then((r) => r.data),
 
+  /** Public — no auth. App-wide branding (login icon) stored in the database. */
+  getAppSettings: (): Promise<{ loginIcon: string | null }> =>
+    axios.get<{ loginIcon: string | null }>(`${BASE}/app-settings/public`).then((r) => r.data),
+
   updateLoginBranding: (id: string, data: { loginMedia: string[]; loginVideoUrl: string | null }) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/login-branding`, data).then((r) => r.data),
 

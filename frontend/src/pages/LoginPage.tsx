@@ -35,6 +35,12 @@ export function LoginPage() {
   const [branding, setBranding] = useState<LoginBranding | null>(null);
   const [slideIdx, setSlideIdx] = useState(0);
 
+  // App-wide login icon (stored in the database, base64 data URL)
+  const [loginIcon, setLoginIcon] = useState<string | null>(null);
+  useEffect(() => {
+    restaurantService.getAppSettings().then((s) => setLoginIcon(s.loginIcon)).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (!slug) { setBranding(null); return; }
     restaurantService.getBrandingBySlug(slug).then(setBranding).catch(() => setBranding(null));
@@ -125,6 +131,10 @@ export function LoginPage() {
           {branding?.logo ? (
             <img src={branding.logo} alt={branding.name}
               className="w-20 h-20 mx-auto mb-4 rounded-2xl object-cover shadow-lg bg-white" />
+          ) : !branding && loginIcon ? (
+            // Default app login — main app icon (stored in the database)
+            <img src={loginIcon} alt="OrderLive"
+              className="w-24 h-24 mx-auto mb-4 object-contain" />
           ) : (
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg" style={{ backgroundColor: theme }}>
               <UtensilsCrossed size={32} className="text-white" />
