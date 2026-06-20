@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { rateLimit } from 'express-rate-limit';
 import path from 'path';
-import { connectDb } from './db/database';
+import { connectDb, pool } from './db/database';
 import { createSchema } from './db/schema';
 import { seedIfEmpty } from './db/seed';
 import { authenticate, requireRole } from './middleware/auth';
@@ -79,7 +79,7 @@ app.use(cors({
 app.use(compression({ threshold: 1024, level: 6 }));
 
 // ── Body parsing ─────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '500kb' }));
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
 // Auth endpoints: 20 attempts per 15 min window
@@ -101,6 +101,7 @@ const apiLimiter = rateLimit({
 
 app.use('/api', apiLimiter);
 app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/profile', authLimiter); // password change — same strict limit
 
 // ── Static uploads ───────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -137,7 +138,14 @@ if (process.env.NODE_ENV !== 'production') {
 app.use('/api/upload',      authenticate, requireRole('admin'), uploadRouter);
 app.use('/api/users',       usersRouter);
 
-app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+app.get('/api/health', async (_req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok' });
+  } catch {
+    res.status(503).json({ status: 'error', reason: 'database unreachable' });
+  }
+});
 
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -152,6 +160,17 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   }
 });
 
+// ── Process-level safety nets ────────────────────────────────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+  process.exit(1);
+});
+
 // ── Startup ──────────────────────────────────────────────────────────────────
 async function start() {
   try {
@@ -162,11 +181,26 @@ async function start() {
     await ensureAnnualPrices();
     await reloadPlans();
     await loadAppSettings();
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Backend running on http://localhost:${PORT} [${isProd ? 'production' : 'development'}]`);
       startStaleOrderChecker();
       startSubscriptionChecker();
     });
+
+    // ── Graceful shutdown (SIGTERM / SIGINT) ──────────────────────────────────
+    const shutdown = () => {
+      console.log('Shutting down gracefully…');
+      server.close(async () => {
+        await pool.end();
+        console.log('DB pool closed. Bye.');
+        process.exit(0);
+      });
+      // Force-exit if connections don't drain within 10 s
+      setTimeout(() => process.exit(1), 10_000).unref();
+    };
+
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT',  shutdown);
   } catch (err) {
     console.error('Failed to start server:', err);
     process.exit(1);
