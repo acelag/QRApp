@@ -29,8 +29,8 @@ export default defineConfig({
       // pushService.ts handles SW registration manually — don't inject a second registration
       injectRegister: null,
       manifest: {
-        name: 'QRA System',
-        short_name: 'QRA',
+        name: 'Order Live',
+        short_name: 'Order Live',
         description: 'Restaurant Management & Ordering System',
         theme_color: '#8b5cf6',
         background_color: '#ffffff',
@@ -39,8 +39,9 @@ export default defineConfig({
         scope: '/',
         start_url: '/admin',
         icons: [
-          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       devOptions: {

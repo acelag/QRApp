@@ -40,7 +40,7 @@
     "errorCheckConnection": "ඔබේ සම්බන්ධතාව පරීක්ෂා කර නැවත උත්සාහ කරන්න"
   },
   "auth": {
-    "appName": "QRA පද්ධතිය",
+    "appName": "Order Live",
     "signInTo": "ප්‍රවේශ වීමට sign in කරන්න",
     "username": "පරිශීලක නාමය",
     "usernamePlaceholder": "ඔබේ පරිශීලක නාමය ඇතුළු කරන්න",
@@ -115,7 +115,7 @@
     "waitTime": "ආසන්නව {{n}} min රැඳීමේ කාලය",
     "viewMenu": "මෙනු බලන්න",
     "followUs": "අපව අනුගමනය කරන්න",
-    "poweredBy": "QRA System මගින් ශක්තිය ලබා ගනී",
+    "poweredBy": "Order Live මගින් ශක්තිය ලබා ගනී",
     "searchMenu": "මෙනු සොයන්න…",
     "allCategories": "සියල්ල",
     "addToCart": "එකතු කරන්න",

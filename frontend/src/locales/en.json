@@ -40,7 +40,7 @@
     "errorCheckConnection": "Check your connection and try again"
   },
   "auth": {
-    "appName": "QRA System",
+    "appName": "Order Live",
     "signInTo": "Sign in to continue",
     "username": "Username",
     "usernamePlaceholder": "Enter your username",
@@ -115,7 +115,7 @@
     "waitTime": "Approx. {{n}} min wait time",
     "viewMenu": "View Menu",
     "followUs": "Follow us",
-    "poweredBy": "Powered by QRA System",
+    "poweredBy": "Powered by Order Live",
     "searchMenu": "Search menu…",
     "allCategories": "All",
     "addToCart": "Add",

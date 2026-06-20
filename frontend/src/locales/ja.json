@@ -40,7 +40,7 @@
     "errorCheckConnection": "接続を確認してもう一度お試しください"
   },
   "auth": {
-    "appName": "QRAシステム",
+    "appName": "Order Live",
     "signInTo": "続けるにはサインインしてください",
     "username": "ユーザー名",
     "usernamePlaceholder": "ユーザー名を入力",
@@ -115,7 +115,7 @@
     "waitTime": "約 {{n}} 分待ち",
     "viewMenu": "メニューを見る",
     "followUs": "フォローする",
-    "poweredBy": "QRA System",
+    "poweredBy": "Order Live",
     "searchMenu": "メニューを検索…",
     "allCategories": "すべて",
     "addToCart": "追加",
