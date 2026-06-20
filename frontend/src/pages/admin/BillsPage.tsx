@@ -404,6 +404,34 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
                         </div>
                       )}
 
+                      {(session.orders ?? []).filter((o) => o.status !== 'cancelled').length > 0 && (
+                        <div className="px-5 py-3 border-b border-gray-100">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Live Orders</p>
+                          <ul className="space-y-1.5">
+                            {(session.orders ?? []).filter((o) => o.status !== 'cancelled').map((order) => (
+                              <li key={order.id} className="flex items-center justify-between">
+                                <span className="text-xs text-gray-500 font-mono">
+                                  #{order.orderNumber ?? order.id.slice(0, 6).toUpperCase()}
+                                  <span className="ml-1.5 text-gray-400 font-sans">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+                                </span>
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                                  order.status === 'pending'    ? 'bg-yellow-100 text-yellow-700'
+                                  : order.status === 'preparing' ? 'bg-blue-100 text-blue-700'
+                                  : order.status === 'ready'     ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-500'
+                                }`}>{order.status}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {(session.orders ?? []).some((o) => o.status === 'pending' || o.status === 'preparing') && (
+                            <p className="text-[11px] text-yellow-600 mt-2 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse inline-block" />
+                              Orders still being prepared
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {(session.billItems ?? []).length > 0 && (
                         <div className="px-5 py-3 border-b border-gray-100">
                           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Bill Summary</p>

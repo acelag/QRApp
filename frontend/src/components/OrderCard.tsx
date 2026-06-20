@@ -1,10 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, Download } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, Download, Users, GitMerge, Loader2 } from 'lucide-react';
 import { printService } from '../services/printService';
 import { computeCharges, type RestaurantSettings } from '../services/restaurantService';
+import { sessionService, type Session } from '../services/sessionService';
+import { SplitBillModal } from './SplitBillModal';
+import { PaymentMethodModal, type PaymentMethod } from './PaymentMethodModal';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
 
@@ -40,6 +43,64 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
   const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
   const { fmt } = useCurrency();
+
+  const [liveSession, setLiveSession] = useState<Session | null>(null);
+  useEffect(() => {
+    if (!showBill || !order.sessionId) return;
+    sessionService.getSession(order.sessionId).then(setLiveSession).catch(() => {});
+    const id = setInterval(() => {
+      sessionService.getSession(order.sessionId!).then(setLiveSession).catch(() => {});
+    }, 8000);
+    return () => clearInterval(id);
+  }, [showBill, order.sessionId]);
+
+  const [showSplit, setShowSplit]           = useState(false);
+  const [showPay, setShowPay]               = useState(false);
+  const [showMerge, setShowMerge]           = useState(false);
+  const [openSessions, setOpenSessions]     = useState<Session[]>([]);
+  const [paying, setPaying]                 = useState(false);
+  const [merging, setMerging]               = useState(false);
+
+  async function openMergePicker() {
+    try {
+      const all = await sessionService.getSessions('open');
+      setOpenSessions(all.filter((s) => s.id !== liveSession?.id && !s.mergedIntoSessionId));
+      setShowMerge(true);
+    } catch {
+      toast.error('Failed to load open tables');
+    }
+  }
+
+  async function handleMerge(targetId: string) {
+    if (!liveSession || merging) return;
+    setMerging(true);
+    try {
+      await sessionService.merge(liveSession.id, targetId);
+      const updated = await sessionService.getSession(liveSession.id);
+      setLiveSession(updated);
+      toast.success(`Table ${liveSession.tableNumber} merged`);
+      setShowMerge(false);
+    } catch {
+      toast.error('Failed to merge tables');
+    } finally {
+      setMerging(false);
+    }
+  }
+
+  async function handlePay(method: PaymentMethod) {
+    if (!liveSession || paying) return;
+    setPaying(true);
+    try {
+      await sessionService.markAsPaid(liveSession.id, method);
+      setLiveSession((prev) => prev ? { ...prev, status: 'paid' } : prev);
+      toast.success(`Table ${liveSession.tableNumber} marked as paid`);
+      setShowPay(false);
+    } catch {
+      toast.error('Failed to mark as paid');
+    } finally {
+      setPaying(false);
+    }
+  }
 
   const now = clockMs ?? Date.now();
   const ageMins = Math.floor((now - new Date(order.createdAt).getTime()) / 60_000);
@@ -499,6 +560,34 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
         {/* Bill actions — print, download PDF, send via WhatsApp (single full-width row) */}
         {showBill && (
           <div className="mt-3 pt-3 border-t border-gray-100">
+            {/* Live orders from session */}
+            {liveSession && (liveSession.orders ?? []).filter((o) => o.status !== 'cancelled').length > 0 && (
+              <div className="mb-3 pb-3 border-b border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Live Orders</p>
+                <ul className="space-y-1.5">
+                  {(liveSession.orders ?? []).filter((o) => o.status !== 'cancelled').map((o) => (
+                    <li key={o.id} className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500 font-mono">
+                        #{o.orderNumber ?? o.id.slice(0, 6).toUpperCase()}
+                        <span className="ml-1.5 text-gray-400 font-sans">{o.items.length} item{o.items.length !== 1 ? 's' : ''}</span>
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                        o.status === 'pending'    ? 'bg-yellow-100 text-yellow-700'
+                        : o.status === 'preparing' ? 'bg-blue-100 text-blue-700'
+                        : o.status === 'ready'     ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-500'
+                      }`}>{o.status}</span>
+                    </li>
+                  ))}
+                </ul>
+                {(liveSession.orders ?? []).some((o) => o.status === 'pending' || o.status === 'preparing') && (
+                  <p className="text-[11px] text-yellow-600 mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse inline-block" />
+                    Orders still being prepared
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap items-stretch gap-2">
               <button
                 onClick={handlePrint}
@@ -532,6 +621,91 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
               </div>
             </div>
             <p className="text-[11px] text-gray-400 mt-2">Print, save as PDF, or send the bill to the customer's phone via WhatsApp.</p>
+
+            {/* Session actions — only for open dine-in sessions */}
+            {liveSession && liveSession.status === 'open' && (
+              <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setShowSplit(true)}
+                    disabled={(liveSession.billItems ?? []).length === 0}
+                    className="flex items-center justify-center gap-1.5 border border-orange-200 text-orange-600 bg-orange-50 font-semibold py-2.5 px-2 rounded-2xl hover:bg-orange-100 transition-colors disabled:opacity-40 text-sm"
+                  >
+                    <Users size={15} /> Split
+                  </button>
+                  <button
+                    onClick={openMergePicker}
+                    className="flex items-center justify-center gap-1.5 border border-blue-200 text-blue-600 bg-blue-50 font-semibold py-2.5 px-2 rounded-2xl hover:bg-blue-100 transition-colors text-sm"
+                  >
+                    <GitMerge size={15} /> Merge
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowPay(true)}
+                  disabled={paying || (liveSession.billItems ?? []).length === 0}
+                  className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
+                >
+                  {paying ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                  {paying ? 'Processing…' : 'Mark as Paid'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {showSplit && liveSession && (
+          <SplitBillModal
+            session={liveSession}
+            settings={settings ?? null}
+            onClose={() => setShowSplit(false)}
+          />
+        )}
+
+        {showPay && liveSession && (
+          <PaymentMethodModal
+            title="How was this paid?"
+            subtitle={`Table ${liveSession.tableNumber} · ${fmt(liveSession.totalAmount ?? 0)}`}
+            total={liveSession.totalAmount ?? 0}
+            onConfirm={handlePay}
+            onClose={() => setShowPay(false)}
+            loading={paying}
+          />
+        )}
+
+        {showMerge && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0"
+            onClick={() => setShowMerge(false)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                <GitMerge size={18} className="text-blue-500" />
+                <h2 className="font-semibold text-gray-900">Merge Table {liveSession?.tableNumber} into…</h2>
+              </div>
+              {openSessions.length === 0 ? (
+                <p className="px-5 py-6 text-sm text-gray-400 text-center">No other open tables to merge with</p>
+              ) : (
+                <ul className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+                  {openSessions.map((s) => (
+                    <li key={s.id}>
+                      <button
+                        onClick={() => handleMerge(s.id)}
+                        disabled={merging}
+                        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-blue-50 transition-colors text-left"
+                      >
+                        <span className="font-semibold text-gray-800">Table {s.tableNumber}</span>
+                        <span className="text-sm text-gray-500">{fmt(s.totalAmount ?? 0)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="px-5 py-3 border-t border-gray-100">
+                <button onClick={() => setShowMerge(false)}
+                  className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 font-medium">
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
