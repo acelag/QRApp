@@ -180,9 +180,6 @@ export const restaurantService = {
   updateLogo: (id: string, logo: string | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/logo`, { logo }).then((r) => r.data),
 
-  updateTheme: (id: string, themeColor: string) =>
-    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/theme`, { themeColor }).then((r) => r.data),
-
   updateOrderPrefix: (id: string, orderNumberPrefix: string) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/order-prefix`, { orderNumberPrefix }).then((r) => r.data),
 

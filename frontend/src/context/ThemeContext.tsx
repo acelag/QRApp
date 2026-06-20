@@ -1,52 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { restaurantService } from '../services/restaurantService';
-import { useAuth } from './AuthContext';
 import { applyDarkMode, isDarkMode, initDarkMode } from '../lib/darkMode';
 
-export const THEME_COLORS = [
-  { name: 'Forest', hex: '#2a7344', light: '#eef6f1', dark: '#1f5a34', border: '#a9d2b6', ring: '#76b389' },
-  { name: 'Orange', hex: '#f97316', light: '#fff7ed', dark: '#ea6c00', border: '#fed7aa', ring: '#fdba74' },
-  { name: 'Rose',   hex: '#f43f5e', light: '#fff1f2', dark: '#e11d48', border: '#fecdd3', ring: '#fda4af' },
-  { name: 'Violet', hex: '#8b5cf6', light: '#f5f3ff', dark: '#7c3aed', border: '#ddd6fe', ring: '#c4b5fd' },
-  { name: 'Blue',   hex: '#3b82f6', light: '#eff6ff', dark: '#2563eb', border: '#bfdbfe', ring: '#93c5fd' },
-  { name: 'Teal',   hex: '#14b8a6', light: '#f0fdfa', dark: '#0d9488', border: '#99f6e4', ring: '#5eead4' },
-  { name: 'Green',  hex: '#22c55e', light: '#f0fdf4', dark: '#16a34a', border: '#bbf7d0', ring: '#86efac' },
-  { name: 'Amber',  hex: '#f59e0b', light: '#fffbeb', dark: '#d97706', border: '#fde68a', ring: '#fcd34d' },
-  { name: 'Pink',   hex: '#ec4899', light: '#fdf2f8', dark: '#db2777', border: '#fbcfe8', ring: '#f9a8d4' },
-];
+// Fixed app theme colour — Forest green. Theme selection has been removed;
+// the whole app uses this single accent (light/dark mode is still switchable).
+export const THEME_COLOR = '#2a7344';
 
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '');
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
+const FOREST = { light: '#eef6f1', dark: '#1f5a34', border: '#a9d2b6', ring: '#76b389' };
 
-function mix(hex: string, white: number): string {
-  const [r, g, b] = hexToRgb(hex);
-  const v = (c: number) => Math.round(c + (255 - c) * white).toString(16).padStart(2, '0');
-  return `#${v(r)}${v(g)}${v(b)}`;
-}
-
-function darken(hex: string, amount: number): string {
-  const [r, g, b] = hexToRgb(hex);
-  const v = (c: number) => Math.round(c * (1 - amount)).toString(16).padStart(2, '0');
-  return `#${v(r)}${v(g)}${v(b)}`;
-}
-
-export function applyTheme(hex: string) {
-  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
-  try { localStorage.setItem('qra-theme', hex); } catch { /* storage unavailable */ }
-  const preset = THEME_COLORS.find((c) => c.hex === hex);
-  const light  = preset?.light  ?? mix(hex, 0.92);
-  const dark   = preset?.dark   ?? darken(hex, 0.12);
-  const border = preset?.border ?? mix(hex, 0.70);
-  const ring   = preset?.ring   ?? mix(hex, 0.55);
-
+function applyTheme() {
   const root = document.documentElement;
-  root.style.setProperty('--clr',        hex);
-  root.style.setProperty('--clr-light',  light);
-  root.style.setProperty('--clr-dark',   dark);
-  root.style.setProperty('--clr-border', border);
-  root.style.setProperty('--clr-ring',   ring);
+  root.style.setProperty('--clr',        THEME_COLOR);
+  root.style.setProperty('--clr-light',  FOREST.light);
+  root.style.setProperty('--clr-dark',   FOREST.dark);
+  root.style.setProperty('--clr-border', FOREST.border);
+  root.style.setProperty('--clr-ring',   FOREST.ring);
 
   // Remap all Tailwind orange utilities to CSS variables — no component changes needed
   let el = document.getElementById('qra-theme');
@@ -85,27 +52,16 @@ export function applyTheme(hex: string) {
   `;
 }
 
-function clearTheme() {
-  const el = document.getElementById('qra-theme');
-  if (el) el.remove();
-  const root = document.documentElement;
-  ['--clr', '--clr-light', '--clr-dark', '--clr-border', '--clr-ring'].forEach((v) =>
-    root.style.removeProperty(v),
-  );
-  try { localStorage.removeItem('qra-theme'); } catch { /* storage unavailable */ }
-}
-
 interface ThemeCtx {
-  loadTheme: (restaurantId: string) => void;
-  clearTheme: () => void;
   dark: boolean;
   toggleDark: () => void;
 }
 
-const ThemeContext = createContext<ThemeCtx>({ loadTheme: () => {}, clearTheme: () => {}, dark: false, toggleDark: () => {} });
+const ThemeContext = createContext<ThemeCtx>({ dark: false, toggleDark: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  // Fixed accent colour — applied once on mount.
+  useEffect(() => { applyTheme(); }, []);
 
   // Light/dark mode (persisted in localStorage)
   const [dark, setDark] = useState<boolean>(isDarkMode);
@@ -114,27 +70,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setDark((prev) => { const next = !prev; applyDarkMode(next); return next; });
   }, []);
 
-  // Auto-load for authenticated admin/kitchen users once auth resolves
-  useEffect(() => {
-    if (loading) return;
-    if (user?.restaurantId) {
-      restaurantService
-        .getRestaurantInfo(user.restaurantId)
-        .then((r) => applyTheme(r.themeColor ?? '#2a7344'))
-        .catch(() => {});
-    }
-  }, [loading, user?.restaurantId]);
-
-  // Called from customer-facing pages that know their restaurantId
-  const loadTheme = useCallback((restaurantId: string) => {
-    restaurantService
-      .getRestaurantInfo(restaurantId)
-      .then((r) => applyTheme(r.themeColor ?? '#2a7344'))
-      .catch(() => {});
-  }, []);
-
   return (
-    <ThemeContext.Provider value={{ loadTheme, clearTheme, dark, toggleDark }}>
+    <ThemeContext.Provider value={{ dark, toggleDark }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -3,7 +3,7 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UtensilsCrossed, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { THEME_COLOR } from '../context/ThemeContext';
 import { restaurantService, type LoginBranding } from '../services/restaurantService';
 
 const DEV_CREDENTIALS = [
@@ -27,12 +27,9 @@ const COLOR_CLS: Record<string, { bg: string; border: string; hover: string; tex
 export function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuth();
-  const { clearTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const { slug } = useParams<{ slug?: string }>();
-
-  useEffect(() => { clearTheme(); }, []);
 
   // ── Per-restaurant branding (when reached via /login/:slug) ──────────────────
   const [branding, setBranding] = useState<LoginBranding | null>(null);
@@ -93,7 +90,7 @@ export function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const theme = branding?.themeColor || '#2a7344';
+  const theme = THEME_COLOR;
   const images = branding?.loginMedia ?? [];
   const hasMedia = !!branding && (!!branding.loginVideoUrl || images.length > 0);
 

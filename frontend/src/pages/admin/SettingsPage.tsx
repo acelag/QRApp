@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Eye, EyeOff, Loader2, CheckCircle2, Users,
-  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Palette, Hash, Clock, Printer,
+  DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Hash, Clock, Printer,
   Store, Smartphone, FileText, Rocket, LayoutDashboard,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -13,7 +13,7 @@ import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../se
 import { printService } from '../../services/printService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
-import { applyTheme } from '../../context/ThemeContext';
+import { THEME_COLOR } from '../../context/ThemeContext';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useNavMode } from '../../context/NavModeContext';
 
@@ -92,8 +92,7 @@ export function SettingsPage() {
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingSuccess, setBillingSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
-  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('qra-theme') ?? '#2a7344');
-  const [themeSaving, setThemeSaving] = useState(false);
+  const themeColor = THEME_COLOR;
   const [orderPrefix, setOrderPrefix] = useState('ORD');
   const [prefixSaving, setPrefixSaving] = useState(false);
 
@@ -161,7 +160,6 @@ export function SettingsPage() {
       setServiceChargeName(r.serviceChargeName ?? 'Service Charge');
       setTaxName(r.taxName ?? 'Tax');
       setCurrency(r.currency ?? 'USD');
-      setThemeColor(r.themeColor ?? '#2a7344');
       setOrderPrefix(r.orderNumberPrefix ?? 'ORD');
       setWaitTimeMin(r.waitTimeMin ?? null);
       setTimezone(r.timezone ?? 'UTC');
@@ -220,19 +218,6 @@ export function SettingsPage() {
   }
 
   // ── Save functions (all existing, untouched logic) ─────────────────────────
-  async function saveTheme(hex: string) {
-    if (!restaurant) return;
-    setThemeColor(hex);
-    applyTheme(hex);
-    setThemeSaving(true);
-    try {
-      const updated = await restaurantService.updateTheme(restaurant.id, hex);
-      setRestaurant(updated);
-    } finally {
-      setThemeSaving(false);
-    }
-  }
-
   async function saveOrderPrefix() {
     if (!restaurant) return;
     const clean = orderPrefix.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
@@ -948,60 +933,6 @@ export function SettingsPage() {
                 {receiptSaving ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
                 {receiptSaving ? 'Saving…' : 'Save receipt layout'}
               </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Theme Colour */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '22' }}>
-              <Palette size={15} style={{ color: themeColor }} />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-800">Theme Colour</h2>
-              <p className="text-xs text-gray-400">Applied to buttons, icons and accents across the app</p>
-            </div>
-          </div>
-
-          <div className="p-5">
-            <div className="flex items-center gap-3">
-              <label className="relative cursor-pointer group flex-shrink-0">
-                <div
-                  className="w-14 h-14 rounded-2xl shadow-sm border-2 border-white ring-1 ring-gray-200 transition-transform group-hover:scale-105 overflow-hidden"
-                  style={{ backgroundColor: themeColor }}
-                />
-                <input
-                  type="color"
-                  value={themeColor}
-                  onChange={(e) => { applyTheme(e.target.value); setThemeColor(e.target.value); }}
-                  onBlur={(e) => saveTheme(e.target.value)}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-              </label>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-3 bg-gray-50">
-                  <span className="text-gray-400 text-sm font-mono">#</span>
-                  <input
-                    type="text"
-                    value={themeColor.replace('#', '')}
-                    onChange={(e) => {
-                      const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
-                      setThemeColor(hex);
-                      if (/^#[0-9a-fA-F]{6}$/.test(hex)) applyTheme(hex);
-                    }}
-                    onBlur={(e) => {
-                      const hex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '');
-                      if (/^#[0-9a-fA-F]{6}$/.test(hex)) saveTheme(hex);
-                    }}
-                    maxLength={6}
-                    className="flex-1 bg-transparent text-sm font-mono text-gray-700 outline-none uppercase tracking-wider"
-                    placeholder="f97316"
-                  />
-                  {themeSaving && <Loader2 size={13} className="animate-spin text-gray-400 flex-shrink-0" />}
-                </div>
-                <p className="text-xs text-gray-400 mt-1.5">Click the swatch to open the colour picker, or type a hex code. Theme auto-saves on blur.</p>
-              </div>
             </div>
           </div>
         </div>

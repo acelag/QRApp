@@ -20,7 +20,7 @@ import { promoCodeService, type ValidateResult } from '../../services/promoCodeS
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useCurrency } from '../../context/CurrencyContext';
-import { useTheme } from '../../context/ThemeContext';
+import { THEME_COLOR } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
 import { useFavourites } from '../../hooks/useFavourites';
 import toast from 'react-hot-toast';
@@ -249,7 +249,6 @@ export function RoomMenuPage() {
   const [combos, setCombos]           = useState<Combo[]>([]);
 
   const { fmt, loadCurrency } = useCurrency();
-  const { loadTheme } = useTheme();
   const { tags: allTags, loadTags } = useTags();
 
   function loadMenu() {
@@ -260,7 +259,6 @@ export function RoomMenuPage() {
       .then(async (room) => {
         setRoomInfo({ number: room.number, name: room.name, restaurantId: room.restaurantId });
         loadCurrency(room.restaurantId);
-        loadTheme(room.restaurantId);
         loadTags(room.restaurantId);
         comboService.getCombos(room.restaurantId).then((c) => setCombos(c.filter((x) => x.active))).catch(() => {});
         const [info, cats, menuItems] = await Promise.all([
@@ -392,7 +390,7 @@ export function RoomMenuPage() {
     <WelcomeScreen
       restaurantName={welcomeInfo.name}
       logo={welcomeInfo.logo}
-      themeColor={welcomeInfo.themeColor ?? '#2a7344'}
+      themeColor={THEME_COLOR}
       heroUrl={welcomeInfo.welcomeImageUrl}
       heading={welcomeInfo.welcomeHeading}
       tagline={welcomeInfo.welcomeTagline || t('customer.scanEnjoy')}

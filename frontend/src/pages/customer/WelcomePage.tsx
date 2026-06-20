@@ -7,6 +7,7 @@ import { menuService } from '../../services/menuService';
 import { sessionService } from '../../services/sessionService';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
+import { THEME_COLOR } from '../../context/ThemeContext';
 
 export function WelcomePage() {
   const { t } = useTranslation();
@@ -55,7 +56,7 @@ export function WelcomePage() {
       <WelcomeScreen
         restaurantName={info?.name ?? 'Welcome'}
         logo={info?.logo}
-        themeColor={info?.themeColor ?? '#2a7344'}
+        themeColor={THEME_COLOR}
         heroUrl={info?.welcomeImageUrl}
         heading={info?.welcomeHeading}
         tagline={info?.welcomeTagline || t('customer.scanEnjoy')}

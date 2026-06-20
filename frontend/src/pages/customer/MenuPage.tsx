@@ -11,7 +11,6 @@ import { CartButton } from '../../components/CartButton';
 import { useCart } from '../../context/CartContext';
 import { sessionService } from '../../services/sessionService';
 import { useCurrency } from '../../context/CurrencyContext';
-import { useTheme } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
 
 import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
@@ -27,7 +26,6 @@ export function MenuPage() {
   const { setTable, setSession, setRestaurant, tableNumber, tableId, addCombo,
           checkForSavedCart, restoreCart, discardCart, pendingSavedCart, items: cartItems } = useCart();
   const { loadCurrency, fmt } = useCurrency();
-  const { loadTheme } = useTheme();
   const { loadTags } = useTags();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -61,7 +59,6 @@ export function MenuPage() {
       setRestaurant(cached.restaurantId);
       setRestaurantId(cached.restaurantId);
       loadCurrency(cached.restaurantId);
-      loadTheme(cached.restaurantId);
       loadTags(cached.restaurantId);
       setRestaurantInfo(cached.restaurantInfo);
       setCategories(cached.categories);
@@ -82,7 +79,6 @@ export function MenuPage() {
       setRestaurant(table.restaurantId);
       setRestaurantId(table.restaurantId);
       loadCurrency(table.restaurantId);
-      loadTheme(table.restaurantId);
       loadTags(table.restaurantId);
       restaurantService.getRestaurantInfo(table.restaurantId).then(setRestaurantInfo).catch(() => {});
       menuScheduleService.getSchedules(table.restaurantId).then(setSchedules).catch(() => {});

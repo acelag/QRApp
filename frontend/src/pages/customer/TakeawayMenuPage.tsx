@@ -19,7 +19,7 @@ import { comboService, type Combo } from '../../services/comboService';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useCurrency } from '../../context/CurrencyContext';
-import { useTheme } from '../../context/ThemeContext';
+import { THEME_COLOR } from '../../context/ThemeContext';
 import { useTags } from '../../context/TagsContext';
 import { useFavourites } from '../../hooks/useFavourites';
 import toast from 'react-hot-toast';
@@ -241,7 +241,6 @@ export function TakeawayMenuPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [combos, setCombos]           = useState<Combo[]>([]);
   const { fmt, loadCurrency } = useCurrency();
-  const { loadTheme } = useTheme();
   const { tags: allTags, loadTags } = useTags();
 
   function loadMenu() {
@@ -256,7 +255,7 @@ export function TakeawayMenuPage() {
     ]).then(([cats, menuItems]) => {
       setCategories(cats);
       setItems(menuItems.filter((i) => i.available));
-      if (restaurantId) { loadCurrency(restaurantId); loadTheme(restaurantId); loadTags(restaurantId); }
+      if (restaurantId) { loadCurrency(restaurantId); loadTags(restaurantId); }
       const reorderItems = (location.state as { reorderItems?: CartItem[] } | null)?.reorderItems;
       if (reorderItems?.length) {
         dispatch({ type: 'INIT', items: reorderItems });
@@ -360,7 +359,7 @@ export function TakeawayMenuPage() {
     <WelcomeScreen
       restaurantName={restaurantInfo.name}
       logo={restaurantInfo.logo}
-      themeColor={restaurantInfo.themeColor ?? '#2a7344'}
+      themeColor={THEME_COLOR}
       heroUrl={restaurantInfo.welcomeImageUrl}
       heading={restaurantInfo.welcomeHeading}
       tagline={restaurantInfo.welcomeTagline || t('customer.scanEnjoy')}
