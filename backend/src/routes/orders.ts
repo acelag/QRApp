@@ -23,13 +23,13 @@ interface CartItem {
 const ITEMS_SQL = `
   SELECT oi.*,
     COALESCE(
-      json_agg(DISTINCT
+      json_agg(
         json_build_object('id', oit.topping_id, 'name', oit.name, 'price', oit.price::float)
       ) FILTER (WHERE oit.id IS NOT NULL),
       '[]'::json
     ) AS toppings,
     COALESCE(
-      json_agg(DISTINCT
+      json_agg(
         json_build_object('groupName', oim.group_name, 'optionId', oim.modifier_option_id, 'optionName', oim.option_name, 'price', oim.price::float)
       ) FILTER (WHERE oim.id IS NOT NULL),
       '[]'::json
@@ -45,13 +45,13 @@ const ITEMS_SQL = `
 const ITEMS_BULK_SQL = `
   SELECT oi.*,
     COALESCE(
-      json_agg(DISTINCT
+      json_agg(
         json_build_object('id', oit.topping_id, 'name', oit.name, 'price', oit.price::float)
       ) FILTER (WHERE oit.id IS NOT NULL),
       '[]'::json
     ) AS toppings,
     COALESCE(
-      json_agg(DISTINCT
+      json_agg(
         json_build_object('groupName', oim.group_name, 'optionId', oim.modifier_option_id, 'optionName', oim.option_name, 'price', oim.price::float)
       ) FILTER (WHERE oim.id IS NOT NULL),
       '[]'::json
