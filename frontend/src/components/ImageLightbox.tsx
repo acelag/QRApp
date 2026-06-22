@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { pushEscape } from '../lib/escapeStack';
 import { X } from 'lucide-react';
 
 interface Props {
@@ -132,12 +133,10 @@ export function ImageLightbox({ src, alt, onClose }: Props) {
     };
   }, []);
 
-  // Close on Escape key
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  // Close on Escape via the shared overlay stack, so when the lightbox is open
+  // over another dialog (e.g. ProductDetailModal) Escape dismisses only the
+  // lightbox — the top-most overlay — and not the modal underneath it.
+  useEffect(() => pushEscape(onClose), [onClose]);
 
   return (
     <div

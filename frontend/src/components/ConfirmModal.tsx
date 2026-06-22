@@ -1,4 +1,4 @@
-import { useState, useCallback, useId } from 'react';
+import { useState, useCallback, useId, useRef } from 'react';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
 
@@ -18,9 +18,12 @@ function ConfirmDialog({ state, onConfirm, onCancel }: {
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const ref = useModalA11y<HTMLDivElement>(onCancel);
   const titleId = useId();
   const isDanger = state.danger !== false;
+  // Danger dialogs focus Cancel (Enter won't fire the destructive action);
+  // benign dialogs focus Confirm so Enter confirms quickly.
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const ref = useModalA11y<HTMLDivElement>(onCancel, isDanger ? undefined : { initialFocusRef: confirmRef });
 
   return (
     <div
@@ -54,6 +57,7 @@ function ConfirmDialog({ state, onConfirm, onCancel }: {
             Cancel
           </button>
           <button
+            ref={confirmRef}
             onClick={onConfirm}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors ${
               isDanger ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'
