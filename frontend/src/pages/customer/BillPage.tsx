@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, RefreshCw, Loader2, Receipt } from 'lucide-react';
+import { CheckCircle2, RefreshCw, Loader2, Receipt, Download } from 'lucide-react';
 import { sessionService, type Session } from '../../services/sessionService';
 import { restaurantService, computeCharges, type RestaurantInfo } from '../../services/restaurantService';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -89,7 +89,7 @@ export function BillPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4">
 
       {/* Status bar */}
-      <div className="w-full max-w-sm mb-4">
+      <div className="no-print w-full max-w-sm mb-4">
         {paid ? (
           <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 rounded-2xl px-4 py-3">
             <CheckCircle2 size={18} className="shrink-0 text-green-600" />
@@ -217,9 +217,24 @@ export function BillPage() {
         </div>
       </div>
 
-      <p className="text-xs text-gray-400 mt-4">
+      {/* Download button */}
+      <button
+        onClick={() => window.print()}
+        className="no-print mt-4 flex items-center gap-2 px-6 py-3 bg-gray-900 text-white text-sm font-semibold rounded-2xl hover:bg-gray-700 active:scale-[0.98] transition-all"
+      >
+        <Download size={15} /> Download / Save PDF
+      </button>
+
+      <p className="no-print text-xs text-gray-400 mt-3">
         {t('bill.openedAt', { time: new Date(session.createdAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) })}
       </p>
+
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Clock, ChefHat, Bell, Loader2, Receipt, XCircle } from 'lucide-react';
+import { Clock, ChefHat, Bell, Loader2, Receipt, XCircle, Download } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { restaurantService, type RestaurantInfo } from '../../services/restaurantService';
@@ -117,7 +117,7 @@ export function OrderBillPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4">
 
       {/* Status banner */}
-      <div className="w-full max-w-sm mb-4">
+      <div className="no-print w-full max-w-sm mb-4">
         <StatusBadge status={order.status} />
       </div>
 
@@ -231,10 +231,26 @@ export function OrderBillPage() {
         </div>
       </div>
 
+      {/* Download button */}
+      <button
+        onClick={() => window.print()}
+        className="no-print mt-4 flex items-center gap-2 px-6 py-3 bg-gray-900 text-white text-sm font-semibold rounded-2xl hover:bg-gray-700 active:scale-[0.98] transition-all"
+      >
+        <Download size={15} /> Download / Save PDF
+      </button>
+
       {/* Timestamp */}
-      <p className="text-xs text-gray-400 mt-4">
+      <p className="no-print text-xs text-gray-400 mt-3">
         {new Date(order.createdAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
       </p>
+
+      {/* Print styles — hide chrome, show only the receipt card */}
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+        }
+      `}</style>
     </div>
   );
 }
