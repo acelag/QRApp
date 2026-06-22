@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { stockService, type StockItem } from '../../services/stockService';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { PageSpinner } from '../../components/Spinner';
 import { AdminHeader } from '../../components/AdminHeader';
 import { TrialBanner } from '../../components/TrialBanner';
 import {
@@ -51,6 +52,7 @@ export function DashboardPage() {
   const { fmt }  = useCurrency();
 
   const [orders,     setOrders]     = useState<Order[]>([]);
+  const [loaded,     setLoaded]     = useState(false);
   const [today,      setToday]      = useState<TodaySummary | null>(null);
   const [daily,      setDaily]      = useState<DailyRow[]>([]);
   const [cats,       setCats]       = useState<CategoryRow[]>([]);
@@ -63,7 +65,7 @@ export function DashboardPage() {
   useOrderSoundAlert(orders);
 
   useEffect(() => {
-    const fetch = () => orderService.getOrders().then(setOrders).catch(() => {});
+    const fetch = () => orderService.getOrders().then(setOrders).catch(() => {}).finally(() => setLoaded(true));
     fetch();
     const id = setInterval(fetch, 5000);
     return () => clearInterval(id);
@@ -238,6 +240,15 @@ export function DashboardPage() {
   }, [botRunning]);
 
   // â”€â”€ render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  if (!loaded) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-[#f5f5f7]">
+        <AdminSidebar />
+        <div className="flex-1 flex items-center justify-center"><PageSpinner /></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f5f5f7]">
       <AdminSidebar />
