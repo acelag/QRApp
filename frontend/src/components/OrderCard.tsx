@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, Download, Users, GitMerge, Loader2 } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, Download, Users, GitMerge, Loader2, Link2, Copy } from 'lucide-react';
 import { printService } from '../services/printService';
 import { computeCharges, type RestaurantSettings } from '../services/restaurantService';
 import { sessionService, type Session } from '../services/sessionService';
@@ -125,6 +125,23 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
   const [billPhone, setBillPhone] = useState(order.customerPhone ?? '');
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Customer-facing bill URL
+  const billLink = (() => {
+    const origin = window.location.origin;
+    if (order.orderType === 'dine-in' && (liveSession?.id ?? order.sessionId)) {
+      return `${origin}/bill/${liveSession?.id ?? order.sessionId}`;
+    }
+    return `${origin}/order/${order.id}/bill`;
+  })();
+
+  function handleCopyLink() {
+    navigator.clipboard.writeText(billLink).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  }
 
   // â”€â”€ Bill charge breakdown (admin detail view) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Prefer stored SC/tax amounts; fall back to re-computation for older orders.
@@ -170,7 +187,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     if ((order.discountAmount ?? 0) > 0) lines.push(`Discount: -${fmt(order.discountAmount ?? 0)}`);
     if (billCharges.serviceCharge > 0)   lines.push(`${scName}: ${fmt(billCharges.serviceCharge)}`);
     if (billCharges.tax > 0)             lines.push(`${taxName}: ${fmt(billCharges.tax)}`);
-    lines.push(`*Total: ${fmt(billCharges.grandTotal)}*`, '', 'Thank you! 🙏');
+    lines.push(`*Total: ${fmt(billCharges.grandTotal)}*`, '', 'Thank you! 🙏', '', `📄 View your bill: ${billLink}`);
     const text = encodeURIComponent(lines.join('\n'));
     const digits = phone.replace(/\D/g, '');
     // Normalise to E.164 — assume Sri Lanka (+94) for local 0-prefixed numbers
@@ -621,6 +638,28 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
               </div>
             </div>
             <p className="text-[11px] text-gray-400 mt-2">Print, save as PDF, or send the bill to the customer's phone via WhatsApp.</p>
+
+            {/* Customer bill link */}
+            <div className="mt-2.5 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+              <Link2 size={14} className="text-gray-400 shrink-0" />
+              <a
+                href={billLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-w-0 text-xs text-blue-600 hover:text-blue-700 underline truncate font-mono"
+              >
+                {billLink}
+              </a>
+              <button
+                onClick={handleCopyLink}
+                title="Copy link"
+                className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition-colors ${
+                  linkCopied ? 'bg-green-100 text-green-700' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Copy size={11} /> {linkCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
 
             {/* Session actions — only for open dine-in sessions */}
             {liveSession && liveSession.status === 'open' && (
