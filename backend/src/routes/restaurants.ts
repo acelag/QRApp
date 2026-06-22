@@ -70,7 +70,10 @@ router.get('/:id/info', async (req, res) => {
     `SELECT name, logo, theme_color, wait_time_min, room_service_open, room_service_close,
             facebook_url, instagram_url, welcome_image_url, tiktok_url, whatsapp_url,
             youtube_url, twitter_url, welcome_heading, welcome_tagline,
-            service_charge_pct, tax_pct, service_charge_name, tax_name
+            service_charge_pct, tax_pct, service_charge_name, tax_name,
+            receipt_header_line1, receipt_header_line2,
+            receipt_footer_line1, receipt_footer_line2,
+            receipt_show_order_no, receipt_show_unit_price
      FROM restaurants WHERE id = $1`,
     [req.params.id],
   );
@@ -96,6 +99,12 @@ router.get('/:id/info', async (req, res) => {
     taxPct:            Number(row.tax_pct ?? 0),
     serviceChargeName: (row.service_charge_name as string | null) ?? 'Service Charge',
     taxName:           (row.tax_name           as string | null) ?? 'Tax',
+    receiptHeaderLine1:   (row.receipt_header_line1   as string | null) ?? '',
+    receiptHeaderLine2:   (row.receipt_header_line2   as string | null) ?? '',
+    receiptFooterLine1:   (row.receipt_footer_line1   as string | null) ?? 'Thank you for dining with us!',
+    receiptFooterLine2:   (row.receipt_footer_line2   as string | null) ?? 'Please come again 🙏',
+    receiptShowOrderNo:   row.receipt_show_order_no   !== false,
+    receiptShowUnitPrice: row.receipt_show_unit_price !== false,
   });
 });
 

@@ -69,6 +69,12 @@ export interface RestaurantInfo {
   taxPct: number;
   serviceChargeName: string;
   taxName: string;
+  receiptHeaderLine1: string;
+  receiptHeaderLine2: string;
+  receiptFooterLine1: string;
+  receiptFooterLine2: string;
+  receiptShowOrderNo: boolean;
+  receiptShowUnitPrice: boolean;
 }
 
 /** Public branded-login info fetched by slug for /login/:slug. */
