@@ -360,7 +360,7 @@ export function RoomMenuPage() {
       );
       dispatch({ type: 'CLEAR' });
       setPromoResult(null); setPromoInput(''); setCartOpen(false);
-      saveActiveOrder(order.id, order.orderNumber, roomInfo.restaurantId);
+      saveActiveOrder(order.id, order.orderNumber, roomInfo.restaurantId, 'room-service');
       navigate(`/order-success/${order.id}`);
     } catch {
       toast.error(t('customer.failedOrder'));
@@ -744,7 +744,7 @@ export function RoomMenuPage() {
         />
       )}
 
-      <ActiveOrderBanner restaurantId={roomInfo?.restaurantId ?? ''} hidden={cartOpen} />
+      <ActiveOrderBanner restaurantId={roomInfo?.restaurantId ?? ''} orderType="room-service" hidden={cartOpen} />
     </div>
   );
 }

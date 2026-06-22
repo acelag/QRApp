@@ -10,6 +10,7 @@ export interface StoredActiveOrder {
   orderId: string;
   orderNumber: string | null;
   restaurantId: string;
+  orderType: string;
   placedAt: string;
 }
 
@@ -20,11 +21,13 @@ export function saveActiveOrder(
   orderId: string,
   orderNumber: string | null | undefined,
   restaurantId: string,
+  orderType: string,
 ) {
   const entry: StoredActiveOrder = {
     orderId,
     orderNumber: orderNumber ?? null,
     restaurantId,
+    orderType,
     placedAt: new Date().toISOString(),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entry));
@@ -34,12 +37,13 @@ export function clearActiveOrder() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-function loadStoredOrder(restaurantId: string): StoredActiveOrder | null {
+function loadStoredOrder(restaurantId: string, orderType: string): StoredActiveOrder | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const entry: StoredActiveOrder = JSON.parse(raw);
     if (entry.restaurantId !== restaurantId) return null;
+    if (entry.orderType && entry.orderType !== orderType) return null;
     if (Date.now() - new Date(entry.placedAt).getTime() > MAX_AGE_MS) {
       localStorage.removeItem(STORAGE_KEY);
       return null;
@@ -89,11 +93,12 @@ const STATUS_CFG = {
 
 interface Props {
   restaurantId: string;
+  orderType: string;
   /** Pass true when a bottom sheet / cart panel is open to avoid overlap */
   hidden?: boolean;
 }
 
-export function ActiveOrderBanner({ restaurantId, hidden }: Props) {
+export function ActiveOrderBanner({ restaurantId, orderType, hidden }: Props) {
   const [stored, setStored]       = useState<StoredActiveOrder | null>(null);
   const [order, setOrder]         = useState<Order | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -105,7 +110,7 @@ export function ActiveOrderBanner({ restaurantId, hidden }: Props) {
   // Load from localStorage whenever restaurantId resolves
   useEffect(() => {
     if (!restaurantId) return;
-    const entry = loadStoredOrder(restaurantId);
+    const entry = loadStoredOrder(restaurantId, orderType);
     setStored(entry);
     setDismissed(false);
     if (entry) setTimeout(() => setVisible(true), 50); // let DOM mount first

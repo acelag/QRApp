@@ -152,7 +152,7 @@ export function CartPage() {
       } else {
         if (!tableId || !tableNumber) return;
         const order = await orderService.placeOrder(tableId, tableNumber, items, sessionId ?? undefined, restaurantId ?? undefined, undefined, customerPhone.trim() || undefined, redeemablePoints > 0 ? redeemablePoints : undefined);
-        saveActiveOrder(order.id, order.orderNumber, restaurantId ?? '');
+        saveActiveOrder(order.id, order.orderNumber, restaurantId ?? '', 'dine-in');
         clearCart();
         navigate(`/order-success/${order.id}`);
       }

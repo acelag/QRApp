@@ -369,7 +369,7 @@ export function MenuPage() {
       </main>
 
       <CartButton />
-      <ActiveOrderBanner restaurantId={restaurantId} />
+      <ActiveOrderBanner restaurantId={restaurantId} orderType="dine-in" />
     </div>
   );
 }
