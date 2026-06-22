@@ -6,6 +6,7 @@ import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2
 import { printService } from '../services/printService';
 import { computeCharges, type RestaurantSettings } from '../services/restaurantService';
 import { sessionService, type Session } from '../services/sessionService';
+import { orderService } from '../services/orderService';
 import { SplitBillModal } from './SplitBillModal';
 import { PaymentMethodModal, type PaymentMethod } from './PaymentMethodModal';
 import toast from 'react-hot-toast';
@@ -60,6 +61,9 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const [openSessions, setOpenSessions]     = useState<Session[]>([]);
   const [paying, setPaying]                 = useState(false);
   const [merging, setMerging]               = useState(false);
+  const [showPayOrder, setShowPayOrder]     = useState(false);
+  const [payingOrder, setPayingOrder]       = useState(false);
+  const [orderPaid, setOrderPaid]           = useState(!!order.paymentMethod);
 
   async function openMergePicker() {
     try {
@@ -84,6 +88,21 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       toast.error('Failed to merge tables');
     } finally {
       setMerging(false);
+    }
+  }
+
+  async function handlePayOrder(method: PaymentMethod) {
+    if (payingOrder) return;
+    setPayingOrder(true);
+    try {
+      await orderService.updateStatus(order.id, order.status, method);
+      setOrderPaid(true);
+      toast.success('Order marked as paid');
+      setShowPayOrder(false);
+    } catch {
+      toast.error('Failed to mark as paid');
+    } finally {
+      setPayingOrder(false);
     }
   }
 
@@ -646,6 +665,26 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
               </button>
             </div>
 
+            {/* Mark as Paid — takeaway / room-service */}
+            {(order.orderType === 'takeaway' || order.orderType === 'room-service') && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                {orderPaid ? (
+                  <div className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
+                    <CheckCircle2 size={15} /> Paid
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowPayOrder(true)}
+                    disabled={payingOrder}
+                    className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
+                  >
+                    {payingOrder ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                    {payingOrder ? 'Processing…' : 'Mark as Paid'}
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Session actions — only for open dine-in sessions */}
             {liveSession && liveSession.status === 'open' && (
               <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
@@ -693,6 +732,17 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
             onConfirm={handlePay}
             onClose={() => setShowPay(false)}
             loading={paying}
+          />
+        )}
+
+        {showPayOrder && (
+          <PaymentMethodModal
+            title="How was this paid?"
+            subtitle={`#${order.orderNumber ?? order.id.slice(0, 8).toUpperCase()} · ${fmt(order.totalAmount)}`}
+            total={order.totalAmount}
+            onConfirm={handlePayOrder}
+            onClose={() => setShowPayOrder(false)}
+            loading={payingOrder}
           />
         )}
 
