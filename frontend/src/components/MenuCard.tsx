@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Flame, UtensilsCrossed, Heart } from 'lucide-react';
+import { Plus, Flame, Heart } from 'lucide-react';
 import type { MenuItem } from '../types';
 import { effectivePrice } from '../types/MenuItem';
 import { useCart } from '../context/CartContext';
@@ -7,6 +7,26 @@ import { useCurrency } from '../context/CurrencyContext';
 import { ProductDetailModal } from './ProductDetailModal';
 
 const LOW_STOCK_THRESHOLD = 5;
+
+// Photo-less items get a deterministic colored tile + initial so the menu
+// looks intentional rather than a wall of identical placeholders. The same
+// category always maps to the same colour, giving subtle visual grouping.
+const PLACEHOLDER_PALETTE = [
+  { bg: 'from-rose-100 to-rose-50',       text: 'text-rose-400'    },
+  { bg: 'from-amber-100 to-amber-50',     text: 'text-amber-500'   },
+  { bg: 'from-emerald-100 to-emerald-50', text: 'text-emerald-500' },
+  { bg: 'from-sky-100 to-sky-50',         text: 'text-sky-400'     },
+  { bg: 'from-violet-100 to-violet-50',   text: 'text-violet-400'  },
+  { bg: 'from-teal-100 to-teal-50',       text: 'text-teal-500'    },
+  { bg: 'from-fuchsia-100 to-fuchsia-50', text: 'text-fuchsia-400' },
+  { bg: 'from-lime-100 to-lime-50',       text: 'text-lime-600'    },
+];
+
+function placeholderStyle(key: string) {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (Math.imul(h, 31) + key.charCodeAt(i)) >>> 0;
+  return PLACEHOLDER_PALETTE[h % PLACEHOLDER_PALETTE.length];
+}
 
 interface Props {
   item: MenuItem;
@@ -33,6 +53,9 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
 
   const inCart = items.filter((i) => i.menuItemId === item.id).reduce((s, i) => s + i.quantity, 0);
 
+  const initial = (item.name.trim()[0] ?? '?').toUpperCase();
+  const ph = placeholderStyle(item.category ?? item.name);
+
   function handleQuickAdd(e: React.MouseEvent) {
     e.stopPropagation();
     if (!item.available) return;
@@ -54,8 +77,8 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
             {item.image ? (
               <img src={item.image} alt={item.name} loading="lazy" className="w-16 h-16 object-cover rounded-2xl" />
             ) : (
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl flex items-center justify-center">
-                <UtensilsCrossed size={22} className="text-orange-300" />
+              <div className={`w-16 h-16 bg-gradient-to-br ${ph.bg} rounded-2xl flex items-center justify-center`}>
+                <span className={`text-xl font-black ${ph.text} select-none`}>{initial}</span>
               </div>
             )}
             {(regDisc || lrgDisc) && (
@@ -127,8 +150,8 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
           {item.image ? (
             <img src={item.image} alt={item.name} loading="lazy" className="w-full h-48 object-cover" />
           ) : (
-            <div className="w-full h-48 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
-              <UtensilsCrossed size={48} className="text-orange-200" />
+            <div className={`w-full h-48 bg-gradient-to-br ${ph.bg} flex items-center justify-center`}>
+              <span className={`text-6xl font-black ${ph.text} select-none`}>{initial}</span>
             </div>
           )}
 

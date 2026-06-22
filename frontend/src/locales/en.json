@@ -144,6 +144,7 @@
     "extras": "Extras:",
     "gridView": "Grid view",
     "listView": "List view",
+    "moreOptions": "More options",
     "noItemsMatch": "No items match \"{{query}}\"",
     "noItemsCategory": "No items in this category",
     "restaurantAmbiance": "Restaurant ambiance"

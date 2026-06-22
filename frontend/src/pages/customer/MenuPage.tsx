@@ -16,7 +16,7 @@ import { useTags } from '../../context/TagsContext';
 import { menuScheduleService, isScheduleNowActive } from '../../services/menuScheduleService';
 import type { MenuSchedule } from '../../services/menuScheduleService';
 import { comboService, type Combo } from '../../services/comboService';
-import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown, Heart, ShoppingCart, Trash2, Receipt } from 'lucide-react';
+import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid, List, Package, ChevronDown, Heart, ShoppingCart, Trash2, Receipt, MoreVertical, Check } from 'lucide-react';
 import { useFavourites } from '../../hooks/useFavourites';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 import { ActiveOrderBanner } from '../../components/ActiveOrderBanner';
@@ -43,6 +43,7 @@ export function MenuPage() {
   const [combosOpen, setCombosOpen] = useState(false);
   const [restaurantId, setRestaurantId] = useState<string>('');
   const [showFavourites, setShowFavourites] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const { isFavourite, toggle: toggleFavourite, favourites } = useFavourites(restaurantId);
 
   function loadMenu() {
@@ -153,48 +154,72 @@ export function MenuPage() {
     <div className="min-h-screen bg-gray-50 pb-28">
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               {restaurantInfo?.logo
-                ? <img src={restaurantInfo.logo} alt="logo" className="w-8 h-8 object-contain rounded-md" />
-                : <UtensilsCrossed size={20} className="text-orange-500" />}
-              <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? 'Menu'}</h1>
+                ? <img src={restaurantInfo.logo} alt="logo" className="w-8 h-8 object-contain rounded-md shrink-0" />
+                : <UtensilsCrossed size={20} className="text-orange-500 shrink-0" />}
+              <h1 className="text-xl font-bold text-gray-900 truncate">{restaurantInfo?.name ?? 'Menu'}</h1>
             </div>
-            <div className="flex items-center gap-2">
-              {/* Grid / List toggle */}
-              <div className="flex items-center bg-gray-100 rounded-full p-0.5">
-                <button
-                  onClick={() => { setView('grid'); localStorage.setItem('qra_menu_view', 'grid'); }}
-                  className={`p-1.5 rounded-full transition-colors ${view === 'grid' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
-                  title={t('customer.gridView')}
-                >
-                  <LayoutGrid size={14} />
-                </button>
-                <button
-                  onClick={() => { setView('list'); localStorage.setItem('qra_menu_view', 'list'); }}
-                  className={`p-1.5 rounded-full transition-colors ${view === 'list' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
-                  title={t('customer.listView')}
-                >
-                  <List size={14} />
-                </button>
-              </div>
-              {sessionId && (
-                <Link
-                  to={`/bill/${sessionId}`}
-                  className="flex items-center gap-1.5 text-xs text-orange-500 font-medium bg-orange-50 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors"
-                >
-                  <Receipt size={13} />
-                  {t('bill.viewBill')}
-                </Link>
-              )}
-              {tableId && (
-                <Link
-                  to={`/order-history/${tableId}`}
-                  className="flex items-center gap-1.5 text-xs text-orange-500 font-medium bg-orange-50 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors"
-                >
-                  <ClipboardList size={13} />
-                  {t('orderHistory.title')}
-                </Link>
+
+            {/* Overflow menu — keeps the mobile header uncluttered */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setHeaderMenuOpen((o) => !o)}
+                aria-label={t('customer.moreOptions')}
+                aria-haspopup="menu"
+                aria-expanded={headerMenuOpen}
+                className="p-2 -mr-1 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                <MoreVertical size={20} />
+              </button>
+              {headerMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setHeaderMenuOpen(false)} />
+                  <div role="menu" className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-lg border border-gray-100 z-50 overflow-hidden py-1.5">
+                    <button
+                      role="menuitemradio"
+                      aria-checked={view === 'grid'}
+                      onClick={() => { setView('grid'); localStorage.setItem('qra_menu_view', 'grid'); setHeaderMenuOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${view === 'grid' ? 'text-orange-600 bg-orange-50 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <LayoutGrid size={16} /> {t('customer.gridView')}
+                      {view === 'grid' && <Check size={15} className="ml-auto" />}
+                    </button>
+                    <button
+                      role="menuitemradio"
+                      aria-checked={view === 'list'}
+                      onClick={() => { setView('list'); localStorage.setItem('qra_menu_view', 'list'); setHeaderMenuOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${view === 'list' ? 'text-orange-600 bg-orange-50 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <List size={16} /> {t('customer.listView')}
+                      {view === 'list' && <Check size={15} className="ml-auto" />}
+                    </button>
+
+                    {(sessionId || tableId) && <div className="h-px bg-gray-100 my-1.5" />}
+
+                    {sessionId && (
+                      <Link
+                        role="menuitem"
+                        to={`/bill/${sessionId}`}
+                        onClick={() => setHeaderMenuOpen(false)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Receipt size={16} className="text-orange-500" /> {t('bill.viewBill')}
+                      </Link>
+                    )}
+                    {tableId && (
+                      <Link
+                        role="menuitem"
+                        to={`/order-history/${tableId}`}
+                        onClick={() => setHeaderMenuOpen(false)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <ClipboardList size={16} className="text-orange-500" /> {t('orderHistory.title')}
+                      </Link>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>

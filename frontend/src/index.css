@@ -39,3 +39,13 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Hide horizontal scrollbars on scroller strips (e.g. category tabs) while
+   keeping them scrollable. */
+.scrollbar-hide {
+  -ms-overflow-style: none;   /* IE/Edge */
+  scrollbar-width: none;      /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;              /* Chrome/Safari */
+}

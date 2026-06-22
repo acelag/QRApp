@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Plus, Minus, Flame, ShoppingCart, UtensilsCrossed, ZoomIn } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
+import { useModalA11y } from '../hooks/useModalA11y';
 import type { MenuItem } from '../types/MenuItem';
 import type { SelectedTopping, SelectedModifier } from '../types/Order';
 import { effectivePrice } from '../types/MenuItem';
@@ -18,6 +19,7 @@ interface Props {
 export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Props) {
   const { addItem } = useCart();
   const { fmt } = useCurrency();
+  const modalRef = useModalA11y<HTMLDivElement>(onClose);
   const { tags: allTags } = useTags();
 
   const hasLarge      = (item.largePrice ?? 0) > 0;
@@ -92,7 +94,7 @@ export function ProductDetailModal({ item, onClose, onAdd: onAddOverride }: Prop
       className="fixed inset-0 bg-black/60 z-[60] flex items-end sm:items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-label={item.name} className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
 
         {/* ── Hero image ─────────────────────────────────────────────────── */}
         <div className="relative flex-none">
