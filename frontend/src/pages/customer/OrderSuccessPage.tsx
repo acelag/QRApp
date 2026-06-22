@@ -369,6 +369,16 @@ export function OrderSuccessPage() {
           </Link>
         )}
 
+        {/* View receipt (takeaway / room-service) */}
+        {(order.orderType === 'takeaway' || order.orderType === 'room-service') && (
+          <Link
+            to={`/order/${order.id}/bill`}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm border border-orange-200 text-orange-600 bg-orange-50 hover:bg-orange-100 active:scale-[0.98] transition-all"
+          >
+            <Receipt size={16} /> View Receipt
+          </Link>
+        )}
+
         {/* Actions */}
         {(order.status === 'pending' || order.status === 'preparing') && (
           <button
