@@ -21,6 +21,7 @@ import { useFavourites } from '../../hooks/useFavourites';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 import { ActiveOrderBanner } from '../../components/ActiveOrderBanner';
 import { Button } from '../../components/Button';
+import { pushEscape } from '../../lib/escapeStack';
 export function MenuPage() {
   const { t } = useTranslation();
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
@@ -103,6 +104,12 @@ export function MenuPage() {
   }
 
   useEffect(() => { loadMenu(); }, [tableIdParam]);
+
+  // Close the header overflow menu on Escape (shared overlay stack)
+  useEffect(() => {
+    if (!headerMenuOpen) return;
+    return pushEscape(() => setHeaderMenuOpen(false));
+  }, [headerMenuOpen]);
 
   // Build schedule lookup map
   const scheduleMap = new Map(schedules.map((s) => [s.id, s]));
