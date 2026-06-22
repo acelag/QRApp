@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2, Clock, ChefHat, Bell, Loader2, Receipt, XCircle } from 'lucide-react';
+import { Clock, ChefHat, Bell, Loader2, Receipt, XCircle } from 'lucide-react';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { restaurantService, type RestaurantInfo } from '../../services/restaurantService';
