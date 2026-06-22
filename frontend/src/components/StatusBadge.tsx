@@ -5,6 +5,7 @@ const config: Record<string, { label: string; className: string }> = {
   preparing:{ label: 'Preparing', className: 'bg-blue-100 text-blue-800' },
   ready:    { label: 'Ready',     className: 'bg-green-100 text-green-800' },
   cancelled:{ label: 'Cancelled', className: 'bg-red-100 text-red-700' },
+  paid:     { label: 'Paid',      className: 'bg-emerald-100 text-emerald-800' },
 };
 
 export function StatusBadge({ status }: { status: OrderStatus | string }) {

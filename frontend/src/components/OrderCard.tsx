@@ -95,7 +95,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     if (payingOrder) return;
     setPayingOrder(true);
     try {
-      await orderService.updateStatus(order.id, order.status, method);
+      await orderService.updateStatus(order.id, 'paid', method);
       setOrderPaid(true);
       toast.success('Order marked as paid');
       setShowPayOrder(false);

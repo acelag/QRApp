@@ -442,7 +442,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
 
 router.patch('/:id/status', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter', 'kitchen'), async (req: AuthRequest, res) => {
   const { status, paymentMethod } = req.body as { status: OrderStatus; paymentMethod?: string };
-  if (!['pending', 'preparing', 'ready'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
+  if (!['pending', 'preparing', 'ready', 'paid'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
   const now = new Date().toISOString();
   const rid = req.user!.restaurantId;
   // Stamp served_at the first time an order reaches 'ready'
