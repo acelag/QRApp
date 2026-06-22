@@ -9,6 +9,7 @@ import { restaurantService } from '../../services/restaurantService';
 import { loyaltyService } from '../../services/loyaltyService';
 import type { LoyaltyConfig, LoyaltyAccount } from '../../services/loyaltyService';
 import { CustomerNotifyButton } from '../../components/CustomerNotifyButton';
+import { Button } from '../../components/Button';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useCart } from '../../context/CartContext';
 import toast from 'react-hot-toast';
@@ -381,23 +382,19 @@ export function OrderSuccessPage() {
 
         {/* Actions */}
         {(order.status === 'pending' || order.status === 'preparing') && (
-          <button
-            onClick={handleAddItems}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm bg-orange-500 text-white hover:bg-orange-600 active:scale-[0.98] transition-all"
-          >
-            <PlusCircle size={16} /> Add More Items
-          </button>
+          <Button size="lg" fullWidth onClick={handleAddItems} leftIcon={<PlusCircle size={16} />}>
+            Add More Items
+          </Button>
         )}
-        <button
+        <Button
+          size="lg"
+          fullWidth
+          variant={order.status === 'ready' ? 'primary' : 'secondary'}
           onClick={handleReorder}
-          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all ${
-            order.status === 'ready'
-              ? 'bg-orange-500 text-white hover:bg-orange-600'
-              : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
+          leftIcon={<RotateCcw size={16} />}
         >
-          <RotateCcw size={16} /> {t('orderSuccess.orderAgain')}
-        </button>
+          {t('orderSuccess.orderAgain')}
+        </Button>
 
         <Link
           to="/my-orders"

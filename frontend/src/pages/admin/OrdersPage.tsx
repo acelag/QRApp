@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw, Plus, Search, X } from 'lucide-react';
+import { RefreshCw, Plus, Search, X, ClipboardList } from 'lucide-react';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import { PullToRefresh } from '../../components/PullToRefresh';
+import { EmptyState } from '../../components/EmptyState';
 
 
 export function OrdersPage() {
@@ -262,7 +263,7 @@ export function OrdersPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
           </div>
         ) : displayed.length === 0 ? (
-          <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
+          <div className="pt-8"><EmptyState compact icon={ClipboardList} title={t('orders.noOrders')} /></div>
         ) : showGroups ? (
           <div className="space-y-5">
             {orderGroups.map((g) => (
@@ -324,7 +325,7 @@ export function OrdersPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
               </div>
             ) : displayed.length === 0 ? (
-              <p className="text-center text-gray-400 pt-12">{t('orders.noOrders')}</p>
+              <div className="pt-8"><EmptyState compact icon={ClipboardList} title={t('orders.noOrders')} /></div>
             ) : showGroups ? (
               <div className="space-y-4">
                 {orderGroups.map((g) => (
