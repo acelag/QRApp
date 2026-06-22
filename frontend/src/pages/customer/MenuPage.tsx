@@ -20,6 +20,7 @@ import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid
 import { useFavourites } from '../../hooks/useFavourites';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 import { ActiveOrderBanner } from '../../components/ActiveOrderBanner';
+import { Button } from '../../components/Button';
 export function MenuPage() {
   const { t } = useTranslation();
   const { tableId: tableIdParam } = useParams<{ tableId: string }>();
@@ -140,12 +141,9 @@ export function MenuPage() {
         <UtensilsCrossed size={40} className="text-gray-300" />
         <p className="text-gray-500 font-medium">{t('common.errorLoadMenu')}</p>
         <p className="text-sm text-gray-400">{t('common.errorCheckConnection')}</p>
-        <button
-          onClick={loadMenu}
-          className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors"
-        >
-          <RefreshCw size={15} /> {t('common.tryAgain')}
-        </button>
+        <Button onClick={loadMenu} leftIcon={<RefreshCw size={15} />}>
+          {t('common.tryAgain')}
+        </Button>
       </div>
     );
   }

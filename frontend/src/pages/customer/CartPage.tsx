@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Trash2, NotebookPen, Star, AlertTriangle } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { QuantitySelector } from '../../components/QuantitySelector';
+import { Button } from '../../components/Button';
 import { orderService } from '../../services/orderService';
 import { loyaltyService } from '../../services/loyaltyService';
 import type { LoyaltyConfig, LoyaltyAccount } from '../../services/loyaltyService';
@@ -409,17 +410,13 @@ export function CartPage() {
             </div>
           )}
 
-          <button
-            onClick={handlePlaceOrder}
-            disabled={placing}
-            className="w-full bg-orange-500 text-white py-4 rounded-2xl font-semibold text-base hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          >
+          <Button size="lg" fullWidth onClick={handlePlaceOrder} loading={placing}>
             {placing
               ? (appendToOrderId ? 'Adding items…' : t('customer.placingOrder'))
               : (appendToOrderId
                   ? `Add to Order · ${fmt(total)}`
                   : t('customer.placeOrder', { amount: fmt(finalTotal) }))}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
