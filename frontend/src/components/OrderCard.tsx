@@ -47,13 +47,13 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
 
   const [liveSession, setLiveSession] = useState<Session | null>(null);
   useEffect(() => {
-    if (!showBill || !order.sessionId) return;
+    if (!showBill || !order.sessionId || order.orderType !== 'dine-in') return;
     sessionService.getSession(order.sessionId).then(setLiveSession).catch(() => {});
     const id = setInterval(() => {
       sessionService.getSession(order.sessionId!).then(setLiveSession).catch(() => {});
     }, 8000);
     return () => clearInterval(id);
-  }, [showBill, order.sessionId]);
+  }, [showBill, order.sessionId, order.orderType]);
 
   const [showSplit, setShowSplit]           = useState(false);
   const [showPay, setShowPay]               = useState(false);
