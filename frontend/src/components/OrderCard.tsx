@@ -173,22 +173,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   }
 
   function buildBillWhatsAppUrl(phone: string): string {
-    const lines: string[] = [];
-    lines.push(`🧾 Bill — #${order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}`);
-    if (settings?.name) lines.push(settings.name);
-    lines.push('');
-    for (const i of order.items) {
-      const toppingsTotal = (i.toppings ?? []).reduce((s, t) => s + t.price, 0);
-      const modifiersTotal = (i.modifiers ?? []).reduce((s, m) => s + m.price, 0);
-      lines.push(`• ${i.quantity}× ${i.name} — ${fmt((i.price + toppingsTotal + modifiersTotal) * i.quantity)}`);
-    }
-    lines.push('');
-    lines.push(`Subtotal: ${fmt(billNet)}`);
-    if ((order.discountAmount ?? 0) > 0) lines.push(`Discount: -${fmt(order.discountAmount ?? 0)}`);
-    if (billCharges.serviceCharge > 0)   lines.push(`${scName}: ${fmt(billCharges.serviceCharge)}`);
-    if (billCharges.tax > 0)             lines.push(`${taxName}: ${fmt(billCharges.tax)}`);
-    lines.push(`*Total: ${fmt(billCharges.grandTotal)}*`, '', 'Thank you! 🙏', '', `📄 View your bill: ${billLink}`);
-    const text = encodeURIComponent(lines.join('\n'));
+    const text = encodeURIComponent(`🧾 Your bill is ready!\n📄 View here: ${billLink}`);
     const digits = phone.replace(/\D/g, '');
     // Normalise to E.164 — assume Sri Lanka (+94) for local 0-prefixed numbers
     const e164 = phone.trim().startsWith('+') ? digits : digits.startsWith('0') ? `94${digits.slice(1)}` : digits;
