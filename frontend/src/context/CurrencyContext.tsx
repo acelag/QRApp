@@ -5,7 +5,17 @@ import { useAuth } from './AuthContext';
 interface CurrencyContextValue {
   symbol: string;
   currencyCode: string;
-  /** True when prices are being shown in a different currency than stored. */
+  /** The restaurant's stored/base currency (prices are recorded in this). */
+  baseCurrencyCode: string;
+  /** The configured display currency (null if not set or same as base). */
+  displayCurrencyCode: string | null;
+  /** True when a display currency different from base is configured. */
+  canSwitch: boolean;
+  /** True when the customer is currently viewing prices in the display currency. */
+  showDisplay: boolean;
+  /** Flip between base and display currencies. */
+  toggleCurrency: () => void;
+  /** True when prices are actively being converted (showDisplay && canSwitch). */
   isConverting: boolean;
   /** Exchange rate applied: displayAmount = storedAmount * exchangeRate */
   exchangeRate: number;
@@ -17,6 +27,11 @@ interface CurrencyContextValue {
 const CurrencyContext = createContext<CurrencyContextValue>({
   symbol: '$',
   currencyCode: 'USD',
+  baseCurrencyCode: 'USD',
+  displayCurrencyCode: null,
+  canSwitch: false,
+  showDisplay: false,
+  toggleCurrency: () => {},
   isConverting: false,
   exchangeRate: 1,
   fmt: (n) => formatCurrency(n, 'USD'),
@@ -58,13 +73,14 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     displayCurrency: null,
     exchangeRateManual: null,
   });
-  const [liveRate, setLiveRate] = useState<number | null>(null);
+  const [liveRate, setLiveRate]     = useState<number | null>(null);
+  const [showDisplay, setShowDisplay] = useState(false);
 
   const applyConfig = useCallback((cfg: CurrencyConfig) => {
     setConfig(cfg);
     const { baseCurrency, displayCurrency, exchangeRateManual } = cfg;
     const target = displayCurrency && displayCurrency !== baseCurrency ? displayCurrency : null;
-    if (!target) { setLiveRate(null); return; }
+    if (!target) { setLiveRate(null); setShowDisplay(false); return; }
     if (exchangeRateManual != null) { setLiveRate(exchangeRateManual); return; }
     fetchLiveRate(baseCurrency, target).then((r) => setLiveRate(r));
   }, []);
@@ -91,22 +107,25 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         exchangeRateManual: info.exchangeRateManual ?? null,
       });
     }).catch(() => {
-      // Fallback: try the simple currency endpoint
       restaurantService.getRestaurantCurrency(restaurantId).then((code) => {
         applyConfig({ baseCurrency: code, displayCurrency: null, exchangeRateManual: null });
       }).catch(() => {});
     });
   }, [applyConfig]);
 
-  const activeCurrency = config.displayCurrency && config.displayCurrency !== config.baseCurrency
-    ? config.displayCurrency
+  const hasDisplay = !!(config.displayCurrency && config.displayCurrency !== config.baseCurrency);
+
+  const activeCurrency = (hasDisplay && showDisplay)
+    ? config.displayCurrency!
     : config.baseCurrency;
 
-  const exchangeRate = (config.displayCurrency && config.displayCurrency !== config.baseCurrency)
-    ? (config.exchangeRateManual ?? liveRate ?? 1)
-    : 1;
+  const resolvedRate = config.exchangeRateManual ?? liveRate ?? 1;
+  const exchangeRate = (hasDisplay && showDisplay) ? resolvedRate : 1;
+  const isConverting = exchangeRate !== 1;
 
-  const isConverting = exchangeRate !== 1 && activeCurrency !== config.baseCurrency;
+  const toggleCurrency = useCallback(() => {
+    if (hasDisplay) setShowDisplay((v) => !v);
+  }, [hasDisplay]);
 
   const fmt = useCallback(
     (n: number) => formatCurrency(n * exchangeRate, activeCurrency),
@@ -116,7 +135,19 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const symbol = getCurrencySymbol(activeCurrency);
 
   return (
-    <CurrencyContext.Provider value={{ symbol, currencyCode: activeCurrency, isConverting, exchangeRate, fmt, loadCurrency }}>
+    <CurrencyContext.Provider value={{
+      symbol,
+      currencyCode: activeCurrency,
+      baseCurrencyCode: config.baseCurrency,
+      displayCurrencyCode: hasDisplay ? config.displayCurrency : null,
+      canSwitch: hasDisplay,
+      showDisplay,
+      toggleCurrency,
+      isConverting,
+      exchangeRate,
+      fmt,
+      loadCurrency,
+    }}>
       {children}
     </CurrencyContext.Provider>
   );

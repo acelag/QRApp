@@ -20,6 +20,7 @@ import { UtensilsCrossed, ClipboardList, RefreshCw, Clock, Search, X, LayoutGrid
 import { useFavourites } from '../../hooks/useFavourites';
 import { menuPrefetchCache } from '../../services/menuPrefetchCache';
 import { ActiveOrderBanner } from '../../components/ActiveOrderBanner';
+import { CurrencySwitcher } from '../../components/CurrencySwitcher';
 import { Button } from '../../components/Button';
 import { pushEscape } from '../../lib/escapeStack';
 export function MenuPage() {
@@ -166,6 +167,8 @@ export function MenuPage() {
                 : <UtensilsCrossed size={20} className="text-orange-500 shrink-0" />}
               <h1 className="text-xl font-bold text-gray-900 truncate">{restaurantInfo?.name ?? 'Menu'}</h1>
             </div>
+
+            <CurrencySwitcher />
 
             {/* Overflow menu — keeps the mobile header uncluttered */}
             <div className="relative shrink-0">

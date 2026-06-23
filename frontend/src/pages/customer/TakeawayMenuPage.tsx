@@ -24,6 +24,7 @@ import { useTags } from '../../context/TagsContext';
 import { useFavourites } from '../../hooks/useFavourites';
 import toast from 'react-hot-toast';
 import { ActiveOrderBanner, saveActiveOrder } from '../../components/ActiveOrderBanner';
+import { CurrencySwitcher } from '../../components/CurrencySwitcher';
 
 type Size = 'regular' | 'large';
 
@@ -386,6 +387,7 @@ export function TakeawayMenuPage() {
               <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? t('customer.takeaway')}</h1>
             </div>
             <div className="flex items-center gap-2">
+              <CurrencySwitcher />
               <div className="flex items-center bg-gray-100 rounded-full p-0.5">
                 <button
                   onClick={() => { setView('grid'); localStorage.setItem('qra_menu_view', 'grid'); }}
