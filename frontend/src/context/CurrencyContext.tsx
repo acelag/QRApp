@@ -1,26 +1,26 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { getCurrencySymbol, formatCurrency, restaurantService } from '../services/restaurantService';
+import { createContext, useCallback, useContext, useEffect, useState, useRef, type ReactNode } from 'react';
+import { getCurrencySymbol, formatCurrency, restaurantService, type DisplayCurrencyConfig } from '../services/restaurantService';
 import { useAuth } from './AuthContext';
+
+export interface AvailableCurrency {
+  code: string;
+  symbol: string;
+  rate: number;        // 1 base = this many of this currency
+  isBase: boolean;
+}
 
 interface CurrencyContextValue {
   symbol: string;
   currencyCode: string;
-  /** The restaurant's stored/base currency (prices are recorded in this). */
   baseCurrencyCode: string;
-  /** The configured display currency (null if not set or same as base). */
-  displayCurrencyCode: string | null;
-  /** True when a display currency different from base is configured. */
-  canSwitch: boolean;
-  /** True when the customer is currently viewing prices in the display currency. */
-  showDisplay: boolean;
-  /** Flip between base and display currencies. */
-  toggleCurrency: () => void;
-  /** True when prices are actively being converted (showDisplay && canSwitch). */
+  /** All currencies the customer can pick from (base + all display currencies). */
+  availableCurrencies: AvailableCurrency[];
+  /** True when exchange rate is applied (customer picked a non-base currency). */
   isConverting: boolean;
-  /** Exchange rate applied: displayAmount = storedAmount * exchangeRate */
   exchangeRate: number;
   fmt: (amount: number) => string;
-  /** Call this from customer pages that know their restaurantId. */
+  /** Switch to a specific currency code. */
+  setActiveCurrency: (code: string) => void;
   loadCurrency: (restaurantId: string) => void;
 }
 
@@ -28,31 +28,26 @@ const CurrencyContext = createContext<CurrencyContextValue>({
   symbol: '$',
   currencyCode: 'USD',
   baseCurrencyCode: 'USD',
-  displayCurrencyCode: null,
-  canSwitch: false,
-  showDisplay: false,
-  toggleCurrency: () => {},
+  availableCurrencies: [],
   isConverting: false,
   exchangeRate: 1,
   fmt: (n) => formatCurrency(n, 'USD'),
+  setActiveCurrency: () => {},
   loadCurrency: () => {},
 });
 
-// Module-level rate cache so we don't refetch on every re-render
-const _rateCache: Record<string, { rate: number; ts: number }> = {};
-const RATE_TTL_MS = 30 * 60 * 1000; // 30 min
+const _rateCache: Record<string, { rates: Record<string, number>; ts: number }> = {};
+const RATE_TTL_MS = 30 * 60 * 1000;
 
-async function fetchLiveRate(from: string, to: string): Promise<number | null> {
-  if (from === to) return 1;
-  const key = `${from}-${to}`;
-  const cached = _rateCache[key];
-  if (cached && Date.now() - cached.ts < RATE_TTL_MS) return cached.rate;
+async function fetchAllRates(base: string): Promise<Record<string, number> | null> {
+  const cached = _rateCache[base];
+  if (cached && Date.now() - cached.ts < RATE_TTL_MS) return cached.rates;
   try {
-    const resp = await fetch(`https://open.er-api.com/v6/latest/${from}`);
+    const resp = await fetch(`https://open.er-api.com/v6/latest/${base}`);
     const data = await resp.json() as { result: string; rates: Record<string, number> };
-    if (data.result === 'success' && data.rates[to] != null) {
-      _rateCache[key] = { rate: data.rates[to], ts: Date.now() };
-      return data.rates[to];
+    if (data.result === 'success') {
+      _rateCache[base] = { rates: data.rates, ts: Date.now() };
+      return data.rates;
     }
     return null;
   } catch {
@@ -60,92 +55,84 @@ async function fetchLiveRate(from: string, to: string): Promise<number | null> {
   }
 }
 
-interface CurrencyConfig {
-  baseCurrency: string;
-  displayCurrency: string | null;
-  exchangeRateManual: number | null;
-}
-
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [config, setConfig] = useState<CurrencyConfig>({
-    baseCurrency: 'USD',
-    displayCurrency: null,
-    exchangeRateManual: null,
-  });
-  const [liveRate, setLiveRate]     = useState<number | null>(null);
-  const [showDisplay, setShowDisplay] = useState(false);
+  const [baseCurrency, setBaseCurrency]             = useState('USD');
+  const [displayConfigs, setDisplayConfigs]          = useState<DisplayCurrencyConfig[]>([]);
+  const [liveRates, setLiveRates]                    = useState<Record<string, number>>({});
+  const [activeCurrencyCode, setActiveCurrencyCode]  = useState<string>('');  // '' = base
+  const hasFetchedRates = useRef(false);
 
-  const applyConfig = useCallback((cfg: CurrencyConfig) => {
-    setConfig(cfg);
-    const { baseCurrency, displayCurrency, exchangeRateManual } = cfg;
-    const target = displayCurrency && displayCurrency !== baseCurrency ? displayCurrency : null;
-    if (!target) { setLiveRate(null); setShowDisplay(false); return; }
-    if (exchangeRateManual != null) { setLiveRate(exchangeRateManual); return; }
-    fetchLiveRate(baseCurrency, target).then((r) => setLiveRate(r));
+  const applyConfig = useCallback((base: string, configs: DisplayCurrencyConfig[]) => {
+    setBaseCurrency(base);
+    setDisplayConfigs(configs);
+    hasFetchedRates.current = false;
+    // Fetch live rates for any configs that need them
+    const needsLive = configs.some((c) => c.rateManual == null);
+    if (needsLive) {
+      fetchAllRates(base).then((rates) => {
+        if (rates) { setLiveRates(rates); hasFetchedRates.current = true; }
+      });
+    }
   }, []);
 
-  // Auto-load for authenticated admin/kitchen users
   useEffect(() => {
     if (user?.restaurantId) {
       restaurantService.getMyRestaurant().then((r) => {
         if (!r) return;
-        applyConfig({
-          baseCurrency: r.currency ?? 'USD',
-          displayCurrency: r.displayCurrency ?? null,
-          exchangeRateManual: r.exchangeRateManual ?? null,
-        });
+        applyConfig(r.currency ?? 'USD', r.displayCurrencies ?? []);
       }).catch(() => {});
     }
   }, [user?.restaurantId, applyConfig]);
 
   const loadCurrency = useCallback((restaurantId: string) => {
     restaurantService.getRestaurantInfo(restaurantId).then((info) => {
-      applyConfig({
-        baseCurrency: info.currency ?? 'USD',
-        displayCurrency: info.displayCurrency ?? null,
-        exchangeRateManual: info.exchangeRateManual ?? null,
-      });
+      applyConfig(info.currency ?? 'USD', info.displayCurrencies ?? []);
     }).catch(() => {
       restaurantService.getRestaurantCurrency(restaurantId).then((code) => {
-        applyConfig({ baseCurrency: code, displayCurrency: null, exchangeRateManual: null });
+        applyConfig(code, []);
       }).catch(() => {});
     });
   }, [applyConfig]);
 
-  const hasDisplay = !!(config.displayCurrency && config.displayCurrency !== config.baseCurrency);
+  // Build the available currencies list
+  const availableCurrencies: AvailableCurrency[] = [
+    { code: baseCurrency, symbol: getCurrencySymbol(baseCurrency), rate: 1, isBase: true },
+    ...displayConfigs.map((cfg) => ({
+      code: cfg.code,
+      symbol: getCurrencySymbol(cfg.code),
+      rate: cfg.rateManual ?? liveRates[cfg.code] ?? 0,
+      isBase: false,
+    })).filter((c) => c.rate > 0),
+  ];
 
-  const activeCurrency = (hasDisplay && showDisplay)
-    ? config.displayCurrency!
-    : config.baseCurrency;
+  const resolvedActive = activeCurrencyCode && availableCurrencies.some((c) => c.code === activeCurrencyCode)
+    ? activeCurrencyCode : baseCurrency;
 
-  const resolvedRate = config.exchangeRateManual ?? liveRate ?? 1;
-  const exchangeRate = (hasDisplay && showDisplay) ? resolvedRate : 1;
-  const isConverting = exchangeRate !== 1;
+  const activeEntry = availableCurrencies.find((c) => c.code === resolvedActive)
+    ?? availableCurrencies[0]
+    ?? { code: baseCurrency, symbol: getCurrencySymbol(baseCurrency), rate: 1, isBase: true };
 
-  const toggleCurrency = useCallback(() => {
-    if (hasDisplay) setShowDisplay((v) => !v);
-  }, [hasDisplay]);
+  const exchangeRate = activeEntry.rate;
+  const isConverting = !activeEntry.isBase;
+
+  const setActiveCurrency = useCallback((code: string) => setActiveCurrencyCode(code), []);
 
   const fmt = useCallback(
-    (n: number) => formatCurrency(n * exchangeRate, activeCurrency),
-    [exchangeRate, activeCurrency],
+    (n: number) => formatCurrency(n * exchangeRate, activeEntry.code),
+    [exchangeRate, activeEntry.code],
   );
-
-  const symbol = getCurrencySymbol(activeCurrency);
 
   return (
     <CurrencyContext.Provider value={{
-      symbol,
-      currencyCode: activeCurrency,
-      baseCurrencyCode: config.baseCurrency,
-      displayCurrencyCode: hasDisplay ? config.displayCurrency : null,
-      canSwitch: hasDisplay,
-      showDisplay,
-      toggleCurrency,
+      symbol: activeEntry.symbol,
+      currencyCode: activeEntry.code,
+      baseCurrencyCode: baseCurrency,
+      availableCurrencies,
       isConverting,
       exchangeRate,
       fmt,
+      setActiveCurrency,
       loadCurrency,
     }}>
       {children}

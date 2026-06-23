@@ -563,6 +563,7 @@ export async function createSchema(): Promise<void> {
   // ── Currency conversion ────────────────────────────────────────────────────
   await addCol('restaurants', 'display_currency',     'VARCHAR(10) NULL');
   await addCol('restaurants', 'exchange_rate_manual', 'DECIMAL(15,6) NULL');
+  await addCol('restaurants', 'display_currencies', "JSONB NOT NULL DEFAULT '[]'");
 
   // ── Nutritional info ───────────────────────────────────────────────────────
   await addCol('menu_items', 'calories',    'SMALLINT NULL');

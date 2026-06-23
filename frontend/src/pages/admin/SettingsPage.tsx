@@ -150,9 +150,11 @@ export function SettingsPage() {
   const [receiptSaving,        setReceiptSaving]        = useState(false);
 
   // ── Currency conversion state ──────────────────────────────────────────────
-  const [displayCurrency,    setDisplayCurrency]    = useState<string>('');
-  const [exchangeRateManual, setExchangeRateManual] = useState('');
-  const [fetchingRate,       setFetchingRate]       = useState(false);
+  const [displayCurrencies,  setDisplayCurrencies]  = useState<Array<{code:string;rateManual:string}>>([]);
+  const [newCurrencyCode,    setNewCurrencyCode]    = useState('');
+  const [newCurrencyRate,    setNewCurrencyRate]    = useState('');
+  const [newRateType,        setNewRateType]        = useState<'live'|'manual'>('live');
+  const [fetchingNewRate,    setFetchingNewRate]    = useState(false);
   const [exchangeSaving,     setExchangeSaving]     = useState(false);
 
   const { loadCurrency } = useCurrency();
@@ -198,8 +200,7 @@ export function SettingsPage() {
       setReceiptFooterLine2(r.receiptFooterLine2 ?? 'Please come again 🙏');
       setReceiptShowOrderNo(r.receiptShowOrderNo !== false);
       setReceiptShowUnitPrice(r.receiptShowUnitPrice !== false);
-      setDisplayCurrency(r.displayCurrency ?? '');
-      setExchangeRateManual(r.exchangeRateManual != null ? String(r.exchangeRateManual) : '');
+      setDisplayCurrencies((r.displayCurrencies ?? []).map((c) => ({ code: c.code, rateManual: c.rateManual != null ? String(c.rateManual) : '' })));
     });
   }, []);
 
@@ -420,14 +421,14 @@ export function SettingsPage() {
     }
   }
 
-  async function fetchLiveRateForDisplay() {
-    if (!currency || !displayCurrency || displayCurrency === currency) return;
-    setFetchingRate(true);
+  async function fetchLiveRateForNew() {
+    if (!currency || !newCurrencyCode || newCurrencyCode === currency) return;
+    setFetchingNewRate(true);
     try {
       const resp = await fetch(`https://open.er-api.com/v6/latest/${currency}`);
       const data = await resp.json() as { result: string; rates: Record<string, number> };
-      if (data.result === 'success' && data.rates[displayCurrency] != null) {
-        setExchangeRateManual(String(data.rates[displayCurrency]));
+      if (data.result === 'success' && data.rates[newCurrencyCode] != null) {
+        setNewCurrencyRate(String(data.rates[newCurrencyCode]));
         toast.success('Live rate fetched!');
       } else {
         toast.error('Rate not available for this pair');
@@ -435,23 +436,52 @@ export function SettingsPage() {
     } catch {
       toast.error('Failed to fetch exchange rate');
     } finally {
-      setFetchingRate(false);
+      setFetchingNewRate(false);
     }
+  }
+
+  async function fetchLiveRateForRow(code: string, index: number) {
+    if (!currency || !code) return;
+    try {
+      const resp = await fetch(`https://open.er-api.com/v6/latest/${currency}`);
+      const data = await resp.json() as { result: string; rates: Record<string, number> };
+      if (data.result === 'success' && data.rates[code] != null) {
+        setDisplayCurrencies((prev) => prev.map((c, i) => i === index ? { ...c, rateManual: String(data.rates[code]) } : c));
+        toast.success('Rate updated');
+      } else {
+        toast.error('Rate not available');
+      }
+    } catch {
+      toast.error('Failed to fetch rate');
+    }
+  }
+
+  function addDisplayCurrency() {
+    if (!newCurrencyCode || newCurrencyCode === currency) return;
+    if (displayCurrencies.some((c) => c.code === newCurrencyCode)) return;
+    const rate = newRateType === 'manual' ? newCurrencyRate : '';
+    setDisplayCurrencies((prev) => [...prev, { code: newCurrencyCode, rateManual: rate }]);
+    setNewCurrencyCode('');
+    setNewCurrencyRate('');
+    setNewRateType('live');
+  }
+
+  function removeDisplayCurrency(index: number) {
+    setDisplayCurrencies((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function saveExchangeSettings() {
     if (!restaurant) return;
     setExchangeSaving(true);
     try {
-      const target = displayCurrency && displayCurrency !== currency ? displayCurrency : null;
-      const rate   = exchangeRateManual ? parseFloat(exchangeRateManual) : null;
-      const updated = await restaurantService.updateExchangeSettings(restaurant.id, {
-        displayCurrency:    target,
-        exchangeRateManual: rate && !isNaN(rate) ? rate : null,
-      });
+      const payload = displayCurrencies.map((c) => ({
+        code: c.code,
+        rateManual: c.rateManual ? parseFloat(c.rateManual) : null,
+      }));
+      const updated = await restaurantService.updateExchangeSettings(restaurant.id, { displayCurrencies: payload });
       setRestaurant(updated);
       loadCurrency(updated.id);
-      toast.success('Currency conversion saved');
+      toast.success('Currency display settings saved');
     } catch {
       toast.error('Failed to save');
     } finally {
@@ -811,64 +841,116 @@ export function SettingsPage() {
           </div>
         </div>
 
-        {/* Currency Conversion */}
+        {/* Currency Display */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
             <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
               <DollarSign size={15} className="text-emerald-500" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-800">Currency Conversion</h2>
-              <p className="text-xs text-gray-400">Show prices to customers in a different currency</p>
+              <h2 className="font-semibold text-gray-800">Currency Display</h2>
+              <p className="text-xs text-gray-400">Currencies customers can switch between on menu pages</p>
             </div>
           </div>
           <div className="p-5 space-y-4">
-            <Field label="Display Currency (leave blank = use base currency)">
-              <select
-                value={displayCurrency}
-                onChange={(e) => setDisplayCurrency(e.target.value)}
-                className={input}
-              >
-                <option value="">— Same as base ({currency}) —</option>
-                {CURRENCIES.filter((c) => c.code !== currency).map((c) => (
-                  <option key={c.code} value={c.code}>{c.symbol} — {c.name} ({c.code})</option>
-                ))}
-              </select>
-            </Field>
 
-            {displayCurrency && displayCurrency !== currency && (
-              <>
-                <Field label={`Exchange Rate (1 ${currency} = ? ${displayCurrency})`}>
-                  <div className="flex gap-2">
+            {/* Configured currencies list */}
+            <div className="space-y-2">
+              {/* Base currency row */}
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide w-10">{currency}</span>
+                <span className="text-xs text-gray-500 flex-1">Base currency (prices stored in this)</span>
+                <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Base</span>
+              </div>
+
+              {/* Display currency rows */}
+              {displayCurrencies.map((c, i) => (
+                <div key={c.code} className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100">
+                  <span className="text-xs font-bold text-emerald-700 w-10">{c.code}</span>
+                  <div className="flex-1 flex items-center gap-2 min-w-0">
+                    <span className="text-xs text-emerald-600 shrink-0">1 {currency} =</span>
                     <input
                       type="number"
-                      value={exchangeRateManual}
-                      onChange={(e) => setExchangeRateManual(e.target.value)}
-                      placeholder="Enter rate or fetch live →"
+                      value={c.rateManual}
+                      onChange={(e) => setDisplayCurrencies((prev) => prev.map((x, idx) => idx === i ? { ...x, rateManual: e.target.value } : x))}
+                      placeholder="live"
                       step="any"
                       min="0"
-                      className={`${input} flex-1`}
+                      className="w-28 text-xs bg-white border border-emerald-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-emerald-300"
                     />
+                    <span className="text-xs text-emerald-600 shrink-0">{c.code}</span>
                     <button
                       type="button"
-                      onClick={fetchLiveRateForDisplay}
-                      disabled={fetchingRate}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 shrink-0"
-                    >
-                      {fetchingRate ? <Loader2 size={13} className="animate-spin" /> : null}
-                      {fetchingRate ? 'Fetching…' : 'Fetch Live'}
-                    </button>
+                      onClick={() => fetchLiveRateForRow(c.code, i)}
+                      className="text-xs text-emerald-600 underline underline-offset-2 hover:text-emerald-800 shrink-0"
+                    >Live</button>
                   </div>
-                </Field>
-                {exchangeRateManual && (
-                  <div className="bg-emerald-50 rounded-xl border border-emerald-100 px-4 py-3 text-xs text-emerald-700">
-                    Preview: {CURRENCIES.find((c) => c.code === currency)?.symbol ?? currency}1,000 →{' '}
-                    {CURRENCIES.find((c) => c.code === displayCurrency)?.symbol ?? displayCurrency}
-                    {(1000 * parseFloat(exchangeRateManual || '0')).toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                  </div>
-                )}
-              </>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => removeDisplayCurrency(i)}
+                    className="text-gray-400 hover:text-red-500 transition-colors shrink-0 ml-1"
+                    aria-label="Remove"
+                  ><X size={14} /></button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add new currency */}
+            <div className="border border-dashed border-gray-200 rounded-xl p-3 space-y-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Add Currency</p>
+              <div className="flex gap-2 flex-wrap">
+                <select
+                  value={newCurrencyCode}
+                  onChange={(e) => setNewCurrencyCode(e.target.value)}
+                  className="flex-1 min-w-32 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+                >
+                  <option value="">Select currency…</option>
+                  {CURRENCIES.filter((c) => c.code !== currency && !displayCurrencies.some((d) => d.code === c.code)).map((c) => (
+                    <option key={c.code} value={c.code}>{c.symbol} {c.name} ({c.code})</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3">
+                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                    <input type="radio" name="rateType" value="live" checked={newRateType === 'live'} onChange={() => setNewRateType('live')} className="accent-orange-500" />
+                    Live
+                  </label>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer ml-2">
+                    <input type="radio" name="rateType" value="manual" checked={newRateType === 'manual'} onChange={() => setNewRateType('manual')} className="accent-orange-500" />
+                    Manual
+                  </label>
+                </div>
+              </div>
+              {newRateType === 'manual' && newCurrencyCode && (
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={newCurrencyRate}
+                    onChange={(e) => setNewCurrencyRate(e.target.value)}
+                    placeholder={`1 ${currency} = ? ${newCurrencyCode}`}
+                    step="any"
+                    min="0"
+                    className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-orange-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={fetchLiveRateForNew}
+                    disabled={fetchingNewRate}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50"
+                  >
+                    {fetchingNewRate ? <Loader2 size={13} className="animate-spin" /> : null}
+                    {fetchingNewRate ? 'Fetching…' : 'Fetch Live'}
+                  </button>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={addDisplayCurrency}
+                disabled={!newCurrencyCode || newCurrencyCode === currency}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40"
+              >
+                + Add
+              </button>
+            </div>
 
             <button
               type="button"
@@ -877,7 +959,7 @@ export function SettingsPage() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 disabled:opacity-50"
             >
               {exchangeSaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-              Save Conversion Settings
+              Save Display Currencies
             </button>
           </div>
         </div>

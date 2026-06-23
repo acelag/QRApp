@@ -52,6 +52,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   receiptShowUnitPrice: row.receipt_show_unit_price !== false,
   displayCurrency:    (row.display_currency     as string | null) ?? null,
   exchangeRateManual: row.exchange_rate_manual != null ? Number(row.exchange_rate_manual) : null,
+  displayCurrencies: Array.isArray(row.display_currencies) ? (row.display_currencies as Array<{code:string;rateManual:number|null}>) : [],
   features: parseFeatures(row.features),
   plan:               (row.plan as string | null) ?? 'pro',
   subscriptionStatus: (row.subscription_status as string | null) ?? 'active',
@@ -76,7 +77,7 @@ router.get('/:id/info', async (req, res) => {
             receipt_header_line1, receipt_header_line2,
             receipt_footer_line1, receipt_footer_line2,
             receipt_show_order_no, receipt_show_unit_price,
-            currency, display_currency, exchange_rate_manual
+            currency, display_currency, exchange_rate_manual, display_currencies
      FROM restaurants WHERE id = $1`,
     [req.params.id],
   );
@@ -111,6 +112,7 @@ router.get('/:id/info', async (req, res) => {
     currency:           (row.currency            as string | null) ?? 'USD',
     displayCurrency:    (row.display_currency     as string | null) ?? null,
     exchangeRateManual: row.exchange_rate_manual != null ? Number(row.exchange_rate_manual) : null,
+    displayCurrencies: Array.isArray(row.display_currencies) ? (row.display_currencies as Array<{code:string;rateManual:number|null}>) : [],
   });
 });
 
@@ -216,13 +218,19 @@ router.patch('/:id/charges', authenticate, async (req: AuthRequest, res) => {
 router.patch('/:id/exchange-settings', authenticate, async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
-  const { displayCurrency, exchangeRateManual } = req.body as { displayCurrency?: string | null; exchangeRateManual?: number | null };
-  const safeCur  = typeof displayCurrency === 'string' && displayCurrency.trim().length > 0 ? displayCurrency.trim().toUpperCase() : null;
-  const safeRate = exchangeRateManual != null && !isNaN(Number(exchangeRateManual)) && Number(exchangeRateManual) > 0
-    ? Number(exchangeRateManual) : null;
+  const { displayCurrencies } = req.body as { displayCurrencies?: Array<{code: string; rateManual: number | null}> };
+  const safeCurrencies = Array.isArray(displayCurrencies)
+    ? displayCurrencies
+        .filter((c) => typeof c.code === 'string' && c.code.trim().length > 0)
+        .map((c) => ({
+          code: c.code.trim().toUpperCase(),
+          rateManual: c.rateManual != null && !isNaN(Number(c.rateManual)) && Number(c.rateManual) > 0
+            ? Number(c.rateManual) : null,
+        }))
+    : [];
   await pool.query(
-    `UPDATE restaurants SET display_currency = $1, exchange_rate_manual = $2 WHERE id = $3`,
-    [safeCur, safeRate, id],
+    `UPDATE restaurants SET display_currencies = $1 WHERE id = $2`,
+    [JSON.stringify(safeCurrencies), id],
   );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
