@@ -50,6 +50,8 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   receiptFooterLine2:   (row.receipt_footer_line2   as string | null) ?? 'Please come again 🙏',
   receiptShowOrderNo:   row.receipt_show_order_no   !== false,
   receiptShowUnitPrice: row.receipt_show_unit_price !== false,
+  displayCurrency:    (row.display_currency     as string | null) ?? null,
+  exchangeRateManual: row.exchange_rate_manual != null ? Number(row.exchange_rate_manual) : null,
   features: parseFeatures(row.features),
   plan:               (row.plan as string | null) ?? 'pro',
   subscriptionStatus: (row.subscription_status as string | null) ?? 'active',
@@ -73,7 +75,8 @@ router.get('/:id/info', async (req, res) => {
             service_charge_pct, tax_pct, service_charge_name, tax_name,
             receipt_header_line1, receipt_header_line2,
             receipt_footer_line1, receipt_footer_line2,
-            receipt_show_order_no, receipt_show_unit_price
+            receipt_show_order_no, receipt_show_unit_price,
+            currency, display_currency, exchange_rate_manual
      FROM restaurants WHERE id = $1`,
     [req.params.id],
   );
@@ -105,6 +108,9 @@ router.get('/:id/info', async (req, res) => {
     receiptFooterLine2:   (row.receipt_footer_line2   as string | null) ?? 'Please come again 🙏',
     receiptShowOrderNo:   row.receipt_show_order_no   !== false,
     receiptShowUnitPrice: row.receipt_show_unit_price !== false,
+    currency:           (row.currency            as string | null) ?? 'USD',
+    displayCurrency:    (row.display_currency     as string | null) ?? null,
+    exchangeRateManual: row.exchange_rate_manual != null ? Number(row.exchange_rate_manual) : null,
   });
 });
 
@@ -201,6 +207,22 @@ router.patch('/:id/charges', authenticate, async (req: AuthRequest, res) => {
          tax_name            = COALESCE($5, tax_name)
      WHERE id = $6`,
     [sc, tax, safeCurrency, safeScName, safeTaxName, id],
+  );
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/exchange-settings', authenticate, async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { displayCurrency, exchangeRateManual } = req.body as { displayCurrency?: string | null; exchangeRateManual?: number | null };
+  const safeCur  = typeof displayCurrency === 'string' && displayCurrency.trim().length > 0 ? displayCurrency.trim().toUpperCase() : null;
+  const safeRate = exchangeRateManual != null && !isNaN(Number(exchangeRateManual)) && Number(exchangeRateManual) > 0
+    ? Number(exchangeRateManual) : null;
+  await pool.query(
+    `UPDATE restaurants SET display_currency = $1, exchange_rate_manual = $2 WHERE id = $3`,
+    [safeCur, safeRate, id],
   );
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }

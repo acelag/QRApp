@@ -149,6 +149,12 @@ export function SettingsPage() {
   const [receiptShowUnitPrice, setReceiptShowUnitPrice] = useState(true);
   const [receiptSaving,        setReceiptSaving]        = useState(false);
 
+  // ── Currency conversion state ──────────────────────────────────────────────
+  const [displayCurrency,    setDisplayCurrency]    = useState<string>('');
+  const [exchangeRateManual, setExchangeRateManual] = useState('');
+  const [fetchingRate,       setFetchingRate]       = useState(false);
+  const [exchangeSaving,     setExchangeSaving]     = useState(false);
+
   const { loadCurrency } = useCurrency();
 
   useEffect(() => {
@@ -192,6 +198,8 @@ export function SettingsPage() {
       setReceiptFooterLine2(r.receiptFooterLine2 ?? 'Please come again 🙏');
       setReceiptShowOrderNo(r.receiptShowOrderNo !== false);
       setReceiptShowUnitPrice(r.receiptShowUnitPrice !== false);
+      setDisplayCurrency(r.displayCurrency ?? '');
+      setExchangeRateManual(r.exchangeRateManual != null ? String(r.exchangeRateManual) : '');
     });
   }, []);
 
@@ -409,6 +417,45 @@ export function SettingsPage() {
       setTimeout(() => setBillingSuccess(false), 3000);
     } finally {
       setBillingLoading(false);
+    }
+  }
+
+  async function fetchLiveRateForDisplay() {
+    if (!currency || !displayCurrency || displayCurrency === currency) return;
+    setFetchingRate(true);
+    try {
+      const resp = await fetch(`https://open.er-api.com/v6/latest/${currency}`);
+      const data = await resp.json() as { result: string; rates: Record<string, number> };
+      if (data.result === 'success' && data.rates[displayCurrency] != null) {
+        setExchangeRateManual(String(data.rates[displayCurrency]));
+        toast.success('Live rate fetched!');
+      } else {
+        toast.error('Rate not available for this pair');
+      }
+    } catch {
+      toast.error('Failed to fetch exchange rate');
+    } finally {
+      setFetchingRate(false);
+    }
+  }
+
+  async function saveExchangeSettings() {
+    if (!restaurant) return;
+    setExchangeSaving(true);
+    try {
+      const target = displayCurrency && displayCurrency !== currency ? displayCurrency : null;
+      const rate   = exchangeRateManual ? parseFloat(exchangeRateManual) : null;
+      const updated = await restaurantService.updateExchangeSettings(restaurant.id, {
+        displayCurrency:    target,
+        exchangeRateManual: rate && !isNaN(rate) ? rate : null,
+      });
+      setRestaurant(updated);
+      loadCurrency(updated.id);
+      toast.success('Currency conversion saved');
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setExchangeSaving(false);
     }
   }
 
@@ -761,6 +808,77 @@ export function SettingsPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Currency Conversion */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <DollarSign size={15} className="text-emerald-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800">Currency Conversion</h2>
+              <p className="text-xs text-gray-400">Show prices to customers in a different currency</p>
+            </div>
+          </div>
+          <div className="p-5 space-y-4">
+            <Field label="Display Currency (leave blank = use base currency)">
+              <select
+                value={displayCurrency}
+                onChange={(e) => setDisplayCurrency(e.target.value)}
+                className={input}
+              >
+                <option value="">— Same as base ({currency}) —</option>
+                {CURRENCIES.filter((c) => c.code !== currency).map((c) => (
+                  <option key={c.code} value={c.code}>{c.symbol} — {c.name} ({c.code})</option>
+                ))}
+              </select>
+            </Field>
+
+            {displayCurrency && displayCurrency !== currency && (
+              <>
+                <Field label={`Exchange Rate (1 ${currency} = ? ${displayCurrency})`}>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={exchangeRateManual}
+                      onChange={(e) => setExchangeRateManual(e.target.value)}
+                      placeholder="Enter rate or fetch live →"
+                      step="any"
+                      min="0"
+                      className={`${input} flex-1`}
+                    />
+                    <button
+                      type="button"
+                      onClick={fetchLiveRateForDisplay}
+                      disabled={fetchingRate}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 shrink-0"
+                    >
+                      {fetchingRate ? <Loader2 size={13} className="animate-spin" /> : null}
+                      {fetchingRate ? 'Fetching…' : 'Fetch Live'}
+                    </button>
+                  </div>
+                </Field>
+                {exchangeRateManual && (
+                  <div className="bg-emerald-50 rounded-xl border border-emerald-100 px-4 py-3 text-xs text-emerald-700">
+                    Preview: {CURRENCIES.find((c) => c.code === currency)?.symbol ?? currency}1,000 →{' '}
+                    {CURRENCIES.find((c) => c.code === displayCurrency)?.symbol ?? displayCurrency}
+                    {(1000 * parseFloat(exchangeRateManual || '0')).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                  </div>
+                )}
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={saveExchangeSettings}
+              disabled={exchangeSaving}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 disabled:opacity-50"
+            >
+              {exchangeSaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+              Save Conversion Settings
+            </button>
           </div>
         </div>
 

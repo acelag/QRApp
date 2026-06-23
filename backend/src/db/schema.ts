@@ -560,6 +560,10 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'receipt_show_order_no',   'BOOLEAN NOT NULL DEFAULT TRUE');
   await addCol('restaurants', 'receipt_show_unit_price', 'BOOLEAN NOT NULL DEFAULT TRUE');
 
+  // ── Currency conversion ────────────────────────────────────────────────────
+  await addCol('restaurants', 'display_currency',     'VARCHAR(10) NULL');
+  await addCol('restaurants', 'exchange_rate_manual', 'DECIMAL(15,6) NULL');
+
   // ── Nutritional info ───────────────────────────────────────────────────────
   await addCol('menu_items', 'calories',    'SMALLINT NULL');
   await addCol('menu_items', 'protein_g',   'SMALLINT NULL');

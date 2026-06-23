@@ -45,6 +45,9 @@ export interface RestaurantSettings {
   receiptFooterLine2?:   string;
   receiptShowOrderNo?:   boolean;
   receiptShowUnitPrice?: boolean;
+  // Currency conversion
+  displayCurrency?:    string | null;
+  exchangeRateManual?: number | null;
 }
 
 /** Public restaurant info used by customer-facing pages (welcome screen, menus). */
@@ -75,6 +78,9 @@ export interface RestaurantInfo {
   receiptFooterLine2: string;
   receiptShowOrderNo: boolean;
   receiptShowUnitPrice: boolean;
+  currency: string;
+  displayCurrency: string | null;
+  exchangeRateManual: number | null;
 }
 
 /** Public branded-login info fetched by slug for /login/:slug. */
@@ -216,4 +222,7 @@ export const restaurantService = {
     receiptFooterLine1: string; receiptFooterLine2: string;
     receiptShowOrderNo: boolean; receiptShowUnitPrice: boolean;
   }) => axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/receipt-config`, config).then((r) => r.data),
+
+  updateExchangeSettings: (id: string, payload: { displayCurrency: string | null; exchangeRateManual: number | null }) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/exchange-settings`, payload).then((r) => r.data),
 };
