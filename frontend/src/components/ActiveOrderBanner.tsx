@@ -43,7 +43,7 @@ function loadStoredOrder(restaurantId: string, orderType: string): StoredActiveO
     if (!raw) return null;
     const entry: StoredActiveOrder = JSON.parse(raw);
     if (entry.restaurantId !== restaurantId) return null;
-    if (entry.orderType && entry.orderType !== orderType) return null;
+    if (entry.orderType !== orderType) return null;
     if (Date.now() - new Date(entry.placedAt).getTime() > MAX_AGE_MS) {
       localStorage.removeItem(STORAGE_KEY);
       return null;
@@ -114,7 +114,7 @@ export function ActiveOrderBanner({ restaurantId, orderType, hidden }: Props) {
     setStored(entry);
     setDismissed(false);
     if (entry) setTimeout(() => setVisible(true), 50); // let DOM mount first
-  }, [restaurantId]);
+  }, [restaurantId, orderType]);
 
   // Poll order every 8 s
   useEffect(() => {
