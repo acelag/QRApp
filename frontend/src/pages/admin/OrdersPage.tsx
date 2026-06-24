@@ -154,6 +154,32 @@ export function OrdersPage() {
   ].filter((g) => g.orders.length > 0);
   const showGroups = typeTab === 'all' && orderGroups.length > 1;
 
+  function buildRoomGroups(roomOrders: Order[]) {
+    const map = new Map<number, Order[]>();
+    roomOrders.forEach((o) => {
+      const key = o.roomNumber ?? 0;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(o);
+    });
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([roomNumber, grpOrders]) => {
+        const total = grpOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
+        const itemCount = grpOrders.reduce((s, o) => s + (o.items?.length ?? 0), 0);
+        const STALE_MS = 30 * 60 * 1000;
+        const hasStalled = grpOrders.some(
+          (o) => ['pending', 'preparing'].includes(o.status) &&
+                 Date.now() - new Date(o.createdAt).getTime() > STALE_MS,
+        );
+        const status: OrderStatus =
+          grpOrders.some((o) => o.status === 'pending')   ? 'pending'   :
+          grpOrders.some((o) => o.status === 'preparing') ? 'preparing' :
+          grpOrders.some((o) => o.status === 'ready')     ? 'ready'     : 'ready';
+        const primaryOrder = grpOrders.find((o) => o.sessionId) ?? grpOrders[0];
+        return { roomNumber, orders: grpOrders, total, itemCount, status, primaryOrder, hasStalled };
+      });
+  }
+
   // Group dine-in orders by table for the table grid view
   const tableGroups = (() => {
     if (typeTab !== 'dine-in') return [];
@@ -182,6 +208,11 @@ export function OrdersPage() {
         return { tableNumber, orders: tableOrders, total, itemCount, status, primaryOrder, hasStalled };
       });
   })();
+
+  // Group room-service orders by room for the room grid view
+  const roomGroups = typeTab === 'room-service'
+    ? buildRoomGroups(displayed.filter((o) => o.orderType === 'room-service'))
+    : [];
 
   // Keep selected order valid when filter changes
   useEffect(() => {
@@ -332,7 +363,64 @@ export function OrdersPage() {
                     </button>
                   ))}
                 </div>
-                {/* Expanded order card for selected table */}
+                {selectedOrderId && (() => {
+                  const order = displayed.find((o) => o.id === selectedOrderId);
+                  return order ? (
+                    <div className="mt-2">
+                      <OrderCard
+                        order={order}
+                        onStatusChange={handleStatusChange}
+                        onAssignWaiter={handleAssignWaiter}
+                        onAddItems={setAddItemsOrder}
+                        onCancel={handleCancel}
+                        onRemoveItem={handleRemoveItem}
+                        onUpdateItemQty={handleUpdateItemQty}
+                        waiters={waiters}
+                        showActions showBill settings={settings}
+                      />
+                    </div>
+                  ) : null;
+                })()}
+              </>
+        ) : typeTab === 'room-service' ? (
+          /* ── Room service: 2-col room grid ── */
+          roomGroups.length === 0
+            ? <div className="pt-8"><EmptyState compact icon={ClipboardList} title="No active rooms" /></div>
+            : <>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {roomGroups.map((rg) => (
+                    <button
+                      key={rg.roomNumber}
+                      onClick={() => setSelectedOrderId(rg.primaryOrder?.id ?? null)}
+                      className={`text-left p-4 rounded-2xl border-2 transition-all ${
+                        selectedOrderId && rg.orders.some((o) => o.id === selectedOrderId)
+                          ? 'border-blue-400 bg-blue-50 shadow-md'
+                          : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Room</p>
+                          <p className="text-3xl font-black text-gray-900 leading-none">{rg.roomNumber}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          rg.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
+                          rg.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>{rg.status}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-2">
+                        {rg.orders.length} order{rg.orders.length !== 1 ? 's' : ''} · {rg.itemCount} item{rg.itemCount !== 1 ? 's' : ''}
+                      </p>
+                      <p className="text-base font-bold text-gray-900">{fmt(rg.total)}</p>
+                      {rg.hasStalled && (
+                        <p className="flex items-center gap-1 text-[10px] text-red-500 mt-1">
+                          <AlertTriangle size={10} /> Stalled
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
                 {selectedOrderId && (() => {
                   const order = displayed.find((o) => o.id === selectedOrderId);
                   return order ? (
@@ -408,18 +496,20 @@ export function OrdersPage() {
       {/* Tablet+ layout */}
       <div className="hidden md:flex flex-1 min-h-0">
 
-        {typeTab === 'dine-in' ? (
-          /* ── Dining: 4-col table grid + right detail panel ── */
+        {typeTab === 'dine-in' || typeTab === 'room-service' ? (
+          /* ── Dining / Room service: grid + right detail panel ── */
           <>
-            {/* Table grid area */}
+            {/* Grid area */}
             <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
               {loading ? (
                 <div className="flex justify-center pt-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
                 </div>
-              ) : tableGroups.length === 0 ? (
+              ) : typeTab === 'dine-in' && tableGroups.length === 0 ? (
                 <div className="pt-8"><EmptyState compact icon={UtensilsCrossed} title="No active tables" /></div>
-              ) : (
+              ) : typeTab === 'room-service' && roomGroups.length === 0 ? (
+                <div className="pt-8"><EmptyState compact icon={ClipboardList} title="No active rooms" /></div>
+              ) : typeTab === 'dine-in' ? (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {tableGroups.map((tg) => (
                     <button
@@ -457,6 +547,44 @@ export function OrdersPage() {
                     </button>
                   ))}
                 </div>
+              ) : (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {roomGroups.map((rg) => (
+                    <button
+                      key={rg.roomNumber}
+                      onClick={() => setSelectedOrderId(rg.primaryOrder?.id ?? null)}
+                      className={`text-left p-4 rounded-2xl border-2 transition-all ${
+                        selectedOrderId && rg.orders.some((o) => o.id === selectedOrderId)
+                          ? 'border-blue-400 bg-blue-50 shadow-md'
+                          : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Room</p>
+                          <p className="text-4xl font-black text-gray-900 leading-none">{rg.roomNumber}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          rg.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
+                          rg.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>{rg.status}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-1">
+                        {rg.orders.length} order{rg.orders.length !== 1 ? 's' : ''} · {rg.itemCount} item{rg.itemCount !== 1 ? 's' : ''}
+                      </p>
+                      <p className="text-lg font-bold text-gray-900">{fmt(rg.total)}</p>
+                      {rg.hasStalled && (
+                        <p className="flex items-center gap-1 text-xs text-red-500 mt-2">
+                          <AlertTriangle size={12} /> Stalled
+                        </p>
+                      )}
+                      <div className="flex items-center justify-end mt-2 text-blue-400">
+                        <ChevronRight size={14} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -482,7 +610,9 @@ export function OrdersPage() {
                 })()
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-300 text-sm">
-                  {tableGroups.length > 0 ? 'Select a table to view details' : ''}
+                  {(typeTab === 'dine-in' ? tableGroups : roomGroups).length > 0
+                    ? `Select a ${typeTab === 'dine-in' ? 'table' : 'room'} to view details`
+                    : ''}
                 </div>
               )}
             </div>
