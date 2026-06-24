@@ -104,6 +104,11 @@ export function OrdersPage() {
     setAddItemsOrder(null);
   }
 
+  function handleSessionPaid(sessionId: string) {
+    setOrders((prev) => prev.filter((o) => o.sessionId !== sessionId));
+    setSelectedOrderId(null);
+  }
+
   async function handleRemoveItem(orderId: string, itemId: string) {
     try {
       const updated = await orderService.removeItem(orderId, itemId);
@@ -368,7 +373,7 @@ export function OrdersPage() {
                         onRemoveItem={handleRemoveItem}
                         onUpdateItemQty={handleUpdateItemQty}
                         waiters={waiters}
-                        showActions showBill settings={settings}
+                        showActions showBill settings={settings} onPaid={handleSessionPaid}
                       />
                     </div>
                   ) : null;
@@ -421,7 +426,7 @@ export function OrdersPage() {
                         onRemoveItem={handleRemoveItem}
                         onUpdateItemQty={handleUpdateItemQty}
                         waiters={waiters}
-                        showActions showBill settings={settings}
+                        showActions showBill settings={settings} onPaid={handleSessionPaid}
                       />
                     </div>
                   ) : null;
@@ -680,7 +685,7 @@ export function OrdersPage() {
                         onRemoveItem={handleRemoveItem}
                         onUpdateItemQty={handleUpdateItemQty}
                         waiters={waiters}
-                        showActions showBill settings={settings}
+                        showActions showBill settings={settings} onPaid={handleSessionPaid}
                       />
                     </div>
                   );

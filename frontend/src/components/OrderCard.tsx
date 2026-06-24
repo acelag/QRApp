@@ -23,6 +23,8 @@ interface Props {
   onCancel?: (id: string) => void;
   onRemoveItem?: (orderId: string, itemId: string) => void;
   onUpdateItemQty?: (orderId: string, itemId: string, quantity: number) => void;
+  /** Called after a session is successfully marked as paid — lets the parent remove the card */
+  onPaid?: (sessionId: string) => void;
   waiters?: Waiter[];
   showActions?: boolean;
   showPrint?: boolean;
@@ -40,7 +42,7 @@ interface Props {
   clockMs?: number;
 }
 
-export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, waiters, showActions = false, showPrint = false, showKitchenPrint = false, showBill = false, settings, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, onPaid, waiters, showActions = false, showPrint = false, showKitchenPrint = false, showBill = false, settings, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
   const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
   const { fmt } = useCurrency();
@@ -114,6 +116,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       setLiveSession((prev) => prev ? { ...prev, status: 'paid' } : prev);
       toast.success(`Table ${liveSession.tableNumber} marked as paid`);
       setShowPay(false);
+      onPaid?.(liveSession.id);
     } catch {
       toast.error('Failed to mark as paid');
     } finally {
