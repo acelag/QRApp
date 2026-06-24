@@ -342,11 +342,6 @@ export function OrdersPage() {
                           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Table</p>
                           <p className="text-3xl font-black text-gray-900 leading-none">{tg.tableNumber}</p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          tg.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                          tg.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>{tg.status}</span>
                       </div>
                       <p className="text-xs text-gray-400 mb-2">
                         {tg.orders.length} order{tg.orders.length !== 1 ? 's' : ''} · {tg.itemCount} item{tg.itemCount !== 1 ? 's' : ''}
@@ -400,11 +395,6 @@ export function OrdersPage() {
                           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Room</p>
                           <p className="text-3xl font-black text-gray-900 leading-none">{rg.roomNumber}</p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          rg.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                          rg.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>{rg.status}</span>
                       </div>
                       <p className="text-xs text-gray-400 mb-2">
                         {rg.orders.length} order{rg.orders.length !== 1 ? 's' : ''} · {rg.itemCount} item{rg.itemCount !== 1 ? 's' : ''}
@@ -531,11 +521,6 @@ export function OrdersPage() {
                             </p>
                             <p className="text-4xl font-black text-gray-900 leading-none">{num}</p>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            g.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                            g.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                            'bg-green-100 text-green-700'
-                          }`}>{g.status}</span>
                         </div>
                         <p className="text-xs text-gray-400 mb-1">
                           {g.orders.length} order{g.orders.length !== 1 ? 's' : ''} · {g.itemCount} item{g.itemCount !== 1 ? 's' : ''}
