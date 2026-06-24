@@ -9,7 +9,6 @@ import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
 import { AddItemsModal } from '../../components/AddItemsModal';
 import { restaurantService, type RestaurantSettings } from '../../services/restaurantService';
-import { useCurrency } from '../../context/CurrencyContext';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
@@ -49,7 +48,6 @@ export function OrdersPage() {
   const [search, setSearch] = useState('');
 
   useOrderSoundAlert(orders);
-  const { fmt } = useCurrency();
 
   const fetch = async () => {
     try {
