@@ -508,7 +508,6 @@ export function OrdersPage() {
               ) : (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {(typeTab === 'dine-in' ? tableGroups : roomGroups).map((g) => {
-                    const label  = typeTab === 'dine-in' ? `Table ${'tableNumber' in g ? g.tableNumber : ''}` : `Room ${'roomNumber' in g ? g.roomNumber : ''}`;
                     const num    = typeTab === 'dine-in' ? ('tableNumber' in g ? g.tableNumber : 0) : ('roomNumber' in g ? g.roomNumber : 0);
                     const accent = typeTab === 'dine-in' ? 'orange' : 'blue';
                     const isSelected = selectedOrderId != null && g.orders.some((o) => o.id === selectedOrderId);
