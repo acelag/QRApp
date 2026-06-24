@@ -26,7 +26,7 @@ export interface Session {
   restaurantId: string;
   tableId: string;
   tableNumber: number;
-  status: 'open' | 'paid';
+  status: 'open' | 'paid' | 'closed';
   createdAt: string;
   closedAt: string | null;
   paymentMethod?: string | null;
@@ -55,6 +55,10 @@ export const sessionService = {
   /** Mark a session as paid — admin only. */
   markAsPaid: (sessionId: string, paymentMethod?: string) =>
     axios.patch<Session>(`${BASE}/${sessionId}/pay`, { paymentMethod }).then((r) => r.data),
+
+  /** Manually close a session without payment — admin/manager only. */
+  closeSession: (sessionId: string) =>
+    axios.patch<Session>(`${BASE}/${sessionId}/close`).then((r) => r.data),
 
   /** Merge sessionId into intoSessionId (secondary → primary). Returns updated primary. */
   merge: (sessionId: string, intoSessionId: string) =>

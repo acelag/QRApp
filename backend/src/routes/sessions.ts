@@ -167,6 +167,23 @@ router.patch('/:id/pay', authenticate, requireRole('admin', 'manager', 'cashier'
   }
 });
 
+// ── Manual close (without payment) ───────────────────────────────────────────
+router.patch('/:id/close', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const now = new Date().toISOString();
+  const result = await pool.query(
+    `UPDATE table_sessions SET status='closed', closed_at=$1 WHERE id=$2 AND restaurant_id=$3 AND status='open'`,
+    [now, req.params.id, req.user!.restaurantId],
+  );
+  if ((result.rowCount ?? 0) === 0) { res.status(400).json({ error: 'Session not found or already closed' }); return; }
+  await pool.query(
+    `UPDATE table_sessions SET status='closed', closed_at=$1, merged_into_session_id=NULL WHERE merged_into_session_id=$2 AND status='open'`,
+    [now, req.params.id],
+  );
+  const updated = await pool.query('SELECT * FROM table_sessions WHERE id = $1', [req.params.id]);
+  const sessionDetail = await buildSessionDetail(updated.rows[0] as Record<string, unknown>);
+  res.json(sessionDetail);
+});
+
 // ── Merge: link session into another (secondary → primary) ────────────────────
 router.patch('/:id/merge', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
   const { intoSessionId } = req.body as { intoSessionId: string };

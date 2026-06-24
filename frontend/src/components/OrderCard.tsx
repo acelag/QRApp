@@ -25,6 +25,8 @@ interface Props {
   onUpdateItemQty?: (orderId: string, itemId: string, quantity: number) => void;
   /** Called after a session is successfully marked as paid — lets the parent remove the card */
   onPaid?: (sessionId: string) => void;
+  /** Called after a session is manually closed — lets the parent remove the card */
+  onSessionClosed?: (sessionId: string) => void;
   waiters?: Waiter[];
   showActions?: boolean;
   showPrint?: boolean;
@@ -42,7 +44,7 @@ interface Props {
   clockMs?: number;
 }
 
-export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, onPaid, waiters, showActions = false, showPrint = false, showKitchenPrint = false, showBill = false, settings, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
+export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, onPaid, onSessionClosed, waiters, showActions = false, showPrint = false, showKitchenPrint = false, showBill = false, settings, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
   const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
   const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
   const { fmt } = useCurrency();
@@ -62,6 +64,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
   const [showMerge, setShowMerge]           = useState(false);
   const [openSessions, setOpenSessions]     = useState<Session[]>([]);
   const [paying, setPaying]                 = useState(false);
+  const [closing, setClosing]               = useState(false);
   const [merging, setMerging]               = useState(false);
   const [showPayOrder, setShowPayOrder]     = useState(false);
   const [payingOrder, setPayingOrder]       = useState(false);
@@ -105,6 +108,20 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       toast.error('Failed to mark as paid');
     } finally {
       setPayingOrder(false);
+    }
+  }
+
+  async function handleClose() {
+    if (!liveSession || closing) return;
+    setClosing(true);
+    try {
+      await sessionService.closeSession(liveSession.id);
+      toast.success(`Table ${liveSession.tableNumber} session closed`);
+      onSessionClosed?.(liveSession.id);
+    } catch {
+      toast.error('Failed to close session');
+    } finally {
+      setClosing(false);
     }
   }
 
@@ -706,14 +723,25 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
                     <GitMerge size={15} /> Merge
                   </button>
                 </div>
-                <button
-                  onClick={() => setShowPay(true)}
-                  disabled={paying || (liveSession.billItems ?? []).length === 0}
-                  className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
-                >
-                  {paying ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-                  {paying ? 'Processing…' : 'Mark as Paid'}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowPay(true)}
+                    disabled={paying || (liveSession.billItems ?? []).length === 0}
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl transition-colors text-sm"
+                  >
+                    {paying ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                    {paying ? 'Processing…' : 'Mark as Paid'}
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    disabled={closing}
+                    title="Close session without payment"
+                    className="flex items-center justify-center gap-1.5 border border-red-200 text-red-500 bg-red-50 hover:bg-red-100 disabled:opacity-60 font-semibold py-2.5 px-3 rounded-2xl transition-colors text-sm"
+                  >
+                    {closing ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
+                    Close
+                  </button>
+                </div>
               </div>
             )}
           </div>
