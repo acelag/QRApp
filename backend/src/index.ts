@@ -147,6 +147,11 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+// ── API 404 handler ──────────────────────────────────────────────────────────
+app.use('/api', (_req: express.Request, res: express.Response) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   // Always log full error server-side

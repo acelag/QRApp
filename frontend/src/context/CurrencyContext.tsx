@@ -95,15 +95,17 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     });
   }, [applyConfig]);
 
-  // Build the available currencies list
+  // Build the available currencies list — rate falls back to 1 (no conversion)
+  // if neither a manual rate nor a live rate is available yet, so the switcher
+  // never silently disappears when the exchange-rate API is unreachable.
   const availableCurrencies: AvailableCurrency[] = [
     { code: baseCurrency, symbol: getCurrencySymbol(baseCurrency), rate: 1, isBase: true },
     ...displayConfigs.map((cfg) => ({
       code: cfg.code,
       symbol: getCurrencySymbol(cfg.code),
-      rate: cfg.rateManual ?? liveRates[cfg.code] ?? 0,
+      rate: cfg.rateManual ?? liveRates[cfg.code] ?? 1,
       isBase: false,
-    })).filter((c) => c.rate > 0),
+    })),
   ];
 
   const resolvedActive = activeCurrencyCode && availableCurrencies.some((c) => c.code === activeCurrencyCode)

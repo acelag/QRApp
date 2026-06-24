@@ -53,8 +53,8 @@ export default defineConfig({
   server: {
     host: true,   // listen on 0.0.0.0 so phones/tablets on the same WiFi can connect
     headers: {
-      'X-Frame-Options': 'ALLOWALL',
-      'Content-Security-Policy': "frame-ancestors *",
+      'X-Frame-Options': 'SAMEORIGIN',
+      'Content-Security-Policy': "frame-ancestors 'self'",
     },
     proxy: {
       '/api': {

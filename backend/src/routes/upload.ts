@@ -24,10 +24,11 @@ router.post('/', upload.single('image'), async (req, res) => {
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  // Debug: log whether keys are present (remove after confirming it works)
-  console.log('Cloudinary config check — cloud_name:', process.env.CLOUDINARY_CLOUD_NAME ? '✓' : '✗ MISSING');
-  console.log('Cloudinary config check — api_key:',    process.env.CLOUDINARY_API_KEY    ? '✓' : '✗ MISSING');
-  console.log('Cloudinary config check — api_secret:', process.env.CLOUDINARY_API_SECRET ? '✓' : '✗ MISSING');
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Cloudinary config check — cloud_name:', process.env.CLOUDINARY_CLOUD_NAME ? '✓' : '✗ MISSING');
+    console.log('Cloudinary config check — api_key:',    process.env.CLOUDINARY_API_KEY    ? '✓' : '✗ MISSING');
+    console.log('Cloudinary config check — api_secret:', process.env.CLOUDINARY_API_SECRET ? '✓' : '✗ MISSING');
+  }
 
   try {
     // Upload buffer to Cloudinary

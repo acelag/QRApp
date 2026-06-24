@@ -603,6 +603,8 @@ export async function createSchema(): Promise<void> {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_combos_restaurant ON combos (restaurant_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_loyalty_accounts_restaurant ON loyalty_accounts (restaurant_id, phone)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_stock_items_restaurant ON stock_items (restaurant_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_session ON orders (session_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_type_status ON orders (order_type, status)`);
 
   // ── Modifier Groups ─────────────────────────────────────────────────────────
   await pool.query(`

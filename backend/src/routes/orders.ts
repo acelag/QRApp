@@ -168,6 +168,25 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
   const resolvedRestaurantId = req.user?.restaurantId ?? restaurantId;
   if (!resolvedRestaurantId) { res.status(400).json({ error: 'restaurantId is required' }); return; }
 
+  // ── Input validation ────────────────────────────────────────────────────────
+  for (const item of items) {
+    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+      res.status(400).json({ error: 'Each item quantity must be a positive integer' }); return;
+    }
+    if (typeof item.price !== 'number' || item.price < 0) {
+      res.status(400).json({ error: 'Each item price must be a non-negative number' }); return;
+    }
+  }
+  if (customerName && customerName.trim().length > 100) {
+    res.status(400).json({ error: 'Customer name must be 100 characters or fewer' }); return;
+  }
+  if (customerPhone) {
+    const digits = customerPhone.replace(/\D/g, '');
+    if (digits.length < 7 || digits.length > 15) {
+      res.status(400).json({ error: 'Phone number must be 7–15 digits' }); return;
+    }
+  }
+
   if (sessionId) {
     const sess = await pool.query('SELECT status FROM table_sessions WHERE id = $1', [sessionId]);
     if (sess.rows.length && (sess.rows[0] as Record<string, unknown>).status !== 'open') {
