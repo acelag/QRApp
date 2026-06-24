@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw, Plus, Search, X, ClipboardList, UtensilsCrossed, AlertTriangle, ChevronRight } from 'lucide-react';
+import { RefreshCw, Plus, Search, X, ClipboardList } from 'lucide-react';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
 import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
@@ -152,67 +152,15 @@ export function OrdersPage() {
     { key: 'dine-in',      label: 'Dine In',      dot: 'bg-orange-400', orders: displayed.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service') },
     { key: 'room-service', label: 'Room Service',  dot: 'bg-blue-400',   orders: displayed.filter((o) => o.orderType === 'room-service') },
   ].filter((g) => g.orders.length > 0);
-  const showGroups = typeTab === 'all' && orderGroups.length > 1;
+  // For single-type tabs, group by status; for 'all' tab, group by order type
+  const statusGroups = [
+    { key: 'pending',   label: 'Pending',   dot: 'bg-yellow-400', orders: displayed.filter((o) => o.status === 'pending')   },
+    { key: 'preparing', label: 'Preparing', dot: 'bg-blue-400',   orders: displayed.filter((o) => o.status === 'preparing') },
+    { key: 'ready',     label: 'Ready',     dot: 'bg-green-400',  orders: displayed.filter((o) => o.status === 'ready')     },
+  ].filter((g) => g.orders.length > 0);
 
-  function buildRoomGroups(roomOrders: Order[]) {
-    const map = new Map<number, Order[]>();
-    roomOrders.forEach((o) => {
-      const key = o.roomNumber ?? 0;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(o);
-    });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([roomNumber, grpOrders]) => {
-        const total = grpOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
-        const itemCount = grpOrders.reduce((s, o) => s + (o.items?.length ?? 0), 0);
-        const STALE_MS = 30 * 60 * 1000;
-        const hasStalled = grpOrders.some(
-          (o) => ['pending', 'preparing'].includes(o.status) &&
-                 Date.now() - new Date(o.createdAt).getTime() > STALE_MS,
-        );
-        const status: OrderStatus =
-          grpOrders.some((o) => o.status === 'pending')   ? 'pending'   :
-          grpOrders.some((o) => o.status === 'preparing') ? 'preparing' :
-          grpOrders.some((o) => o.status === 'ready')     ? 'ready'     : 'ready';
-        const primaryOrder = grpOrders.find((o) => o.sessionId) ?? grpOrders[0];
-        return { roomNumber, orders: grpOrders, total, itemCount, status, primaryOrder, hasStalled };
-      });
-  }
-
-  // Group dine-in orders by table for the table grid view
-  const tableGroups = (() => {
-    if (typeTab !== 'dine-in') return [];
-    const diningOrders = displayed.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service');
-    const map = new Map<number, Order[]>();
-    diningOrders.forEach((o) => {
-      const key = o.tableNumber ?? 0;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(o);
-    });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([tableNumber, tableOrders]) => {
-        const total = tableOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
-        const itemCount = tableOrders.reduce((s, o) => s + (o.items?.length ?? 0), 0);
-        const STALE_MS = 30 * 60 * 1000;
-        const hasStalled = tableOrders.some(
-          (o) => ['pending', 'preparing'].includes(o.status) &&
-                 Date.now() - new Date(o.createdAt).getTime() > STALE_MS,
-        );
-        const status: OrderStatus =
-          tableOrders.some((o) => o.status === 'pending')   ? 'pending'   :
-          tableOrders.some((o) => o.status === 'preparing') ? 'preparing' :
-          tableOrders.some((o) => o.status === 'ready')     ? 'ready'     : 'ready';
-        const primaryOrder = tableOrders.find((o) => o.sessionId) ?? tableOrders[0];
-        return { tableNumber, orders: tableOrders, total, itemCount, status, primaryOrder, hasStalled };
-      });
-  })();
-
-  // Group room-service orders by room for the room grid view
-  const roomGroups = typeTab === 'room-service'
-    ? buildRoomGroups(displayed.filter((o) => o.orderType === 'room-service'))
-    : [];
+  const activeGroups = typeTab === 'all' ? orderGroups : statusGroups;
+  const showGroups = activeGroups.length > 1;
 
   // Keep selected order valid when filter changes
   useEffect(() => {
@@ -324,127 +272,11 @@ export function OrdersPage() {
           <div className="flex justify-center pt-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
           </div>
-        ) : typeTab === 'dine-in' ? (
-          /* ── Dining: 2-col table grid ── */
-          tableGroups.length === 0
-            ? <div className="pt-8"><EmptyState compact icon={UtensilsCrossed} title="No active tables" /></div>
-            : <>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {tableGroups.map((tg) => (
-                    <button
-                      key={tg.tableNumber}
-                      onClick={() => setSelectedOrderId(tg.primaryOrder?.id ?? null)}
-                      className={`text-left p-4 rounded-2xl border-2 transition-all ${
-                        selectedOrderId && tg.orders.some((o) => o.id === selectedOrderId)
-                          ? 'border-orange-400 bg-orange-50 shadow-md'
-                          : 'border-gray-200 bg-white hover:border-orange-200 hover:shadow'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Table</p>
-                          <p className="text-3xl font-black text-gray-900 leading-none">{tg.tableNumber}</p>
-                        </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          tg.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                          tg.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>{tg.status}</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mb-2">
-                        {tg.orders.length} order{tg.orders.length !== 1 ? 's' : ''} · {tg.itemCount} item{tg.itemCount !== 1 ? 's' : ''}
-                      </p>
-                      <p className="text-base font-bold text-gray-900">{fmt(tg.total)}</p>
-                      {tg.hasStalled && (
-                        <p className="flex items-center gap-1 text-[10px] text-red-500 mt-1">
-                          <AlertTriangle size={10} /> Stalled
-                        </p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                {selectedOrderId && (() => {
-                  const order = displayed.find((o) => o.id === selectedOrderId);
-                  return order ? (
-                    <div className="mt-2">
-                      <OrderCard
-                        order={order}
-                        onStatusChange={handleStatusChange}
-                        onAssignWaiter={handleAssignWaiter}
-                        onAddItems={setAddItemsOrder}
-                        onCancel={handleCancel}
-                        onRemoveItem={handleRemoveItem}
-                        onUpdateItemQty={handleUpdateItemQty}
-                        waiters={waiters}
-                        showActions showBill settings={settings}
-                      />
-                    </div>
-                  ) : null;
-                })()}
-              </>
-        ) : typeTab === 'room-service' ? (
-          /* ── Room service: 2-col room grid ── */
-          roomGroups.length === 0
-            ? <div className="pt-8"><EmptyState compact icon={ClipboardList} title="No active rooms" /></div>
-            : <>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {roomGroups.map((rg) => (
-                    <button
-                      key={rg.roomNumber}
-                      onClick={() => setSelectedOrderId(rg.primaryOrder?.id ?? null)}
-                      className={`text-left p-4 rounded-2xl border-2 transition-all ${
-                        selectedOrderId && rg.orders.some((o) => o.id === selectedOrderId)
-                          ? 'border-blue-400 bg-blue-50 shadow-md'
-                          : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Room</p>
-                          <p className="text-3xl font-black text-gray-900 leading-none">{rg.roomNumber}</p>
-                        </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          rg.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                          rg.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>{rg.status}</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mb-2">
-                        {rg.orders.length} order{rg.orders.length !== 1 ? 's' : ''} · {rg.itemCount} item{rg.itemCount !== 1 ? 's' : ''}
-                      </p>
-                      <p className="text-base font-bold text-gray-900">{fmt(rg.total)}</p>
-                      {rg.hasStalled && (
-                        <p className="flex items-center gap-1 text-[10px] text-red-500 mt-1">
-                          <AlertTriangle size={10} /> Stalled
-                        </p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                {selectedOrderId && (() => {
-                  const order = displayed.find((o) => o.id === selectedOrderId);
-                  return order ? (
-                    <div className="mt-2">
-                      <OrderCard
-                        order={order}
-                        onStatusChange={handleStatusChange}
-                        onAssignWaiter={handleAssignWaiter}
-                        onAddItems={setAddItemsOrder}
-                        onCancel={handleCancel}
-                        onRemoveItem={handleRemoveItem}
-                        onUpdateItemQty={handleUpdateItemQty}
-                        waiters={waiters}
-                        showActions showBill settings={settings}
-                      />
-                    </div>
-                  ) : null;
-                })()}
-              </>
         ) : displayed.length === 0 ? (
           <div className="pt-8"><EmptyState compact icon={ClipboardList} title={t('orders.noOrders')} /></div>
         ) : showGroups ? (
           <div className="space-y-5">
-            {orderGroups.map((g) => (
+            {activeGroups.map((g) => (
               <div key={g.key}>
                 <div className="flex items-center gap-2 px-1 mb-2">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${g.dot}`} />
@@ -496,225 +328,102 @@ export function OrdersPage() {
       {/* Tablet+ layout */}
       <div className="hidden md:flex flex-1 min-h-0">
 
-        {typeTab === 'dine-in' || typeTab === 'room-service' ? (
-          /* ── Dining / Room service: grid + right detail panel ── */
-          <>
-            {/* Grid area */}
-            <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
+        <>
+          {/* Compact order list */}
+          <div className="w-72 lg:w-80 shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
+            <div className="px-3 py-3">
               {loading ? (
                 <div className="flex justify-center pt-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
                 </div>
-              ) : typeTab === 'dine-in' && tableGroups.length === 0 ? (
-                <div className="pt-8"><EmptyState compact icon={UtensilsCrossed} title="No active tables" /></div>
-              ) : typeTab === 'room-service' && roomGroups.length === 0 ? (
-                <div className="pt-8"><EmptyState compact icon={ClipboardList} title="No active rooms" /></div>
-              ) : typeTab === 'dine-in' ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {tableGroups.map((tg) => (
-                    <button
-                      key={tg.tableNumber}
-                      onClick={() => setSelectedOrderId(tg.primaryOrder?.id ?? null)}
-                      className={`text-left p-4 rounded-2xl border-2 transition-all ${
-                        selectedOrderId && tg.orders.some((o) => o.id === selectedOrderId)
-                          ? 'border-orange-400 bg-orange-50 shadow-md'
-                          : 'border-gray-200 bg-white hover:border-orange-200 hover:shadow'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Table</p>
-                          <p className="text-4xl font-black text-gray-900 leading-none">{tg.tableNumber}</p>
-                        </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          tg.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                          tg.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>{tg.status}</span>
+              ) : displayed.length === 0 ? (
+                <div className="pt-8"><EmptyState compact icon={ClipboardList} title={t('orders.noOrders')} /></div>
+              ) : showGroups ? (
+                <div className="space-y-4">
+                  {activeGroups.map((g) => (
+                    <div key={g.key}>
+                      <div className="flex items-center gap-1.5 px-1 mb-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${g.dot}`} />
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{g.label}</span>
+                        <span className="text-xs text-gray-300">({g.orders.length})</span>
                       </div>
-                      <p className="text-xs text-gray-400 mb-1">
-                        {tg.orders.length} order{tg.orders.length !== 1 ? 's' : ''} · {tg.itemCount} item{tg.itemCount !== 1 ? 's' : ''}
-                      </p>
-                      <p className="text-lg font-bold text-gray-900">{fmt(tg.total)}</p>
-                      {tg.hasStalled && (
-                        <p className="flex items-center gap-1 text-xs text-red-500 mt-2">
-                          <AlertTriangle size={12} /> Stalled
-                        </p>
-                      )}
-                      <div className="flex items-center justify-end mt-2 text-orange-400">
-                        <ChevronRight size={14} />
+                      <div className="space-y-1.5">
+                        {g.orders.map((order) => (
+                          <button
+                            key={order.id}
+                            onClick={() => setSelectedOrderId(order.id)}
+                            className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
+                              selectedOrderId === order.id
+                                ? 'bg-orange-50 border-orange-200'
+                                : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-semibold text-gray-900 truncate">
+                                {order.orderNumber ?? `#${order.id.slice(0, 6)}`}
+                              </span>
+                              <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                                order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
+                                order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
+                                order.status === 'ready'     ? 'bg-green-100 text-green-700' :
+                                'bg-red-100 text-red-600'
+                              }`}>{order.status}</span>
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                              <span>
+                                {order.orderType === 'takeaway' ? 'Takeaway' :
+                                 order.tableNumber ? `Table ${order.tableNumber}` :
+                                 order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
+                              </span>
+                              {order.customerName && (
+                                <span className="truncate">{order.customerName}</span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {roomGroups.map((rg) => (
+                <div className="space-y-1.5">
+                  {displayed.map((order) => (
                     <button
-                      key={rg.roomNumber}
-                      onClick={() => setSelectedOrderId(rg.primaryOrder?.id ?? null)}
-                      className={`text-left p-4 rounded-2xl border-2 transition-all ${
-                        selectedOrderId && rg.orders.some((o) => o.id === selectedOrderId)
-                          ? 'border-blue-400 bg-blue-50 shadow-md'
-                          : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow'
+                      key={order.id}
+                      onClick={() => setSelectedOrderId(order.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
+                        selectedOrderId === order.id
+                          ? 'bg-orange-50 border-orange-200'
+                          : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
                       }`}
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Room</p>
-                          <p className="text-4xl font-black text-gray-900 leading-none">{rg.roomNumber}</p>
-                        </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          rg.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                          rg.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>{rg.status}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-gray-900 truncate">
+                          {order.orderNumber ?? `#${order.id.slice(0, 6)}`}
+                        </span>
+                        <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                          order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
+                          order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
+                          order.status === 'ready'     ? 'bg-green-100 text-green-700' :
+                          'bg-red-100 text-red-600'
+                        }`}>{order.status}</span>
                       </div>
-                      <p className="text-xs text-gray-400 mb-1">
-                        {rg.orders.length} order{rg.orders.length !== 1 ? 's' : ''} · {rg.itemCount} item{rg.itemCount !== 1 ? 's' : ''}
-                      </p>
-                      <p className="text-lg font-bold text-gray-900">{fmt(rg.total)}</p>
-                      {rg.hasStalled && (
-                        <p className="flex items-center gap-1 text-xs text-red-500 mt-2">
-                          <AlertTriangle size={12} /> Stalled
-                        </p>
-                      )}
-                      <div className="flex items-center justify-end mt-2 text-blue-400">
-                        <ChevronRight size={14} />
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                        <span>
+                          {order.orderType === 'takeaway' ? 'Takeaway' :
+                           order.tableNumber ? `Table ${order.tableNumber}` :
+                           order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
+                        </span>
+                        {order.customerName && (
+                          <span className="truncate">{order.customerName}</span>
+                        )}
                       </div>
                     </button>
                   ))}
                 </div>
               )}
             </div>
-
-            {/* Detail panel */}
-            <div className="w-[400px] lg:w-[460px] shrink-0 overflow-y-auto border-l border-gray-200 bg-white px-4 py-4">
-              {selectedOrderId ? (
-                (() => {
-                  const order = displayed.find((o) => o.id === selectedOrderId);
-                  if (!order) return <p className="text-gray-300 text-sm">Order not found</p>;
-                  return (
-                    <OrderCard
-                      order={order}
-                      onStatusChange={handleStatusChange}
-                      onAssignWaiter={handleAssignWaiter}
-                      onAddItems={setAddItemsOrder}
-                      onCancel={handleCancel}
-                      onRemoveItem={handleRemoveItem}
-                      onUpdateItemQty={handleUpdateItemQty}
-                      waiters={waiters}
-                      showActions showBill settings={settings}
-                    />
-                  );
-                })()
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-300 text-sm">
-                  {(typeTab === 'dine-in' ? tableGroups : roomGroups).length > 0
-                    ? `Select a ${typeTab === 'dine-in' ? 'table' : 'room'} to view details`
-                    : ''}
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          /* ── Other tabs: narrow list + detail ── */
-          <>
-            {/* Compact order list */}
-            <div className="w-72 lg:w-80 shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
-              <div className="px-3 py-3">
-                {loading ? (
-                  <div className="flex justify-center pt-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
-                  </div>
-                ) : displayed.length === 0 ? (
-                  <div className="pt-8"><EmptyState compact icon={ClipboardList} title={t('orders.noOrders')} /></div>
-                ) : showGroups ? (
-                  <div className="space-y-4">
-                    {orderGroups.map((g) => (
-                      <div key={g.key}>
-                        <div className="flex items-center gap-1.5 px-1 mb-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${g.dot}`} />
-                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{g.label}</span>
-                          <span className="text-xs text-gray-300">({g.orders.length})</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {g.orders.map((order) => (
-                            <button
-                              key={order.id}
-                              onClick={() => setSelectedOrderId(order.id)}
-                              className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
-                                selectedOrderId === order.id
-                                  ? 'bg-orange-50 border-orange-200'
-                                  : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-semibold text-gray-900 truncate">
-                                  {order.orderNumber ?? `#${order.id.slice(0, 6)}`}
-                                </span>
-                                <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
-                                  order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                                  order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                                  order.status === 'ready'     ? 'bg-green-100 text-green-700' :
-                                  'bg-red-100 text-red-600'
-                                }`}>{order.status}</span>
-                              </div>
-                              <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
-                                <span>
-                                  {order.orderType === 'takeaway' ? 'Takeaway' :
-                                   order.tableNumber ? `Table ${order.tableNumber}` :
-                                   order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
-                                </span>
-                                {order.customerName && (
-                                  <span className="truncate">{order.customerName}</span>
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {displayed.map((order) => (
-                      <button
-                        key={order.id}
-                        onClick={() => setSelectedOrderId(order.id)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
-                          selectedOrderId === order.id
-                            ? 'bg-orange-50 border-orange-200'
-                            : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-gray-900 truncate">
-                            {order.orderNumber ?? `#${order.id.slice(0, 6)}`}
-                          </span>
-                          <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
-                            order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                            order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                            order.status === 'ready'     ? 'bg-green-100 text-green-700' :
-                            'bg-red-100 text-red-600'
-                          }`}>{order.status}</span>
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
-                          <span>
-                            {order.orderType === 'takeaway' ? 'Takeaway' :
-                             order.tableNumber ? `Table ${order.tableNumber}` :
-                             order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
-                          </span>
-                          {order.customerName && (
-                            <span className="truncate">{order.customerName}</span>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+          </div>
 
             {/* Detail panel */}
             <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
@@ -747,7 +456,6 @@ export function OrdersPage() {
               )}
             </div>
           </>
-        )}
       </div>
       {addItemsOrder && (
         <AddItemsModal
