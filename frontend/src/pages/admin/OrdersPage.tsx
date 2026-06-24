@@ -508,23 +508,26 @@ export function OrdersPage() {
               ) : (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {(typeTab === 'dine-in' ? tableGroups : roomGroups).map((g) => {
-                    const num    = typeTab === 'dine-in' ? ('tableNumber' in g ? g.tableNumber : 0) : ('roomNumber' in g ? g.roomNumber : 0);
-                    const accent = typeTab === 'dine-in' ? 'orange' : 'blue';
+                    const num = typeTab === 'dine-in'
+                      ? ('tableNumber' in g ? g.tableNumber : 0)
+                      : ('roomNumber'   in g ? g.roomNumber  : 0);
                     const isSelected = selectedOrderId != null && g.orders.some((o) => o.id === selectedOrderId);
+                    const isDining = typeTab === 'dine-in';
                     return (
                       <button
                         key={num}
                         onClick={() => setSelectedOrderId(g.primaryOrder?.id ?? null)}
                         className={`text-left p-4 rounded-2xl border-2 transition-all ${
-                          isSelected
-                            ? `border-${accent}-400 bg-${accent}-50 shadow-md`
-                            : `border-gray-200 bg-white hover:border-${accent}-200 hover:shadow`
+                          isSelected && isDining  ? 'border-orange-400 bg-orange-50 shadow-md' :
+                          isSelected && !isDining ? 'border-blue-400 bg-blue-50 shadow-md' :
+                          isDining                ? 'border-gray-200 bg-white hover:border-orange-200 hover:shadow' :
+                                                    'border-gray-200 bg-white hover:border-blue-200 hover:shadow'
                         }`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                              {typeTab === 'dine-in' ? 'Table' : 'Room'}
+                              {isDining ? 'Table' : 'Room'}
                             </p>
                             <p className="text-4xl font-black text-gray-900 leading-none">{num}</p>
                           </div>
@@ -543,7 +546,7 @@ export function OrdersPage() {
                             <AlertTriangle size={12} /> Stalled
                           </p>
                         )}
-                        <div className={`flex items-center justify-end mt-2 text-${accent}-400`}>
+                        <div className={`flex items-center justify-end mt-2 ${isDining ? 'text-orange-400' : 'text-blue-400'}`}>
                           <ChevronRight size={14} />
                         </div>
                       </button>
