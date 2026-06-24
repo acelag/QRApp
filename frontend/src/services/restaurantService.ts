@@ -36,6 +36,8 @@ export interface RestaurantSettings {
   twitterUrl?: string | null;
   welcomeHeading?: string | null;
   welcomeTagline?: string | null;
+  bannerImage?: string | null;
+  enabledPaymentMethods?: string[];
   receiptPrinterIp?:   string | null;
   receiptPrinterPort?: number;
   kitchenPrinterIp?:   string | null;
@@ -194,6 +196,9 @@ export const restaurantService = {
   getAppSettings: (): Promise<{ loginIcon: string | null }> =>
     axios.get<{ loginIcon: string | null }>(`${BASE}/app-settings/public`).then((r) => r.data),
 
+  updateName: (id: string, name: string) =>
+    axios.put<RestaurantSettings>(`${BASE}/restaurants/${id}`, { name }).then((r) => r.data),
+
   updateLoginBranding: (id: string, data: { loginMedia: string[]; loginVideoUrl: string | null }) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/login-branding`, data).then((r) => r.data),
 
@@ -202,6 +207,12 @@ export const restaurantService = {
 
   updateLogo: (id: string, logo: string | null) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/logo`, { logo }).then((r) => r.data),
+
+  updateBanner: (id: string, bannerImage: string | null) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/banner`, { bannerImage }).then((r) => r.data),
+
+  updatePaymentMethods: (id: string, enabledPaymentMethods: string[]) =>
+    axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/payment-methods`, { enabledPaymentMethods }).then((r) => r.data),
 
   updateOrderPrefix: (id: string, orderNumberPrefix: string) =>
     axios.patch<RestaurantSettings>(`${BASE}/restaurants/${id}/order-prefix`, { orderNumberPrefix }).then((r) => r.data),

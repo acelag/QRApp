@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Eye, EyeOff, Loader2, CheckCircle2, Users,
   DollarSign, ImagePlus, X, Lock, User, LogOut, ChevronRight, Hash, Clock, Printer,
   Store, Smartphone, FileText, Rocket, LayoutDashboard,
+  SlidersHorizontal, Receipt, LogIn, Moon, Sun, Building2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
@@ -13,11 +14,12 @@ import { restaurantService, CURRENCIES, type RestaurantSettings } from '../../se
 import { printService } from '../../services/printService';
 import { uploadImage } from '../../services/uploadService';
 import { useCurrency } from '../../context/CurrencyContext';
-import { THEME_COLOR } from '../../context/ThemeContext';
+import { THEME_COLOR, useTheme } from '../../context/ThemeContext';
+import { PAYMENT_METHODS } from '../../components/PaymentMethodModal';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useNavMode } from '../../context/NavModeContext';
 
-type TabId = 'account' | 'restaurant' | 'operations' | 'content' | 'printers';
+type TabId = 'account' | 'preferences' | 'restaurant' | 'receipt' | 'operations' | 'branding' | 'login' | 'printers';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -41,25 +43,48 @@ const TIMEZONES: string[] = (() => {
 
 const TABS: { id: TabId; label: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
   { id: 'account',     label: 'Account',     Icon: User },
+  { id: 'preferences', label: 'Preferences', Icon: SlidersHorizontal },
   { id: 'restaurant',  label: 'Restaurant',  Icon: Store },
+  { id: 'receipt',     label: 'Receipt',     Icon: Receipt },
   { id: 'operations',  label: 'Operations',  Icon: Clock },
-  { id: 'content',     label: 'Content',     Icon: Smartphone },
+  { id: 'branding',    label: 'Branding',    Icon: Smartphone },
+  { id: 'login',       label: 'Login page',  Icon: LogIn },
   { id: 'printers',    label: 'Printers',    Icon: Printer },
 ];
+
+const ALL_TAB_IDS: TabId[] = TABS.map((t) => t.id);
+
+// Tabs that persist instantly (no sticky save bar needed).
+const INSTANT_TABS: TabId[] = ['preferences'];
 
 export function SettingsPage() {
   const { user, updateProfile, logout } = useAuth();
   const navigate = useNavigate();
   const { navMode, setNavMode } = useNavMode();
+  const { dark, toggleDark } = useTheme();
 
-  const [activeTab, setActiveTab] = useState<TabId>('account');
+  // Active tab is synced to the URL (?tab=…) so tabs are bookmarkable and the
+  // browser back button moves between them.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as TabId | null;
+  const activeTab: TabId = tabParam && ALL_TAB_IDS.includes(tabParam) ? tabParam : 'account';
+  function setActiveTab(tab: TabId) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    });
+  }
 
-  // isDirty per tab (account and restaurant track form edits; content and printers too)
+  // isDirty per tab — every editable tab routes its save through the sticky bar.
   const [isDirty, setIsDirty] = useState<Record<TabId, boolean>>({
     account: false,
+    preferences: false,
     restaurant: false,
+    receipt: false,
     operations: false,
-    content: false,
+    branding: false,
+    login: false,
     printers: false,
   });
 
@@ -69,6 +94,16 @@ export function SettingsPage() {
   function markClean(tab: TabId) {
     setIsDirty((prev) => ({ ...prev, [tab]: false }));
   }
+
+  const anyDirty = ALL_TAB_IDS.some((t) => isDirty[t]);
+
+  // Warn before leaving (reload / close / external navigation) with unsaved edits.
+  useEffect(() => {
+    if (!anyDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [anyDirty]);
 
   // ── Account state ──────────────────────────────────────────────────────────
   const [currentPassword, setCurrentPassword] = useState('');
@@ -84,6 +119,7 @@ export function SettingsPage() {
 
   // ── Restaurant state ───────────────────────────────────────────────────────
   const [restaurant, setRestaurant] = useState<RestaurantSettings | null>(null);
+  const [restaurantName, setRestaurantName] = useState('');
   const [serviceChargePct,  setServiceChargePct]  = useState('0');
   const [taxPct,            setTaxPct]            = useState('0');
   const [serviceChargeName, setServiceChargeName] = useState('Service Charge');
@@ -92,20 +128,19 @@ export function SettingsPage() {
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingSuccess, setBillingSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
   const themeColor = THEME_COLOR;
   const [orderPrefix, setOrderPrefix] = useState('ORD');
+  const [payMethods, setPayMethods] = useState<string[]>(['cash', 'card', 'online', 'voucher']);
   const [prefixSaving, setPrefixSaving] = useState(false);
 
   // ── Operations state ───────────────────────────────────────────────────────
   const [waitTimeMin, setWaitTimeMin] = useState<number | null>(null);
-  const [waitTimeSaving, setWaitTimeSaving] = useState(false);
   const [timezone, setTimezone] = useState('UTC');
-  const [timezoneSaving, setTimezoneSaving] = useState(false);
   const [rsOpen, setRsOpen]   = useState('');
   const [rsClose, setRsClose] = useState('');
   const [rsEnabled, setRsEnabled] = useState(false);
   const [rsSaving, setRsSaving] = useState(false);
-  const [rsSuccess, setRsSuccess] = useState(false);
 
   // ── Content state ──────────────────────────────────────────────────────────
   const [facebookUrl, setFacebookUrl] = useState('');
@@ -119,14 +154,12 @@ export function SettingsPage() {
   const [welcomeTagline, setWelcomeTagline] = useState('');
   const [heroUploading, setHeroUploading] = useState(false);
   const [socialSaving, setSocialSaving] = useState(false);
-  const [socialSuccess, setSocialSuccess] = useState(false);
 
   // ── Login-page branding state ────────────────────────────────────────────────
   const [loginMedia, setLoginMedia] = useState<string[]>([]);
   const [loginVideoUrl, setLoginVideoUrl] = useState('');
   const [loginUploading, setLoginUploading] = useState(false);
   const [loginSaving, setLoginSaving] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState(false);
 
   // ── Printer state ──────────────────────────────────────────────────────────
   const [receiptPrinterIp,   setReceiptPrinterIp]   = useState('');
@@ -163,6 +196,8 @@ export function SettingsPage() {
     restaurantService.getMyRestaurant().then((r) => {
       if (!r) return;
       setRestaurant(r);
+      setRestaurantName(r.name ?? '');
+      setPayMethods(r.enabledPaymentMethods?.length ? r.enabledPaymentMethods : ['cash', 'card', 'online', 'voucher']);
       setServiceChargePct(String(r.serviceChargePct));
       setTaxPct(String(r.taxPct));
       setServiceChargeName(r.serviceChargeName ?? 'Service Charge');
@@ -226,6 +261,29 @@ export function SettingsPage() {
     setRestaurant(updated);
   }
 
+  // ── Hero banner image ──────────────────────────────────────────────────────
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!restaurant || !e.target.files?.[0]) return;
+    setBannerUploading(true);
+    try {
+      const url = await uploadImage(e.target.files[0]);
+      const updated = await restaurantService.updateBanner(restaurant.id, url);
+      setRestaurant(updated);
+      toast.success('Banner updated');
+    } catch {
+      toast.error('Banner upload failed');
+    } finally {
+      setBannerUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleBannerRemove() {
+    if (!restaurant) return;
+    const updated = await restaurantService.updateBanner(restaurant.id, null);
+    setRestaurant(updated);
+  }
+
   // ── Save functions (all existing, untouched logic) ─────────────────────────
   async function saveOrderPrefix() {
     if (!restaurant) return;
@@ -241,55 +299,13 @@ export function SettingsPage() {
     }
   }
 
-  async function saveWaitTime(val: number | null) {
-    if (!restaurant) return;
-    setWaitTimeSaving(true);
-    try {
-      const updated = await restaurantService.updateWaitTime(restaurant.id, val);
-      setRestaurant(updated);
-      setWaitTimeMin(updated.waitTimeMin ?? null);
-    } finally {
-      setWaitTimeSaving(false);
-    }
-  }
-
-  async function saveTimezone(tz: string) {
-    if (!restaurant) return;
-    setTimezone(tz);
-    setTimezoneSaving(true);
-    try {
-      const updated = await restaurantService.updateTimezone(restaurant.id, tz);
-      setRestaurant(updated);
-    } catch {
-      import('react-hot-toast').then(({ default: toast }) => toast.error('Failed to update timezone'));
-    } finally {
-      setTimezoneSaving(false);
-    }
-  }
-
-  async function saveRoomServiceHours() {
-    if (!restaurant) return;
-    setRsSaving(true);
-    setRsSuccess(false);
-    try {
-      const open  = rsEnabled && rsOpen  ? rsOpen  : null;
-      const close = rsEnabled && rsClose ? rsClose : null;
-      const updated = await restaurantService.updateRoomServiceHours(restaurant.id, open, close);
-      setRestaurant(updated);
-      setRsSuccess(true);
-      setTimeout(() => setRsSuccess(false), 3000);
-    } finally {
-      setRsSaving(false);
-    }
-  }
-
   async function handleHeroUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.[0]) return;
     setHeroUploading(true);
     try {
       const url = await uploadImage(e.target.files[0]);
       setWelcomeImageUrl(url);
-      markDirty('content');
+      markDirty('branding');
     } catch {
       //
     } finally {
@@ -301,7 +317,6 @@ export function SettingsPage() {
   async function saveSocial() {
     if (!restaurant) return;
     setSocialSaving(true);
-    setSocialSuccess(false);
     try {
       const updated = await restaurantService.updateSocial(restaurant.id, {
         facebookUrl:     facebookUrl.trim() || null,
@@ -315,9 +330,8 @@ export function SettingsPage() {
         welcomeTagline:  welcomeTagline.trim() || null,
       });
       setRestaurant(updated);
-      setSocialSuccess(true);
-      markClean('content');
-      setTimeout(() => setSocialSuccess(false), 3000);
+      markClean('branding');
+      toast.success('Branding saved');
     } finally {
       setSocialSaving(false);
     }
@@ -333,7 +347,7 @@ export function SettingsPage() {
         uploaded.push(await uploadImage(file));
       }
       setLoginMedia((prev) => [...prev, ...uploaded].slice(0, 10));
-      markDirty('content');
+      markDirty('login');
     } catch {
       toast.error('Image upload failed');
     } finally {
@@ -344,21 +358,18 @@ export function SettingsPage() {
 
   function removeLoginImage(url: string) {
     setLoginMedia((prev) => prev.filter((u) => u !== url));
-    markDirty('content');
+    markDirty('login');
   }
 
   async function saveLoginBranding() {
     if (!restaurant) return;
     setLoginSaving(true);
-    setLoginSuccess(false);
     try {
       const updated = await restaurantService.updateLoginBranding(restaurant.id, {
         loginMedia,
         loginVideoUrl: loginVideoUrl.trim() || null,
       });
       setRestaurant(updated);
-      setLoginSuccess(true);
-      setTimeout(() => setLoginSuccess(false), 3000);
       toast.success('Login page updated');
     } catch {
       toast.error('Failed to save login page');
@@ -508,12 +519,64 @@ export function SettingsPage() {
     }
   }
 
-  // Restaurant tab combined save (billing + prefix + receipt)
+  // Persist the restaurant name (Restaurant tab → Restaurant profile).
+  async function saveName() {
+    if (!restaurant) return;
+    const clean = restaurantName.trim();
+    if (!clean || clean === restaurant.name) return;
+    const updated = await restaurantService.updateName(restaurant.id, clean);
+    setRestaurant(updated);
+    setRestaurantName(updated.name ?? clean);
+  }
+
+  // Persist which payment methods appear in the "How was this paid?" modal.
+  async function savePaymentMethods() {
+    if (!restaurant) return;
+    const updated = await restaurantService.updatePaymentMethods(restaurant.id, payMethods);
+    setRestaurant(updated);
+    setPayMethods(updated.enabledPaymentMethods ?? payMethods);
+  }
+
+  // Restaurant tab combined save (name + billing + prefix + payment methods)
   async function saveRestaurant() {
+    await saveName();
     await saveBilling();
     await saveOrderPrefix();
-    await saveReceiptConfig();
+    await savePaymentMethods();
     markClean('restaurant');
+  }
+
+  // Operations tab combined save (timezone + wait time + room-service hours).
+  // These used to auto-save individually; now they route through the sticky bar.
+  async function saveOperations() {
+    if (!restaurant) return;
+    setRsSaving(true);
+    try {
+      const open  = rsEnabled && rsOpen  ? rsOpen  : null;
+      const close = rsEnabled && rsClose ? rsClose : null;
+      const updated = await restaurantService.updateRoomServiceHours(restaurant.id, open, close);
+      await restaurantService.updateTimezone(restaurant.id, timezone);
+      const r2 = await restaurantService.updateWaitTime(restaurant.id, waitTimeMin);
+      setRestaurant(r2 ?? updated);
+      markClean('operations');
+      toast.success('Operations settings saved');
+    } catch {
+      toast.error('Failed to save operations settings');
+    } finally {
+      setRsSaving(false);
+    }
+  }
+
+  // Branding tab save (welcome screen + social links).
+  async function saveBranding() {
+    await saveSocial();
+    markClean('branding');
+  }
+
+  // Login-page tab save.
+  async function saveLogin() {
+    await saveLoginBranding();
+    markClean('login');
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -551,16 +614,28 @@ export function SettingsPage() {
 
   // ── Sticky save bar handler per active tab ─────────────────────────────────
   function handleStickyBarSave() {
-    if (activeTab === 'account') {
-      document.getElementById('account-form-submit')?.click();
-    } else if (activeTab === 'restaurant') {
-      void saveRestaurant();
-    } else if (activeTab === 'content') {
-      void saveSocial();
-    } else if (activeTab === 'printers') {
-      void savePrinter();
+    switch (activeTab) {
+      case 'account':    document.getElementById('account-form-submit')?.click(); break;
+      case 'restaurant': void saveRestaurant(); break;
+      case 'receipt':    void saveReceiptConfig().then(() => markClean('receipt')); break;
+      case 'operations': void saveOperations(); break;
+      case 'branding':   void saveBranding(); break;
+      case 'login':      void saveLogin(); break;
+      case 'printers':   void savePrinter(); break;
     }
   }
+
+  // True while the active tab's save is in flight (drives the sticky bar spinner).
+  const savingByTab: Record<TabId, boolean> = {
+    account:     loading,
+    preferences: false,
+    restaurant:  billingLoading || prefixSaving,
+    receipt:     receiptSaving,
+    operations:  rsSaving,
+    branding:    socialSaving,
+    login:       loginSaving,
+    printers:    printerSaving,
+  };
 
   // ── Tab content renderers ──────────────────────────────────────────────────
 
@@ -675,22 +750,15 @@ export function SettingsPage() {
               {/* Hidden submit trigger for sticky bar */}
               <button id="account-form-submit" type="submit" className="hidden" />
             </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className="text-white font-semibold px-6 py-2.5 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm active:scale-[0.99]"
-                style={{ backgroundColor: themeColor }}
-              >
-                {loading && <Loader2 size={15} className="animate-spin" />}
-                {loading ? 'Saving…' : 'Save Account Changes'}
-              </button>
-            </div>
           </form>
         </div>
+      </div>
+    );
+  }
 
+  function renderPreferencesTab() {
+    return (
+      <div className="space-y-4 max-w-2xl">
         {/* Navigation Style */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
@@ -737,6 +805,36 @@ export function SettingsPage() {
             </button>
           </div>
         </div>
+
+        {/* Appearance — light / dark */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
+              {dark ? <Moon size={15} className="text-orange-500" /> : <Sun size={15} className="text-orange-500" />}
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800">Appearance</h2>
+              <p className="text-xs text-gray-400">Switch between light and dark mode</p>
+            </div>
+          </div>
+          <div className="p-5">
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <span className="text-sm font-medium text-gray-700">
+                {dark ? 'Dark mode' : 'Light mode'}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={dark}
+                aria-label="Toggle dark mode"
+                onClick={toggleDark}
+                className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${dark ? 'bg-orange-500' : 'bg-gray-200'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${dark ? 'translate-x-5' : ''}`} />
+              </button>
+            </label>
+          </div>
+        </div>
       </div>
     );
   }
@@ -745,6 +843,57 @@ export function SettingsPage() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
     return (
       <div className="space-y-4 max-w-2xl">
+
+        {/* Restaurant Profile */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
+              <Building2 size={15} className="text-orange-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800">Restaurant Profile</h2>
+              <p className="text-xs text-gray-400">The name &amp; logo customers see</p>
+            </div>
+          </div>
+          <div className="p-5 flex items-start gap-4">
+            {/* Logo */}
+            <label className="relative cursor-pointer group flex-shrink-0">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
+                {restaurant.logo
+                  ? <img src={restaurant.logo} alt="logo" className="w-full h-full object-contain" />
+                  : <Store size={22} className="text-gray-300" />}
+              </div>
+              <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-0.5">
+                {logoUploading
+                  ? <Loader2 size={16} className="animate-spin text-white" />
+                  : <><ImagePlus size={16} className="text-white" /><span className="text-white text-[9px] font-medium">Logo</span></>}
+              </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+            </label>
+
+            <div className="flex-1 space-y-2">
+              <Field label="Restaurant Name">
+                <input
+                  type="text"
+                  maxLength={80}
+                  value={restaurantName}
+                  onChange={(e) => { setRestaurantName(e.target.value); markDirty('restaurant'); }}
+                  placeholder="e.g. The Garden Table"
+                  className={input}
+                />
+              </Field>
+              {restaurant.logo && (
+                <button
+                  type="button"
+                  onClick={handleLogoRemove}
+                  className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-red-500 transition-colors"
+                >
+                  <X size={13} /> Remove logo
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Billing */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1004,6 +1153,62 @@ export function SettingsPage() {
           </div>
         </div>
 
+        {/* Payment Methods */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
+              <DollarSign size={15} className="text-green-500" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800">Payment Methods</h2>
+              <p className="text-xs text-gray-400">Which options show on the “How was this paid?” screen</p>
+            </div>
+          </div>
+          <div className="p-5 space-y-2">
+            {PAYMENT_METHODS.map((m) => {
+              const on = payMethods.includes(m.value);
+              const isLast = on && payMethods.length === 1;
+              return (
+                <label
+                  key={m.value}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                    on ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-200'
+                  } ${isLast ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span className="text-xl">{m.icon}</span>
+                  <div className="flex-1">
+                    <p className={`text-sm font-semibold ${on ? 'text-orange-700' : 'text-gray-600'}`}>{m.label}</p>
+                    <p className="text-xs text-gray-400">{m.description}</p>
+                  </div>
+                  <div
+                    role="switch"
+                    aria-checked={on}
+                    onClick={() => {
+                      if (isLast) return; // keep at least one method enabled
+                      setPayMethods((prev) =>
+                        prev.includes(m.value) ? prev.filter((v) => v !== m.value) : [...prev, m.value],
+                      );
+                      markDirty('restaurant');
+                    }}
+                    className={`relative shrink-0 w-10 h-5 rounded-full transition-colors ${on ? 'bg-orange-500' : 'bg-gray-300'} ${isLast ? 'opacity-50' : ''}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${on ? 'translate-x-5' : ''}`} />
+                  </div>
+                </label>
+              );
+            })}
+            <p className="text-xs text-gray-400">At least one method must stay enabled.</p>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  function renderReceiptTab() {
+    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+    return (
+      <div className="space-y-4 max-w-2xl">
         {/* Receipt Layout */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
@@ -1025,7 +1230,7 @@ export function SettingsPage() {
                   <input
                     type="text" maxLength={100}
                     value={receiptHeaderLine1}
-                    onChange={(e) => { setReceiptHeaderLine1(e.target.value); markDirty('restaurant'); }}
+                    onChange={(e) => { setReceiptHeaderLine1(e.target.value); markDirty('receipt'); }}
                     placeholder="e.g. 123 High Street, London"
                     className={input}
                   />
@@ -1034,7 +1239,7 @@ export function SettingsPage() {
                   <input
                     type="text" maxLength={100}
                     value={receiptHeaderLine2}
-                    onChange={(e) => { setReceiptHeaderLine2(e.target.value); markDirty('restaurant'); }}
+                    onChange={(e) => { setReceiptHeaderLine2(e.target.value); markDirty('receipt'); }}
                     placeholder="e.g. Tel: +44 20 1234 5678 · www.myrest.com"
                     className={input}
                   />
@@ -1050,7 +1255,7 @@ export function SettingsPage() {
                   <input
                     type="text" maxLength={100}
                     value={receiptFooterLine1}
-                    onChange={(e) => { setReceiptFooterLine1(e.target.value); markDirty('restaurant'); }}
+                    onChange={(e) => { setReceiptFooterLine1(e.target.value); markDirty('receipt'); }}
                     placeholder="Thank you for dining with us!"
                     className={input}
                   />
@@ -1059,7 +1264,7 @@ export function SettingsPage() {
                   <input
                     type="text" maxLength={100}
                     value={receiptFooterLine2}
-                    onChange={(e) => { setReceiptFooterLine2(e.target.value); markDirty('restaurant'); }}
+                    onChange={(e) => { setReceiptFooterLine2(e.target.value); markDirty('receipt'); }}
                     placeholder="Please come again 🙏"
                     className={input}
                   />
@@ -1077,7 +1282,7 @@ export function SettingsPage() {
                 ].map(({ label, sub, value, set }) => (
                   <label key={label} className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${value ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200'}`}>
                     <div
-                      onClick={() => { set(!value); markDirty('restaurant'); }}
+                      onClick={() => { set(!value); markDirty('receipt'); }}
                       className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-indigo-500' : 'bg-gray-300'}`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-4' : ''}`} />
@@ -1123,20 +1328,8 @@ export function SettingsPage() {
                 </div>
               </div>
             </div>
-
-            <div className="flex justify-end pt-1">
-              <button
-                onClick={saveReceiptConfig}
-                disabled={receiptSaving}
-                className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-60"
-              >
-                {receiptSaving ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
-                {receiptSaving ? 'Saving…' : 'Save receipt layout'}
-              </button>
-            </div>
           </div>
         </div>
-
       </div>
     );
   }
@@ -1156,12 +1349,11 @@ export function SettingsPage() {
               <h2 className="font-semibold text-gray-800">Timezone</h2>
               <p className="text-xs text-gray-400">Used for reservations &amp; date-based reports</p>
             </div>
-            {timezoneSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
           </div>
           <div className="p-5">
             <select
               value={timezone}
-              onChange={(e) => saveTimezone(e.target.value)}
+              onChange={(e) => { setTimezone(e.target.value); markDirty('operations'); }}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent bg-gray-50 focus:bg-white transition-colors"
             >
               {!TIMEZONES.includes(timezone) && <option value={timezone}>{timezone}</option>}
@@ -1183,7 +1375,6 @@ export function SettingsPage() {
               <h2 className="font-semibold text-gray-800">Estimated Wait Time</h2>
               <p className="text-xs text-gray-400">Shown to customers on the order success page</p>
             </div>
-            {waitTimeSaving && <Loader2 size={14} className="animate-spin text-gray-400 ml-auto" />}
           </div>
 
           <div className="p-5 space-y-3">
@@ -1191,8 +1382,7 @@ export function SettingsPage() {
               {[null, 10, 15, 20, 25, 30, 45, 60].map((val) => (
                 <button
                   key={val ?? 'off'}
-                  onClick={() => saveWaitTime(val)}
-                  disabled={waitTimeSaving}
+                  onClick={() => { setWaitTimeMin(val); markDirty('operations'); }}
                   className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
                     waitTimeMin === val
                       ? 'bg-orange-500 text-white border-orange-500'
@@ -1211,8 +1401,7 @@ export function SettingsPage() {
                 min="1"
                 max="180"
                 value={waitTimeMin ?? ''}
-                onChange={(e) => setWaitTimeMin(e.target.value ? Number(e.target.value) : null)}
-                onBlur={() => saveWaitTime(waitTimeMin)}
+                onChange={(e) => { setWaitTimeMin(e.target.value ? Number(e.target.value) : null); markDirty('operations'); }}
                 placeholder="e.g. 35"
                 className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-gray-50 focus:bg-white"
               />
@@ -1244,15 +1433,9 @@ export function SettingsPage() {
           </div>
 
           <div className="p-5 space-y-4">
-            {rsSuccess && (
-              <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                <CheckCircle2 size={14} /> Room service hours saved!
-              </div>
-            )}
-
             <label className="flex items-center gap-3 cursor-pointer">
               <div
-                onClick={() => setRsEnabled((p) => !p)}
+                onClick={() => { setRsEnabled((p) => !p); markDirty('operations'); }}
                 className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${rsEnabled ? 'bg-orange-500' : 'bg-gray-200'}`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${rsEnabled ? 'translate-x-5' : ''}`} />
@@ -1268,7 +1451,7 @@ export function SettingsPage() {
                   <input
                     type="time"
                     value={rsOpen}
-                    onChange={(e) => setRsOpen(e.target.value)}
+                    onChange={(e) => { setRsOpen(e.target.value); markDirty('operations'); }}
                     className={input}
                   />
                 </Field>
@@ -1276,7 +1459,7 @@ export function SettingsPage() {
                   <input
                     type="time"
                     value={rsClose}
-                    onChange={(e) => setRsClose(e.target.value)}
+                    onChange={(e) => { setRsClose(e.target.value); markDirty('operations'); }}
                     className={input}
                   />
                 </Field>
@@ -1290,15 +1473,6 @@ export function SettingsPage() {
                 {rsOpen > rsClose ? ' (wraps midnight)' : ''}
               </div>
             )}
-
-            <button
-              onClick={saveRoomServiceHours}
-              disabled={rsSaving || (rsEnabled && (!rsOpen || !rsClose))}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
-            >
-              {rsSaving && <Loader2 size={15} className="animate-spin" />}
-              {rsSaving ? 'Saving…' : 'Save Room Service Hours'}
-            </button>
           </div>
         </div>
 
@@ -1306,7 +1480,7 @@ export function SettingsPage() {
     );
   }
 
-  function renderContentTab() {
+  function renderBrandingTab() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
 
     const socialFields: { label: string; placeholder: string; value: string; set: (v: string) => void; type?: string }[] = [
@@ -1333,15 +1507,8 @@ export function SettingsPage() {
                 <p className="text-xs text-gray-400">The landing screen customers see after scanning a QR code</p>
               </div>
               {socialSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
-              {socialSuccess && <CheckCircle2 size={14} className="text-green-500" />}
             </div>
             <div className="p-5 space-y-4">
-              {socialSuccess && (
-                <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
-                  <CheckCircle2 size={14} /> Welcome screen settings saved!
-                </div>
-              )}
-
               {/* Hero / background image */}
               <Field label="Background Image">
                 <div className="flex items-start gap-3">
@@ -1360,7 +1527,7 @@ export function SettingsPage() {
                       {welcomeImageUrl && (
                         <button
                           type="button"
-                          onClick={() => { setWelcomeImageUrl(''); markDirty('content'); }}
+                          onClick={() => { setWelcomeImageUrl(''); markDirty('branding'); }}
                           className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-red-500 px-2 py-2 rounded-lg transition-colors"
                         >
                           <X size={13} /> Remove
@@ -1372,7 +1539,7 @@ export function SettingsPage() {
                       type="url"
                       placeholder="…or paste an image URL (leave blank for default)"
                       value={welcomeImageUrl}
-                      onChange={(e) => { setWelcomeImageUrl(e.target.value); markDirty('content'); }}
+                      onChange={(e) => { setWelcomeImageUrl(e.target.value); markDirty('branding'); }}
                     />
                   </div>
                 </div>
@@ -1386,7 +1553,7 @@ export function SettingsPage() {
                   maxLength={120}
                   placeholder={restaurant.name}
                   value={welcomeHeading}
-                  onChange={(e) => { setWelcomeHeading(e.target.value); markDirty('content'); }}
+                  onChange={(e) => { setWelcomeHeading(e.target.value); markDirty('branding'); }}
                 />
                 <p className="text-xs text-gray-400 mt-1">Big title on the welcome screen. Leave blank to use the restaurant name.</p>
               </Field>
@@ -1398,7 +1565,7 @@ export function SettingsPage() {
                   maxLength={200}
                   placeholder="e.g. Scan, browse & order — right from your table"
                   value={welcomeTagline}
-                  onChange={(e) => { setWelcomeTagline(e.target.value); markDirty('content'); }}
+                  onChange={(e) => { setWelcomeTagline(e.target.value); markDirty('branding'); }}
                 />
               </Field>
             </div>
@@ -1423,91 +1590,10 @@ export function SettingsPage() {
                     type={f.type ?? 'url'}
                     placeholder={f.placeholder}
                     value={f.value}
-                    onChange={(e) => { f.set(e.target.value); markDirty('content'); }}
+                    onChange={(e) => { f.set(e.target.value); markDirty('branding'); }}
                   />
                 </Field>
               ))}
-            </div>
-          </div>
-
-          {/* ── Login Page branding ── */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-                <Store size={15} className="text-orange-500" />
-              </div>
-              <div className="flex-1">
-                <h2 className="font-semibold text-gray-800">Login Page</h2>
-                <p className="text-xs text-gray-400">Logo, image slider or video shown on your staff login page</p>
-              </div>
-              {loginUploading && <Loader2 size={14} className="animate-spin text-gray-400" />}
-              {loginSuccess && <CheckCircle2 size={14} className="text-green-500" />}
-            </div>
-            <div className="p-5 space-y-4">
-              {/* Branded login link */}
-              <div className="bg-gray-50 rounded-xl px-4 py-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Your login link</p>
-                <a
-                  href={`/login/${restaurant.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-orange-600 font-medium break-all hover:underline"
-                >
-                  {`${window.location.origin}/login/${restaurant.slug}`}
-                </a>
-              </div>
-
-              {/* Image slider */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Slider Images ({loginMedia.length}/10)</label>
-                  <label className="text-xs text-orange-600 font-semibold hover:underline cursor-pointer">
-                    + Add images
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleLoginImageUpload} disabled={loginUploading} />
-                  </label>
-                </div>
-                {loginMedia.length === 0 ? (
-                  <p className="text-xs text-gray-400">No images yet — add a few photos for an auto-rotating slider.</p>
-                ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {loginMedia.map((url) => (
-                      <div key={url} className="relative group aspect-video rounded-lg overflow-hidden border border-gray-100">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeLoginImage(url)}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Remove"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Video URL */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Background Video URL (optional)</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-                  placeholder="https://…/video.mp4"
-                  value={loginVideoUrl}
-                  onChange={(e) => { setLoginVideoUrl(e.target.value); markDirty('content'); }}
-                />
-                <p className="text-xs text-gray-400 mt-1">If set, the video plays instead of the image slider.</p>
-              </div>
-
-              <button
-                onClick={saveLoginBranding}
-                disabled={loginSaving}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-              >
-                {loginSaving && <Loader2 size={14} className="animate-spin" />}
-                Save Login Page
-              </button>
             </div>
           </div>
         </div>
@@ -1539,6 +1625,83 @@ export function SettingsPage() {
             />
           </div>
           <p className="text-center text-xs text-gray-400 mt-2">Updates as you type</p>
+        </div>
+      </div>
+    );
+  }
+
+  function renderLoginTab() {
+    if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+    return (
+      <div className="space-y-4 max-w-2xl">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <LogIn size={15} className="text-orange-500" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-semibold text-gray-800">Login Page</h2>
+              <p className="text-xs text-gray-400">Logo, image slider or video shown on your staff login page</p>
+            </div>
+            {loginUploading && <Loader2 size={14} className="animate-spin text-gray-400" />}
+          </div>
+          <div className="p-5 space-y-4">
+            {/* Branded login link */}
+            <div className="bg-gray-50 rounded-xl px-4 py-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Your login link</p>
+              <a
+                href={`/login/${restaurant.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-orange-600 font-medium break-all hover:underline"
+              >
+                {`${window.location.origin}/login/${restaurant.slug}`}
+              </a>
+            </div>
+
+            {/* Image slider */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Slider Images ({loginMedia.length}/10)</label>
+                <label className="text-xs text-orange-600 font-semibold hover:underline cursor-pointer">
+                  + Add images
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleLoginImageUpload} disabled={loginUploading} />
+                </label>
+              </div>
+              {loginMedia.length === 0 ? (
+                <p className="text-xs text-gray-400">No images yet — add a few photos for an auto-rotating slider.</p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {loginMedia.map((url) => (
+                    <div key={url} className="relative group aspect-video rounded-lg overflow-hidden border border-gray-100">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeLoginImage(url)}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Video URL */}
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Background Video URL (optional)</label>
+              <input
+                type="text"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
+                placeholder="https://…/video.mp4"
+                value={loginVideoUrl}
+                onChange={(e) => { setLoginVideoUrl(e.target.value); markDirty('login'); }}
+              />
+              <p className="text-xs text-gray-400 mt-1">If set, the video plays instead of the image slider.</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1667,9 +1830,12 @@ export function SettingsPage() {
 
   const tabContentMap: Record<TabId, () => React.ReactNode> = {
     account:     renderAccountTab,
+    preferences: renderPreferencesTab,
     restaurant:  renderRestaurantTab,
+    receipt:     renderReceiptTab,
     operations:  renderOperationsTab,
-    content:     renderContentTab,
+    branding:    renderBrandingTab,
+    login:       renderLoginTab,
     printers:    renderPrintersTab,
   };
 
@@ -1682,8 +1848,36 @@ export function SettingsPage() {
         <div className="w-full px-4 sm:px-6 py-6 space-y-4 flex-1">
 
           {/* ── Hero profile card ──────────────────────────────────────────── */}
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
-            <div className="flex items-center gap-5">
+          <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
+            {/* Optional banner background image */}
+            {restaurant?.bannerImage && (
+              <>
+                <img src={restaurant.bannerImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/45 to-black/30" />
+              </>
+            )}
+
+            {/* Banner controls */}
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+              <label className="cursor-pointer flex items-center gap-1.5 bg-black/25 hover:bg-black/40 backdrop-blur text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors">
+                {bannerUploading
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <ImagePlus size={13} />}
+                {restaurant?.bannerImage ? 'Change banner' : 'Add banner'}
+                <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} disabled={bannerUploading} />
+              </label>
+              {restaurant?.bannerImage && (
+                <button
+                  onClick={handleBannerRemove}
+                  className="w-7 h-7 rounded-full bg-black/25 hover:bg-black/40 flex items-center justify-center transition-colors"
+                  title="Remove banner"
+                >
+                  <X size={13} className="text-white" />
+                </button>
+              )}
+            </div>
+
+            <div className="relative flex items-center gap-5">
               {/* Logo / avatar */}
               <label className="relative cursor-pointer group flex-shrink-0">
                 <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center shadow-inner">
@@ -1701,43 +1895,33 @@ export function SettingsPage() {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-xl font-bold truncate">{user?.name}</p>
-                <p className="text-sm text-orange-100 truncate">@{user?.username}</p>
+                <p className="text-xl font-bold truncate drop-shadow">{user?.name}</p>
+                <p className="text-sm text-orange-100 truncate drop-shadow">@{user?.username}</p>
                 {restaurant && (
                   <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur rounded-full px-3 py-1">
                     <span className="text-xs font-medium text-white truncate">{restaurant.name}</span>
                   </div>
                 )}
               </div>
-
-              {/* Remove logo */}
-              {restaurant?.logo && (
-                <button
-                  onClick={handleLogoRemove}
-                  className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
-                  title="Remove logo"
-                >
-                  <X size={13} className="text-white" />
-                </button>
-              )}
             </div>
 
-            {!restaurant?.logo && (
-              <p className="text-xs text-orange-200 mt-3 text-center">
-                Tap the avatar to upload your restaurant logo
+            {!restaurant?.bannerImage && (
+              <p className="relative text-xs text-orange-200 mt-3 text-center">
+                Add a banner image to personalise this header
               </p>
             )}
           </div>
 
-          {/* ── Tab bar (segmented pill) ──────────────────────────────────── */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 flex gap-1 overflow-x-auto scrollbar-none mb-6">
+          {/* ── Tab bar (segmented pills, wrap so every tab stays visible) ──── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 flex flex-wrap gap-1 mb-6">
             {TABS.map((tab) => {
               const active = activeTab === tab.id;
+              const dirty = isDirty[tab.id];
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm whitespace-nowrap rounded-xl transition-colors ${
+                  className={`relative flex items-center gap-2 px-4 py-2 text-sm whitespace-nowrap rounded-xl transition-colors ${
                     active
                       ? 'bg-gray-900 text-white font-semibold'
                       : 'text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50'
@@ -1745,6 +1929,12 @@ export function SettingsPage() {
                 >
                   <tab.Icon size={15} />
                   {tab.label}
+                  {dirty && (
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white' : 'bg-amber-500'}`}
+                      aria-label="unsaved changes"
+                    />
+                  )}
                 </button>
               );
             })}
@@ -1784,23 +1974,19 @@ export function SettingsPage() {
 
         </div>
 
-        {/* ── Sticky save bar ───────────────────────────────────────────── */}
-        {isDirty[activeTab] && activeTab !== 'operations' && (
+        {/* ── Sticky save bar (unified across every editable tab) ───────────── */}
+        {isDirty[activeTab] && !INSTANT_TABS.includes(activeTab) && (
           <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between shadow-md">
-            <p className="text-sm text-gray-500">You have unsaved changes</p>
+            <p className="flex items-center gap-2 text-sm text-gray-500">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              You have unsaved changes
+            </p>
             <button
               onClick={handleStickyBarSave}
-              disabled={
-                (activeTab === 'account' && loading) ||
-                (activeTab === 'restaurant' && (billingLoading || prefixSaving)) ||
-                (activeTab === 'content' && socialSaving) ||
-                (activeTab === 'printers' && printerSaving)
-              }
+              disabled={savingByTab[activeTab]}
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
             >
-              {(loading || billingLoading || prefixSaving || socialSaving || printerSaving) && (
-                <Loader2 size={14} className="animate-spin" />
-              )}
+              {savingByTab[activeTab] && <Loader2 size={14} className="animate-spin" />}
               Save Changes
             </button>
           </div>

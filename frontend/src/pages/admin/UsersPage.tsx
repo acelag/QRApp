@@ -165,33 +165,38 @@ export function UsersPage() {
       {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Manage Staff" backTo="/admin/settings">
+      <AdminHeader title="Manage Staff" backTo="/admin/settings" />
+
+      {/* Tab bar (pill style) — with the Add User button on the same row */}
+      <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex items-center gap-2">
+        <div className="flex gap-2 overflow-x-auto">
+          {STAFF_TABS.map(({ id, label, Icon }) => {
+            const active = tab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+                  active
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                <Icon size={15} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
         {tab === 'users' && (
           <button
             onClick={() => openNew(filterRole ?? undefined)}
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
+            className="ml-auto shrink-0 flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap"
           >
             <Plus size={14} /> Add {filterRole ? ROLE_CONFIG.find(r => r.role === filterRole)?.label : 'User'}
           </button>
         )}
-      </AdminHeader>
-
-      {/* Tab bar */}
-      <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 flex gap-1">
-        {STAFF_TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === id
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Icon size={15} />
-            {label}
-          </button>
-        ))}
       </div>
 
       {tab === 'performance' && <StaffPerformancePanel />}

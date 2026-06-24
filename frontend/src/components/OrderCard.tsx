@@ -264,7 +264,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     }`}>
       <div ref={cardRef} className="bg-white">
       {/* ── Header band ── */}
-      <div className={`px-4 py-3 border-b border-gray-100 ${theme.band}`}>
+      <div className={`px-4 py-2 border-b border-gray-100 ${theme.band}`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {priority != null && (
@@ -316,7 +316,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       </div>
 
       {/* Items */}
-      <ul className="px-4 pt-3 pb-3 space-y-2">
+      <ul className="px-4 pt-2 pb-2 space-y-1">
         {order.items.map((item, idx) => {
           const toppingsTotal = (item.toppings ?? []).reduce((s, t) => s + t.price, 0);
           const modifiersTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
@@ -456,10 +456,10 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
       )}
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-100">
+      <div className="px-4 py-2.5 border-t border-gray-100">
         {/* Bill charge breakdown */}
         {showBill && !hidePrices && hasBreakdown && (
-          <div className="space-y-1 mb-2.5 text-sm">
+          <div className="space-y-0.5 mb-2 text-sm">
             <div className="flex justify-between text-gray-500">
               <span>Subtotal</span>
               <span className="tabular-nums">{fmt(billNet)}</span>
@@ -486,7 +486,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
         )}
         {/* Total / progress row */}
         {(!hidePrices || cooked.size > 0) && (
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-2">
             {!hidePrices ? (
               <>
                 <span className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">Total</span>
@@ -580,7 +580,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
 
         {/* Bill actions — print, download PDF, send via WhatsApp (single full-width row) */}
         {showBill && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="mt-2.5 pt-2.5 border-t border-gray-100">
             {/* Live orders from session */}
             {liveSession && (liveSession.orders ?? []).filter((o) => o.status !== 'cancelled').length > 0 && (
               <div className="mb-3 pb-3 border-b border-gray-100">
@@ -612,13 +612,13 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
             <div className="flex flex-wrap items-stretch gap-2">
               <button
                 onClick={handlePrint}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 active:scale-[0.99] transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-5 py-2 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 active:scale-[0.99] transition-all whitespace-nowrap"
               >
                 <Printer size={15} /> Print Bill
               </button>
               <button
                 onClick={handleDownloadPdf}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-[0.99] transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-5 py-2 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-[0.99] transition-all whitespace-nowrap"
                 title="Open the bill to print or save as PDF"
               >
                 <Download size={15} /> PDF
@@ -630,21 +630,21 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
                   value={billPhone}
                   onChange={(e) => setBillPhone(e.target.value)}
                   placeholder="Send to mobile — 07X XXX XXXX"
-                  className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-300"
+                  className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-300"
                 />
                 <button
                   onClick={handleSendWhatsApp}
-                  className="flex items-center gap-1.5 px-5 py-2.5 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 active:scale-[0.99] transition-all whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-5 py-2 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 active:scale-[0.99] transition-all whitespace-nowrap"
                   title="Send the bill via WhatsApp"
                 >
                   <MessageCircle size={15} /> Send
                 </button>
               </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-2">Print, save as PDF, or send the bill to the customer's phone via WhatsApp.</p>
+            <p className="text-[11px] text-gray-400 mt-1.5">Print, save as PDF, or send the bill to the customer's phone via WhatsApp.</p>
 
             {/* Customer bill link */}
-            <div className="mt-2.5 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+            <div className="mt-2 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
               <Link2 size={14} className="text-gray-400 shrink-0" />
               <a
                 href={billLink}
@@ -729,6 +729,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
             title="How was this paid?"
             subtitle={`Table ${liveSession.tableNumber} · ${fmt(liveSession.totalAmount ?? 0)}`}
             total={liveSession.totalAmount ?? 0}
+            enabledMethods={settings?.enabledPaymentMethods}
             onConfirm={handlePay}
             onClose={() => setShowPay(false)}
             loading={paying}
@@ -740,6 +741,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
             title="How was this paid?"
             subtitle={`#${order.orderNumber ?? order.id.slice(0, 8).toUpperCase()} · ${fmt(order.totalAmount)}`}
             total={order.totalAmount}
+            enabledMethods={settings?.enabledPaymentMethods}
             onConfirm={handlePayOrder}
             onClose={() => setShowPayOrder(false)}
             loading={payingOrder}

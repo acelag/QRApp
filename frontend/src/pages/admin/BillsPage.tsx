@@ -1015,6 +1015,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
               ? (paymentTarget.session.totalAmount ?? 0)
               : paymentTarget.order.totalAmount
           }
+          enabledMethods={billingSettings?.enabledPaymentMethods}
           onConfirm={confirmPayment}
           onClose={() => setPaymentTarget(null)}
           loading={paying !== null || payingOrder !== null}

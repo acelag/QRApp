@@ -37,6 +37,10 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   twitterUrl:      (row.twitter_url       as string | null) ?? null,
   welcomeHeading:  (row.welcome_heading   as string | null) ?? null,
   welcomeTagline:  (row.welcome_tagline   as string | null) ?? null,
+  bannerImage:     (row.banner_image       as string | null) ?? null,
+  enabledPaymentMethods: Array.isArray(row.enabled_payment_methods)
+    ? (row.enabled_payment_methods as string[])
+    : ['cash', 'card', 'online', 'voucher'],
   receiptPrinterIp:   (row.receipt_printer_ip   as string | null) ?? null,
   receiptPrinterPort: row.receipt_printer_port != null ? Number(row.receipt_printer_port) : 9100,
   kitchenPrinterIp:   (row.kitchen_printer_ip   as string | null) ?? null,
@@ -252,6 +256,32 @@ router.patch('/:id/logo', authenticate, async (req: AuthRequest, res) => {
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
   const { logo } = req.body as { logo: string | null };
   await pool.query('UPDATE restaurants SET logo = $1 WHERE id = $2', [logo ?? null, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+router.patch('/:id/banner', authenticate, async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { bannerImage } = req.body as { bannerImage: string | null };
+  await pool.query('UPDATE restaurants SET banner_image = $1 WHERE id = $2', [bannerImage ?? null, id]);
+  const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
+  if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
+});
+
+const ALL_PAYMENT_METHODS = ['cash', 'card', 'online', 'voucher'];
+router.patch('/:id/payment-methods', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
+  const { enabledPaymentMethods } = req.body as { enabledPaymentMethods?: unknown };
+  const methods = Array.isArray(enabledPaymentMethods)
+    ? ALL_PAYMENT_METHODS.filter((m) => enabledPaymentMethods.includes(m))
+    : [];
+  // Never allow an empty set — fall back to all so the payment modal isn't dead.
+  const final = methods.length ? methods : ALL_PAYMENT_METHODS;
+  await pool.query('UPDATE restaurants SET enabled_payment_methods = $1 WHERE id = $2', [JSON.stringify(final), id]);
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   if (!updated.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));

@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard, Clock } from 'lucide-react';
+import { BarChart2, TrendingUp, ShoppingBag, UtensilsCrossed, Loader2, Calendar, LayoutGrid, Flame, Download, Printer, Tag, CreditCard, Clock, Package } from 'lucide-react';
 import { reportService, type Report } from '../../services/reportService';
 import { useCurrency } from '../../context/CurrencyContext';
 import { AdminHeader } from '../../components/AdminHeader';
@@ -1724,10 +1724,10 @@ export function ReportsPanel() {
 
 // â”€â”€ Tabbed host page: Order Reports | Shift Report | Stock Report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type ReportTab = 'orders' | 'shift' | 'stock';
-const REPORT_TABS: { id: ReportTab; label: string }[] = [
-  { id: 'orders', label: 'Order Reports' },
-  { id: 'shift',  label: 'Shift Report'  },
-  { id: 'stock',  label: 'Stock Report'  },
+const REPORT_TABS: { id: ReportTab; label: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
+  { id: 'orders', label: 'Order Reports', Icon: ShoppingBag },
+  { id: 'shift',  label: 'Shift Report',  Icon: Clock       },
+  { id: 'stock',  label: 'Stock Report',  Icon: Package     },
 ];
 
 export function ReportsPage() {
@@ -1739,18 +1739,22 @@ export function ReportsPage() {
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
         <AdminHeader title="Reports" backTo="/admin" icon={BarChart2} />
 
-        {/* Tab bar */}
-        <div className="flex border-b border-gray-200 bg-white px-4 overflow-x-auto">
-          {REPORT_TABS.map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-800'
-              }`}>
-              {tab.label}
-            </button>
-          ))}
+        {/* Tab bar (pill style) */}
+        <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex items-center gap-2 overflow-x-auto">
+          {REPORT_TABS.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+                  active
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}>
+                <tab.Icon size={15} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {activeTab === 'orders' && <ReportsPanel />}

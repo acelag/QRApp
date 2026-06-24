@@ -74,13 +74,18 @@ interface Props {
   title: string;
   subtitle?: string;
   total?: number;        // if provided, shows cash-tendering step for cash payments
+  /** Which methods to show. Defaults to all when omitted/empty (admin setting). */
+  enabledMethods?: string[];
   onConfirm: (method: PaymentMethod) => void;
   onClose: () => void;
   loading?: boolean;
 }
 
-export function PaymentMethodModal({ title, subtitle, total, onConfirm, onClose, loading }: Props) {
+export function PaymentMethodModal({ title, subtitle, total, enabledMethods, onConfirm, onClose, loading }: Props) {
   const { fmt } = useCurrency();
+  const methods = enabledMethods && enabledMethods.length
+    ? PAYMENT_METHODS.filter((m) => enabledMethods.includes(m.value))
+    : PAYMENT_METHODS;
   const [step, setStep] = useState<'method' | 'cash'>('method');
   const [tendered, setTendered] = useState<number | null>(null);
   const [custom, setCustom] = useState('');
@@ -163,7 +168,7 @@ export function PaymentMethodModal({ title, subtitle, total, onConfirm, onClose,
           <div className="px-6 py-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Select Payment Method</p>
             <div className="grid grid-cols-2 gap-3">
-              {PAYMENT_METHODS.map((method) => (
+              {methods.map((method) => (
                 <button
                   key={method.value}
                   onClick={() => handleMethodClick(method.value)}

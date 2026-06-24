@@ -231,6 +231,8 @@ export async function createSchema(): Promise<void> {
   await addCol('restaurants', 'twitter_url',  'VARCHAR(500) NULL');
   await addCol('restaurants', 'welcome_heading', 'VARCHAR(120) NULL');
   await addCol('restaurants', 'welcome_tagline', 'VARCHAR(200) NULL');
+  await addCol('restaurants', 'banner_image',    'VARCHAR(500) NULL');
+  await addCol('restaurants', 'enabled_payment_methods', `JSONB NOT NULL DEFAULT '["cash","card","online","voucher"]'`);
 
   // Printer settings
   await addCol('restaurants', 'receipt_printer_ip',   'VARCHAR(100) NULL');

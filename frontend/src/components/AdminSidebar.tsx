@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2, Rocket,
+  LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, ChefHat, MonitorPlay,
   Receipt, QrCode, CreditCard,
   Warehouse, Menu, X, MapPin, Star,
@@ -30,7 +30,6 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { type: 'item', label: 'Dashboard',    icon: LayoutDashboard, to: '/admin',              exact: true },
-  { type: 'item', label: 'Launcher',     icon: Rocket,          to: '/admin/launcher' },
   { type: 'item', label: 'Orders',       icon: ShoppingCart,    to: '/admin/orders',        badge: true, perm: 'orders' },
   { type: 'item', label: 'Menu',         icon: UtensilsCrossed, to: '/admin/menu',          perm: 'menu' },
   { type: 'item', label: 'QR',           icon: QrCode,          to: '/admin/locations',     perm: 'locations' },
@@ -196,12 +195,6 @@ export function AdminSidebar() {
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           <NavLinks />
         </nav>
-        <div className="px-5 py-1.5 text-center flex-none leading-tight">
-          <span className="text-[10px] text-gray-300 font-mono">v{__APP_VERSION__}</span>
-          <span className="block text-[9px] text-gray-300" title={__BUILD_TIME__}>
-            Deployed {new Date(__BUILD_TIME__).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
       </div>
 
       {/* ── Desktop sidebar ──────────────────────────────────────────────────── */}
@@ -227,15 +220,6 @@ export function AdminSidebar() {
         <nav className={`flex-1 py-4 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
           <NavLinks iconSize={collapsed ? 18 : 16} />
         </nav>
-
-        {!collapsed && (
-          <div className="px-5 py-1.5 text-center flex-none leading-tight">
-            <span className="text-[10px] text-gray-300 font-mono">v{__APP_VERSION__}</span>
-            <span className="block text-[9px] text-gray-300" title={__BUILD_TIME__}>
-              Deployed {new Date(__BUILD_TIME__).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        )}
       </aside>
     </>
   );

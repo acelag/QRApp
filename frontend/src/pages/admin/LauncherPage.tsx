@@ -6,31 +6,8 @@ import {
   Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed,
   QrCode, MapPin, MonitorPlay, ChefHat,
   Receipt, Users, Warehouse, BarChart2,
-  Settings, Star, ArrowLeft, Clock, Box,
+  Settings, Star, ArrowLeft,
 } from 'lucide-react';
-
-// ── Deploy info helpers ──────────────────────────────────────────────────────
-const isProd = import.meta.env.PROD;
-
-function formatBuildTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
-
-function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const secs = Math.floor(diffMs / 1000);
-  if (secs < 60)  return 'just now';
-  const mins = Math.floor(secs / 60);
-  if (mins < 60)  return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 type NavLeaf = { label: string; icon: React.ElementType; to: string; color: string };
 type NavGroup = { label: string; icon: React.ElementType; color: string; children: NavLeaf[] };
@@ -117,18 +94,6 @@ export function LauncherPage() {
               )}
             </div>
           )}
-
-          {/* Deploy info footer */}
-          <div className="mt-auto pt-10">
-            <div className="border-t border-gray-100 pt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400">
-              <span className="flex items-center gap-1">
-                <span className={`w-1.5 h-1.5 rounded-full ${isProd ? 'bg-green-400' : 'bg-amber-400'}`} />
-                {isProd ? 'Production' : 'Development'}
-              </span>
-              <span className="flex items-center gap-1"><Box size={11} /> v{__APP_VERSION__}</span>
-              <span className="flex items-center gap-1"><Clock size={11} /> Deployed {relativeTime(__BUILD_TIME__)} · {formatBuildTime(__BUILD_TIME__)}</span>
-            </div>
-          </div>
 
         </main>
       </div>

@@ -188,7 +188,7 @@ export function FloorPlanPage({ embedded = false }: { embedded?: boolean }) {
   );
 
   const body = (
-    <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+    <div className={`px-3 sm:px-4 lg:px-6 pt-4 space-y-4 ${embedded ? 'flex flex-col flex-1 min-h-0 overflow-y-auto pb-12' : 'pb-4'}`}>
       {!editMode && (
         <div className="flex items-center gap-4 flex-wrap text-xs text-gray-500">
           {Object.entries(STATUS_STYLE).map(([key, s]) => (
@@ -203,10 +203,12 @@ export function FloorPlanPage({ embedded = false }: { embedded?: boolean }) {
       <div
         ref={canvasRef}
         className={`relative w-full rounded-2xl border-2 overflow-hidden select-none ${
+          embedded ? 'flex-1 min-h-[320px]' : ''
+        } ${
           editMode ? 'border-orange-300 bg-orange-50/30' : 'border-gray-200 bg-white'
         }`}
         style={{
-          aspectRatio: '4 / 3',
+          aspectRatio: embedded ? undefined : '4 / 3',
           backgroundImage: editMode ? 'radial-gradient(circle, #d1d5db 1px, transparent 1px)' : undefined,
           backgroundSize: editMode ? '32px 32px' : undefined,
         }}
@@ -302,8 +304,8 @@ export function FloorPlanPage({ embedded = false }: { embedded?: boolean }) {
 
   if (embedded) {
     return (
-      <div className="h-full overflow-y-auto bg-gray-50">
-        <div className="px-3 sm:px-4 lg:px-6 py-3 bg-white border-b border-gray-100">
+      <div className="h-full flex flex-col bg-gray-50">
+        <div className="px-3 sm:px-4 lg:px-6 py-3 bg-white border-b border-gray-100 shrink-0">
           {actionButtons}
         </div>
         {body}

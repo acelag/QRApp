@@ -268,18 +268,10 @@ export function LocationsPage() {
       </div>
 
       {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <AdminHeader title="Locations & QR Codes" backTo="/admin">
-        <button
-          onClick={activeTab === 'tables' ? printAllTables : printAllRooms}
-          disabled={activeTab === 'tables' ? tables.length === 0 : rooms.length === 0}
-          className="flex items-center gap-1.5 text-sm bg-gray-800 text-white px-3 py-1.5 rounded-full font-medium hover:bg-gray-900 transition-colors disabled:opacity-40"
-        >
-          <Printer size={14} /> Print All
-        </button>
-      </AdminHeader>
+      <AdminHeader title="Locations & QR Codes" backTo="/admin" />
 
-      {/* Tab switcher */}
-      <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pb-3 flex gap-2">
+      {/* Tab switcher — with Print All on the same row (right-aligned) */}
+      <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex items-center gap-2">
         <button
           onClick={() => switchTab('tables')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
@@ -308,6 +300,14 @@ export function LocationsPage() {
           <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
             activeTab === 'rooms' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
           }`}>{rooms.length}</span>
+        </button>
+
+        <button
+          onClick={activeTab === 'tables' ? printAllTables : printAllRooms}
+          disabled={activeTab === 'tables' ? tables.length === 0 : rooms.length === 0}
+          className="ml-auto flex items-center gap-1.5 text-sm bg-gray-800 text-white px-3 py-1.5 rounded-full font-medium hover:bg-gray-900 transition-colors disabled:opacity-40"
+        >
+          <Printer size={14} /> Print All
         </button>
       </div>
 

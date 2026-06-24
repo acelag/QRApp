@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { MenuSetupPanel } from './MenuSetupPage';
 import { CombosPanel } from './CombosPage';
 import { MenuSchedulesPanel } from './MenuSchedulesPage';
-import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List, FlaskConical } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Check, ChevronDown, ChevronUp, Package, AlertTriangle, Download, Upload, GripVertical, Copy, Eye, EyeOff, Search, ExternalLink, LayoutGrid, List, FlaskConical, UtensilsCrossed, Tags, Boxes, CalendarClock } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Topping, ModifierOption } from '../../types/MenuItem';
 import { menuService } from '../../services/menuService';
@@ -59,11 +59,11 @@ const EMPTY: Omit<MenuItem, 'id'> = {
 
 type MenuTab = 'items' | 'setup' | 'combos' | 'schedules';
 
-const MENU_TABS: { id: MenuTab; label: string }[] = [
-  { id: 'items',     label: 'Menu Items' },
-  { id: 'setup',     label: 'Categories & Tags' },
-  { id: 'combos',    label: 'Combos' },
-  { id: 'schedules', label: 'Schedules' },
+const MENU_TABS: { id: MenuTab; label: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
+  { id: 'items',     label: 'Menu Items',        Icon: UtensilsCrossed },
+  { id: 'setup',     label: 'Categories & Tags', Icon: Tags },
+  { id: 'combos',    label: 'Combos',            Icon: Boxes },
+  { id: 'schedules', label: 'Schedules',         Icon: CalendarClock },
 ];
 
 export function MenuItemsPage() {
@@ -421,52 +421,66 @@ export function MenuItemsPage() {
       {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Menu" backTo="/admin">
-        {activeTab === 'items' && (<>
-          {user?.restaurantId && (
-            <a
-              href={`/takeaway/${user.restaurantId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Preview menu as customer"
-              className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
-            >
-              <ExternalLink size={17} />
-            </a>
-          )}
-          <button
-            onClick={() => setReorderMode((m) => !m)}
-            title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
-            className={`p-2 rounded-xl transition-colors ${reorderMode ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
-          >
-            <GripVertical size={17} />
-          </button>
-          <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
-            <Download size={17} />
-          </button>
-          <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors disabled:opacity-50">
-            {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
-          </button>
-          <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-          <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors">
-            <Plus size={14} /> Add Item
-          </button>
-        </>)}
-      </AdminHeader>
+      <AdminHeader title="Menu" backTo="/admin" />
 
-      {/* Tab bar */}
-      <div className="flex border-b border-gray-200 bg-white px-4 overflow-x-auto">
-        {MENU_TABS.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === tab.id
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}>
-            {tab.label}
-          </button>
-        ))}
+      {/* Tab bar (pill style) — with the items action toolbar on the same row */}
+      <div className="flex items-center gap-2 bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3">
+        <div className="flex gap-2 overflow-x-auto">
+          {MENU_TABS.map((tab) => {
+            const active = activeTab === tab.id;
+            const count = tab.id === 'items' ? items.length : tab.id === 'setup' ? categories.length : null;
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+                  active
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}>
+                <tab.Icon size={15} />
+                {tab.label}
+                {count != null && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                    active ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
+                  }`}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeTab === 'items' && (
+          <div className="ml-auto flex items-center gap-1 py-1.5">
+            {user?.restaurantId && (
+              <a
+                href={`/takeaway/${user.restaurantId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Preview menu as customer"
+                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
+              >
+                <ExternalLink size={17} />
+              </a>
+            )}
+            <button
+              onClick={() => setReorderMode((m) => !m)}
+              title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
+              className={`p-2 rounded-xl transition-colors ${reorderMode ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
+            >
+              <GripVertical size={17} />
+            </button>
+            <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
+              <Download size={17} />
+            </button>
+            <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors disabled:opacity-50">
+              {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+            </button>
+            <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+            <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
+              <Plus size={14} /> Add Item
+            </button>
+          </div>
+        )}
       </div>
 
       {activeTab === 'setup'     && <MenuSetupPanel />}

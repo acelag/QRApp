@@ -30,22 +30,25 @@ export function FloorPage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden mt-14 md:mt-0">
         <AdminHeader title="Floor" backTo="/admin" />
 
-        {/* Tab bar */}
-        <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 flex gap-1 shrink-0">
-          {TABS.map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              onClick={() => switchTab(key)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
-                tab === key
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon size={15} />
-              {label}
-            </button>
-          ))}
+        {/* Tab bar (pill style) */}
+        <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex items-center gap-2 overflow-x-auto shrink-0">
+          {TABS.map(({ key, label, Icon }) => {
+            const active = tab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => switchTab(key)}
+                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+                  active
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                <Icon size={15} />
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab content — each panel scrolls internally */}

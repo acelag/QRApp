@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
@@ -14,6 +14,7 @@ import { NavModeProvider, useNavMode } from './context/NavModeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InstallPrompt } from './components/InstallPrompt';
 import { OfflineBanner } from './components/OfflineBanner';
+import { DeployFooter } from './components/DeployFooter';
 import { offlineQueue } from './services/offlineQueue';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { stockService } from './services/stockService';
@@ -74,6 +75,20 @@ const LoyaltyPage          = lazy(() => import('./pages/admin/LoyaltyPage').then
 const FloorPlanPage        = lazy(() => import('./pages/admin/FloorPlanPage').then(m => ({ default: m.FloorPlanPage })));
 const FloorPage            = lazy(() => import('./pages/admin/FloorPage').then(m => ({ default: m.FloorPage })));
 const FinancePage          = lazy(() => import('./pages/admin/FinancePage').then(m => ({ default: m.FinancePage })));
+
+// Staff-only deploy ribbon: shown on admin/kitchen/receipt routes, hidden on
+// the public customer QR-ordering flow and marketing pages.
+function DeployRibbon() {
+  const { pathname } = useLocation();
+  const STAFF_PREFIXES = ['/admin', '/kitchen', '/receipt', '/kitchen-ticket', '/session-receipt'];
+  const show = STAFF_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p));
+  if (!show) return null;
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-40 flex justify-center pointer-events-none">
+      <DeployFooter className="bg-white border border-b-0 border-gray-100 rounded-t-lg px-3 py-1 shadow-sm" />
+    </div>
+  );
+}
 
 function PageLoader() {
   return (
@@ -198,6 +213,9 @@ export default function App() {
           <OfflineSyncManager />
           <LowStockChecker />
           <InstallPrompt />
+          {/* Tiny deploy-status ribbon pinned to the bottom — staff routes only
+              (pointer-events-none so it never blocks taps on content below). */}
+          <DeployRibbon />
           <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Root redirect */}
