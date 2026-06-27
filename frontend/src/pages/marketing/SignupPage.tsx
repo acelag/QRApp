@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { QrCode, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSubscriptionConfig } from '../../context/SubscriptionConfigContext';
 import type { PlanCode } from '../../services/subscriptionService';
@@ -47,8 +47,8 @@ export function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex flex-col items-center justify-center px-5 py-10">
       <Link to="/" className="flex items-center gap-2 font-extrabold text-gray-900 text-xl mb-6">
-        <span className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center"><QrCode size={20} /></span>
-        QRApp
+        <img src="/orderlive-icon.png" alt="Order Live" className="w-9 h-9 object-contain" />
+        Order Live
       </Link>
 
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-7">
